@@ -68,7 +68,7 @@ app = Flask(__name__)
 app.secret_key = SECRET_KEY
 
 # Global variables for tracking
-app_start_time = datetime.now()
+app_start_time = None
 total_api_requests = 0
 total_items_found = 0
 last_search_time = None
@@ -340,6 +340,9 @@ def run_scheduler():
 
 def main():
     """Main application entry point"""
+    global app_start_time
+    app_start_time = datetime.now()
+    
     logger.info("=== KF Searcher (KS1) Starting ===")
     
     try:
@@ -348,10 +351,15 @@ def main():
         try:
             db.init_database()
             logger.info("Database initialized successfully")
+            # Add log entry to database
+            db.add_log_entry('INFO', 'Database initialized successfully', 'System', 'Database tables created')
         except Exception as e:
             logger.error(f"Database initialization failed: {e}")
             # Try to continue anyway, database might be accessible later
-            db.add_log_entry('ERROR', f'Database initialization failed: {e}', 'System')
+            try:
+                db.add_log_entry('ERROR', f'Database initialization failed: {e}', 'System', 'Database init error')
+            except:
+                pass
         
         # Check configuration
         logger.info("Checking configuration...")
@@ -359,6 +367,9 @@ def main():
         
         if not TELEGRAM_BOT_TOKEN:
             logger.warning("Telegram bot token not configured - notifications will not work")
+            db.add_log_entry('WARNING', 'Telegram bot token not configured', 'System', 'Notifications will not work')
+        else:
+            db.add_log_entry('INFO', 'Telegram bot token configured', 'System', 'Notifications enabled')
         
         # Setup scheduler
         setup_scheduler()
@@ -367,6 +378,7 @@ def main():
         if len(sys.argv) > 1 and sys.argv[1] == 'web':
             # Run web server only
             logger.info(f"Starting web server on {WEB_UI_HOST}:{WEB_UI_PORT}")
+            db.add_log_entry('INFO', f'Starting web server on {WEB_UI_HOST}:{WEB_UI_PORT}', 'System', 'Web server mode')
             
             # Import and setup web UI
             from web_ui_plugin.app import create_app
