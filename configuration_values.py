@@ -36,8 +36,45 @@ MAX_ERRORS_BEFORE_REDEPLOY = int(os.getenv('MAX_ERRORS_BEFORE_REDEPLOY', '5'))
 ERROR_CODES_FOR_REDEPLOY = [403, 404, 429, 500, 502, 503]
 
 # Search Configuration
-SEARCH_INTERVAL = int(os.getenv('SEARCH_INTERVAL', '300'))  # 5 minutes default
-MAX_ITEMS_PER_SEARCH = int(os.getenv('MAX_ITEMS_PER_SEARCH', '50'))
+def get_search_interval():
+    """Get search interval from database or environment"""
+    try:
+        from db import db
+        value = db.get_setting('SEARCH_INTERVAL')
+        return int(value) if value else int(os.getenv('SEARCH_INTERVAL', '300'))
+    except:
+        return int(os.getenv('SEARCH_INTERVAL', '300'))
+
+def get_max_items_per_search():
+    """Get max items per search from database or environment"""
+    try:
+        from db import db
+        value = db.get_setting('MAX_ITEMS_PER_SEARCH')
+        return int(value) if value else int(os.getenv('MAX_ITEMS_PER_SEARCH', '50'))
+    except:
+        return int(os.getenv('MAX_ITEMS_PER_SEARCH', '50'))
+
+def get_telegram_bot_token():
+    """Get telegram bot token from database or environment"""
+    try:
+        from db import db
+        value = db.get_setting('TELEGRAM_BOT_TOKEN')
+        return value if value else os.getenv('TELEGRAM_BOT_TOKEN')
+    except:
+        return os.getenv('TELEGRAM_BOT_TOKEN')
+
+def get_telegram_chat_id():
+    """Get telegram chat id from database or environment"""
+    try:
+        from db import db
+        value = db.get_setting('TELEGRAM_CHAT_ID')
+        return value if value else os.getenv('TELEGRAM_CHAT_ID')
+    except:
+        return os.getenv('TELEGRAM_CHAT_ID')
+
+# Legacy compatibility
+SEARCH_INTERVAL = get_search_interval()
+MAX_ITEMS_PER_SEARCH = get_max_items_per_search()
 
 # Web UI Configuration
 WEB_UI_PORT = int(os.getenv('PORT', '5000'))

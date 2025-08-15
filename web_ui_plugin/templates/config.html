@@ -17,114 +17,109 @@
                 </h5>
             </div>
             <div class="card-body">
-                <!-- System Settings -->
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <h6 class="text-primary">
-                            <i class="bi bi-cpu me-2"></i>System Settings
-                        </h6>
-                        <hr>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="items_per_query" class="form-label">Items Per Query</label>
-                                    <input type="number" class="form-control" id="items_per_query" value="{{ config.get('max_items_per_search', 50) }}" min="1" max="100">
-                                    <div class="form-text">Maximum number of items to fetch per query</div>
+                <form id="configForm">
+                    <!-- System Settings -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="text-primary">
+                                <i class="bi bi-cpu me-2"></i>System Settings
+                            </h6>
+                            <hr>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="items_per_query" class="form-label">Items Per Query</label>
+                                        <input type="number" class="form-control" id="items_per_query" 
+                                               value="{{ config.get('max_items_per_search', 50) }}" min="1" max="100">
+                                        <div class="form-text">Maximum number of items to fetch per query</div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="query_refresh_delay" class="form-label">Query Refresh Delay (seconds)</label>
-                                    <input type="number" class="form-control" id="query_refresh_delay" value="{{ config.get('search_interval', 300) }}" min="10" max="3600">
-                                    <div class="form-text">Delay between query refreshes in seconds</div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="query_refresh_delay" class="form-label">Query Refresh Delay (seconds)</label>
+                                        <input type="number" class="form-control" id="query_refresh_delay" 
+                                               value="{{ config.get('search_interval', 300) }}" min="10" max="3600">
+                                        <div class="form-text">Delay between query refreshes in seconds</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Telegram Bot -->
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <h6 class="text-primary">
-                            <i class="bi bi-telegram me-2"></i>Telegram Bot
-                        </h6>
-                        <hr>
-                        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-check form-switch mb-3">
-                                    <input class="form-check-input" type="checkbox" id="auto_start" checked>
-                                    <label class="form-check-label" for="auto_start">
-                                        Auto Start
-                                    </label>
+                    <!-- Telegram Bot -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="text-primary">
+                                <i class="bi bi-telegram me-2"></i>Telegram Bot
+                            </h6>
+                            <hr>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="bot_token" class="form-label">Bot Token</label>
+                                        <input type="password" class="form-control" id="bot_token" 
+                                               placeholder="Enter your bot token from @BotFather">
+                                        <div class="form-text">Get this from BotFather</div>
+                                    </div>
                                 </div>
                                 
-                                <div class="mb-3">
-                                    <label for="bot_token" class="form-label">Bot Token</label>
-                                    <input type="password" class="form-control" id="bot_token" 
-                                           value="***HIDDEN***" readonly>
-                                    <div class="form-text">Get this from BotFather</div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="chat_id" class="form-label">Chat ID</label>
+                                        <input type="text" class="form-control" id="chat_id" 
+                                               placeholder="Enter chat ID for notifications">
+                                        <div class="form-text">The chat ID where notifications will be sent</div>
+                                    </div>
                                 </div>
                             </div>
                             
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="chat_id" class="form-label">Chat ID</label>
-                                    <input type="text" class="form-control" id="chat_id" 
-                                           value="***HIDDEN***" readonly>
-                                    <div class="form-text">The chat ID where notifications will be sent</div>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    {% if config.get('telegram_configured', False) %}
-                                        <span class="badge bg-success">Running</span>
-                                        <button class="btn btn-danger btn-sm ms-2" id="stop_bot">Stop</button>
-                                    {% else %}
-                                        <span class="badge bg-warning">Not Configured</span>
-                                        <button class="btn btn-success btn-sm ms-2" id="start_bot">Start</button>
-                                    {% endif %}
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="mb-3">
+                                        <span class="badge bg-{{ 'success' if config.get('telegram_configured', False) else 'secondary' }}">
+                                            {{ 'Running' if config.get('telegram_configured', False) else 'Not Configured' }}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Proxy Settings -->
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <h6 class="text-primary">
-                            <i class="bi bi-shield me-2"></i>Proxy Settings
-                        </h6>
-                        <hr>
-                        
-                        <div class="form-check form-switch mb-3">
-                            <input class="form-check-input" type="checkbox" id="check_proxies" {% if config.get('proxy_enabled', False) %}checked{% endif %}>
-                            <label class="form-check-label" for="check_proxies">
-                                Check Proxies
-                            </label>
-                            <div class="form-text">Verify if proxies are working before using them</div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="proxy_list" class="form-label">Proxy List</label>
-                            <textarea class="form-control" id="proxy_list" rows="5" 
-                                      placeholder="Enter proxy list (one proxy per line)">{% if config.get('proxy_enabled', False) %}82.21.55.84:7348:wtlllndak:9vxcxlvhxvTh
-96.62.148.192:7402:wtlllndak:9vxcxlvhxvTh
-136.0.167.169:7172:wtlllndak:9vxcxlvhxvTh{% endif %}</textarea>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="proxy_list_link" class="form-label">Proxy List Link</label>
-                            <input type="url" class="form-control" id="proxy_list_link" 
-                                   placeholder="URL to fetch proxies from (one proxy per line)">
+                    <!-- Proxy Settings -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="text-primary">
+                                <i class="bi bi-shield me-2"></i>Proxy Settings
+                            </h6>
+                            <hr>
+                            
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="check_proxies">
+                                <label class="form-check-label" for="check_proxies">
+                                    Check Proxies
+                                </label>
+                                <div class="form-text">Verify if proxies are working before using them</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="proxy_list" class="form-label">Proxy List</label>
+                                <textarea class="form-control" id="proxy_list" rows="5" 
+                                          placeholder="Enter proxy list (one proxy per line)"></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="proxy_list_link" class="form-label">Proxy List Link</label>
+                                <input type="url" class="form-control" id="proxy_list_link" 
+                                       placeholder="URL to fetch proxies from (one proxy per line)">
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <button type="button" class="btn btn-success" onclick="saveConfiguration()">
-                    <i class="bi bi-check me-2"></i>Save Configuration
-                </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check me-2"></i>Save Configuration
+                    </button>
+                </form>
             </div>
         </div>
     </div>
@@ -138,38 +133,40 @@
                 <h5 class="mb-0">
                     <i class="bi bi-arrow-clockwise me-2"></i>Railway Auto-Redeploy System
                 </h5>
-                <span class="badge bg-warning">Monitoring</span>
+                <span class="badge bg-{{ 'success' if railway_status.get('status') == 'active' else 'secondary' }}">
+                    {{ railway_status.get('status', 'Unknown').title() }}
+                </span>
             </div>
-            <div class="card-body">
+            <div class="card-body" id="railwayStatusSection">
                 <div class="row">
                     <div class="col-md-6">
                         <h6>HTTP Errors Status</h6>
                         <div class="row text-center mb-3">
                             <div class="col-4">
-                                <div class="text-danger h4">0</div>
+                                <div class="text-danger h4" id="errors403">{{ error_stats.get('403', 0) }}</div>
                                 <small>403 Errors:</small>
                             </div>
                             <div class="col-4">
-                                <div class="text-warning h4">0</div>
+                                <div class="text-warning h4" id="errors401">{{ error_stats.get('401', 0) }}</div>
                                 <small>401 Errors:</small>
                             </div>
                             <div class="col-4">
-                                <div class="text-info h4">1</div>
+                                <div class="text-info h4" id="errors429">{{ error_stats.get('429', 0) }}</div>
                                 <small>429 Errors:</small>
                             </div>
                         </div>
                         
                         <div class="mb-2">
-                            <strong>Total Errors:</strong> <span class="badge bg-secondary">1</span>
+                            <strong>Total Errors:</strong> <span class="badge bg-secondary" id="totalErrors">{{ error_stats.get('total', 0) }}</span>
                         </div>
                         <div class="mb-2">
-                            <strong>First Error:</strong> 15.08.2025, 17:16:25
+                            <strong>First Error:</strong> <span id="firstError">{{ error_stats.get('first_error', 'None') }}</span>
                         </div>
                         <div class="mb-2">
-                            <strong>Last Error:</strong> 15.08.2025, 17:16:25
+                            <strong>Last Error:</strong> <span id="lastError">{{ error_stats.get('last_error', 'None') }}</span>
                         </div>
                         <div class="mb-3">
-                            <strong>Last Redeploy:</strong> 15.08.2025, 16:46:54
+                            <strong>Last Redeploy:</strong> <span id="lastRedeploy">{{ railway_status.get('last_deploy', 'Never') }}</span>
                         </div>
                     </div>
                     
@@ -182,11 +179,14 @@
                             <strong>Min HTTP Errors:</strong> {{ config.get('max_errors_before_redeploy', 5) }}
                         </div>
                         <div class="mb-3">
-                            <strong>Redeploy Needed:</strong> <span class="badge bg-success">No</span>
+                            <strong>Redeploy Needed:</strong> 
+                            <span class="badge bg-{{ 'warning' if error_stats.get('total', 0) >= config.get('max_errors_before_redeploy', 5) else 'success' }}">
+                                {{ 'Yes' if error_stats.get('total', 0) >= config.get('max_errors_before_redeploy', 5) else 'No' }}
+                            </span>
                         </div>
                         
                         <div class="btn-group">
-                            <button class="btn btn-outline-info btn-sm">
+                            <button class="btn btn-outline-info btn-sm" onclick="refreshRailwayStatus()">
                                 <i class="bi bi-arrow-clockwise"></i> Refresh Status
                             </button>
                             <button class="btn btn-warning btn-sm" onclick="forceRedeploy()">
@@ -208,39 +208,54 @@
                 <h5 class="mb-0">
                     <i class="bi bi-shield-check me-2"></i>Proxy System Status
                 </h5>
-                <span class="badge bg-success">Active</span>
+                <span class="badge bg-{{ 'success' if proxy_status.get('status') == 'active' else 'secondary' }}">
+                    {{ proxy_status.get('status', 'Inactive').title() }}
+                </span>
             </div>
-            <div class="card-body">
+            <div class="card-body" id="proxyStatusSection">
                 <div class="row">
                     <div class="col-md-6">
                         <h6>Proxy Configuration</h6>
                         <div class="mb-2">
-                            <strong>Cache Initialized:</strong> <span class="badge bg-success">Yes</span>
+                            <strong>Cache Initialized:</strong> 
+                            <span class="badge bg-{{ 'success' if proxy_status.get('working_proxies', 0) > 0 else 'secondary' }}">
+                                {{ 'Yes' if proxy_status.get('working_proxies', 0) > 0 else 'No' }}
+                            </span>
                         </div>
                         <div class="mb-2">
-                            <strong>Total Cached Proxies:</strong> <span id="proxy_count">{% if config.get('proxy_enabled', False) %}59{% else %}0{% endif %}</span>
+                            <strong>Total Cached Proxies:</strong> <span id="proxyCount">{{ proxy_status.get('total_proxies', 0) }}</span>
                         </div>
                         <div class="mb-2">
-                            <strong>Proxy Validation:</strong> <span class="badge bg-success">Enabled</span>
+                            <strong>Working Proxies:</strong> <span id="workingProxies">{{ proxy_status.get('working_proxies', 0) }}</span>
                         </div>
                         <div class="mb-3">
-                            <strong>Single Proxy Mode:</strong> <span class="badge bg-secondary">No</span>
+                            <strong>Proxy Validation:</strong> 
+                            <span class="badge bg-{{ 'success' if proxy_status.get('working_proxies', 0) > 0 else 'secondary' }}">
+                                {{ 'Enabled' if proxy_status.get('working_proxies', 0) > 0 else 'Disabled' }}
+                            </span>
                         </div>
                     </div>
                     
                     <div class="col-md-6">
                         <h6>Current Status</h6>
                         <div class="mb-2">
-                            <strong>Current Proxy:</strong> <span class="text-muted">Random from 59 proxies (e.g., http://wtlllndak:9vxc...)</span>
+                            <strong>Current Proxy:</strong> 
+                            <span class="text-muted" id="currentProxy">
+                                {% if proxy_status.get('working_proxies', 0) > 0 %}
+                                    Random from {{ proxy_status.get('working_proxies', 0) }} proxies
+                                {% else %}
+                                    No proxies configured
+                                {% endif %}
+                            </span>
                         </div>
                         <div class="mb-2">
-                            <strong>Last Check Time:</strong> 15.08.2025, 19:46:58
+                            <strong>Last Check Time:</strong> <span id="lastCheckTime">{{ proxy_status.get('last_check', 'Never') }}</span>
                         </div>
                         <div class="mb-3">
-                            <strong>Recheck Interval:</strong> 6 hours
+                            <strong>Recheck Interval:</strong> <span id="recheckInterval">6 hours</span>
                         </div>
                         
-                        <button class="btn btn-outline-info btn-sm">
+                        <button class="btn btn-outline-info btn-sm" onclick="refreshProxyStatus()">
                             <i class="bi bi-arrow-clockwise"></i> Refresh Status
                         </button>
                     </div>
@@ -253,12 +268,16 @@
 
 {% block scripts %}
 <script>
-function saveConfiguration() {
+// Save configuration
+document.getElementById('configForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
     const config = {
-        items_per_query: document.getElementById('items_per_query').value,
-        query_refresh_delay: document.getElementById('query_refresh_delay').value,
-        auto_start: document.getElementById('auto_start').checked,
-        check_proxies: document.getElementById('check_proxies').checked,
+        max_items_per_search: parseInt(document.getElementById('items_per_query').value),
+        search_interval: parseInt(document.getElementById('query_refresh_delay').value),
+        telegram_bot_token: document.getElementById('bot_token').value,
+        telegram_chat_id: document.getElementById('chat_id').value,
+        proxy_enabled: document.getElementById('check_proxies').checked,
         proxy_list: document.getElementById('proxy_list').value,
         proxy_list_link: document.getElementById('proxy_list_link').value
     };
@@ -274,6 +293,7 @@ function saveConfiguration() {
     .then(data => {
         if (data.success) {
             showAlert('Configuration saved successfully!', 'success');
+            setTimeout(() => location.reload(), 1000);
         } else {
             showAlert('Failed to save configuration: ' + data.error, 'danger');
         }
@@ -281,8 +301,9 @@ function saveConfiguration() {
     .catch(error => {
         showAlert('Error saving configuration: ' + error.message, 'danger');
     });
-}
+});
 
+// Force redeploy
 function forceRedeploy() {
     if (confirm('Are you sure you want to force redeploy? This will restart the application.')) {
         fetch('/api/redeploy', {
@@ -305,58 +326,59 @@ function forceRedeploy() {
     }
 }
 
-// Stop bot functionality
-document.getElementById('stop_bot').addEventListener('click', function() {
-    if (confirm('Are you sure you want to stop the bot?')) {
-        fetch('/api/bot/stop', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
+// Refresh Railway status
+function refreshRailwayStatus() {
+    fetch('/api/railway/status')
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                showAlert('Bot stopped successfully!', 'success');
-                this.textContent = 'Start';
-                this.classList.remove('btn-danger');
-                this.classList.add('btn-success');
-                this.previousElementSibling.textContent = 'Stopped';
-                this.previousElementSibling.classList.remove('bg-success');
-                this.previousElementSibling.classList.add('bg-danger');
-            } else {
-                showAlert('Failed to stop bot: ' + data.error, 'danger');
+                updateRailwayStatus(data.status);
+                showAlert('Railway status refreshed', 'success');
             }
         })
         .catch(error => {
-            showAlert('Error stopping bot: ' + error.message, 'danger');
+            console.error('Error refreshing Railway status:', error);
         });
-    }
-});
+}
 
-// Add country functionality
-document.getElementById('add_country_btn').addEventListener('click', function() {
-    const countryInput = document.getElementById('add_country');
-    const country = countryInput.value.toUpperCase().trim();
-    
-    if (country.length === 2) {
-        // Add to UI
-        const countryList = document.querySelector('.country-list');
-        const countryDiv = document.createElement('div');
-        countryDiv.className = 'd-flex justify-content-between align-items-center mb-2';
-        countryDiv.innerHTML = `
-            <span class="badge bg-secondary">${country}</span>
-            <button class="btn btn-sm btn-outline-danger" onclick="this.parentElement.remove()">
-                <i class="bi bi-x"></i>
-            </button>
-        `;
-        countryList.appendChild(countryDiv);
-        countryInput.value = '';
-        
-        showAlert('Country added successfully!', 'success');
-    } else {
-        showAlert('Please enter a valid 2-letter country code', 'warning');
-    }
-});
+// Refresh Proxy status
+function refreshProxyStatus() {
+    fetch('/api/proxy/status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateProxyStatus(data.status);
+                showAlert('Proxy status refreshed', 'success');
+            }
+        })
+        .catch(error => {
+            console.error('Error refreshing proxy status:', error);
+        });
+}
+
+// Update Railway status display
+function updateRailwayStatus(status) {
+    document.getElementById('errors403').textContent = status.errors['403'] || 0;
+    document.getElementById('errors401').textContent = status.errors['401'] || 0;
+    document.getElementById('errors429').textContent = status.errors['429'] || 0;
+    document.getElementById('totalErrors').textContent = status.total_errors || 0;
+    document.getElementById('firstError').textContent = status.first_error || 'None';
+    document.getElementById('lastError').textContent = status.last_error || 'None';
+    document.getElementById('lastRedeploy').textContent = status.last_redeploy || 'Never';
+}
+
+// Update Proxy status display
+function updateProxyStatus(status) {
+    document.getElementById('proxyCount').textContent = status.total_proxies || 0;
+    document.getElementById('workingProxies').textContent = status.working_proxies || 0;
+    document.getElementById('currentProxy').textContent = status.current_proxy || 'No proxies configured';
+    document.getElementById('lastCheckTime').textContent = status.last_check || 'Never';
+}
+
+// Auto-refresh status every 30 seconds
+setInterval(() => {
+    refreshRailwayStatus();
+    refreshProxyStatus();
+}, 30000);
 </script>
 {% endblock %}

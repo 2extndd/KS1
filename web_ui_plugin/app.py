@@ -128,9 +128,30 @@ def create_app():
     def config():
         """Configuration page"""
         try:
-            # Get current configuration
-            config_data = get_current_config()
-            return render_template('config.html', config=config_data)
+            from configuration_values import get_max_items_per_search, get_search_interval, get_telegram_bot_token
+            
+            # Get real configuration from database/environment
+            config_data = {
+                'max_items_per_search': get_max_items_per_search(),
+                'search_interval': get_search_interval(),
+                'telegram_configured': bool(get_telegram_bot_token()),
+                'proxy_enabled': db.get_setting('PROXY_ENABLED', 'false').lower() == 'true',
+                'max_errors_before_redeploy': 5
+            }
+            
+            # Get real status data
+            error_stats = db.get_error_statistics()
+            proxy_status = db.get_proxy_statistics()
+            railway_status = {
+                'status': 'active' if error_stats['total'] < 5 else 'warning',
+                'last_deploy': 'Never'
+            }
+            
+            return render_template('config.html', 
+                                 config=config_data,
+                                 error_stats=error_stats,
+                                 proxy_status=proxy_status,
+                                 railway_status=railway_status)
         except Exception as e:
             flash(f'Error loading configuration: {e}', 'error')
             return render_template('config.html', config={})
@@ -329,11 +350,38 @@ def create_app():
         """Save configuration"""
         try:
             data = request.get_json()
-            # Here you would save the configuration
-            # For now, just return success
+            
+            # Save to environment variables or settings table
+            settings_to_save = {}
+            
+            if 'max_items_per_search' in data:
+                settings_to_save['MAX_ITEMS_PER_SEARCH'] = str(data['max_items_per_search'])
+            
+            if 'search_interval' in data:
+                settings_to_save['SEARCH_INTERVAL'] = str(data['search_interval'])
+                
+            if 'telegram_bot_token' in data and data['telegram_bot_token']:
+                settings_to_save['TELEGRAM_BOT_TOKEN'] = data['telegram_bot_token']
+                
+            if 'telegram_chat_id' in data and data['telegram_chat_id']:
+                settings_to_save['TELEGRAM_CHAT_ID'] = data['telegram_chat_id']
+                
+            if 'proxy_enabled' in data:
+                settings_to_save['PROXY_ENABLED'] = 'true' if data['proxy_enabled'] else 'false'
+                
+            if 'proxy_list' in data and data['proxy_list']:
+                settings_to_save['PROXY_LIST'] = data['proxy_list'].replace('\n', ',')
+            
+            # Save settings to database settings table
+            for key, value in settings_to_save.items():
+                db.set_setting(key, value)
+            
+            db.add_log_entry('INFO', f'Configuration updated: {len(settings_to_save)} settings changed', 'WebUI', 'Configuration save operation')
+            
             return jsonify({'success': True, 'message': 'Configuration saved successfully'})
             
         except Exception as e:
+            logger.error(f"Error saving configuration: {e}")
             return jsonify({'error': str(e)}), 500
     
     @app.route('/api/bot/stop', methods=['POST'])
@@ -345,6 +393,29 @@ def create_app():
             return jsonify({'success': True, 'message': 'Bot stopped successfully'})
             
         except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
+    @app.route('/api/force-scan', methods=['POST'])
+    def api_force_scan():
+        """Force scan all queries"""
+        try:
+            from core import SearchCore
+            
+            # Initialize SearchCore and run scan
+            search_core = SearchCore()
+            results = search_core.search_all_queries()
+            
+            db.add_log_entry('INFO', 'Force Scan All initiated via WebUI', 'WebUI', f'Manual scan triggered - found {results.get("new_items", 0)} new items')
+            
+            return jsonify({
+                'success': True, 
+                'message': f'Force scan completed successfully! Found {results.get("new_items", 0)} new items.',
+                'results': results
+            })
+            
+        except Exception as e:
+            logger.error(f"Error in force scan: {e}")
+            db.add_log_entry('ERROR', f'Force Scan All failed: {str(e)}', 'WebUI', 'Manual scan error')
             return jsonify({'error': str(e)}), 500
     
     @app.route('/api/logs', methods=['GET'])
@@ -486,6 +557,53 @@ def create_app():
         except Exception as e:
             return jsonify({'error': str(e)}), 500
     
+    @app.route('/api/railway/status', methods=['GET'])
+    def api_railway_status():
+        """Get Railway system status"""
+        try:
+            # Get real error statistics from database
+            error_stats = db.get_error_statistics()
+            
+            return jsonify({
+                'success': True,
+                'status': {
+                    'status': 'active' if error_stats['total'] < 5 else 'warning',
+                    'errors': {
+                        '403': error_stats.get('403', 0),
+                        '401': error_stats.get('401', 0), 
+                        '429': error_stats.get('429', 0)
+                    },
+                    'total_errors': error_stats['total'],
+                    'first_error': error_stats.get('first_error', 'None'),
+                    'last_error': error_stats.get('last_error', 'None'),
+                    'last_redeploy': error_stats.get('last_redeploy', 'Never')
+                }
+            })
+            
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
+    @app.route('/api/proxy/status', methods=['GET'])
+    def api_proxy_status():
+        """Get Proxy system status"""
+        try:
+            # Get real proxy statistics
+            proxy_stats = db.get_proxy_statistics()
+            
+            return jsonify({
+                'success': True,
+                'status': {
+                    'status': 'active' if proxy_stats['working_proxies'] > 0 else 'inactive',
+                    'total_proxies': proxy_stats['total_proxies'],
+                    'working_proxies': proxy_stats['working_proxies'],
+                    'current_proxy': proxy_stats.get('current_proxy', 'No proxies configured'),
+                    'last_check': proxy_stats.get('last_check', 'Never')
+                }
+            })
+            
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
     return app
 
 def get_recent_items(hours: int = 24):

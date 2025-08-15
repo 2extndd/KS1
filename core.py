@@ -12,7 +12,7 @@ from urllib.parse import urlparse, parse_qs
 from pyKufarVN import Kufar, KufarException, KufarAPIException
 from db import db
 from configuration_values import (
-    MAX_ITEMS_PER_SEARCH,
+    get_max_items_per_search,
     ERROR_CODES_FOR_REDEPLOY,
     KF_REGIONS,
     KF_CATEGORIES
@@ -150,7 +150,7 @@ class KufarSearcher:
             # Search using Kufar API
             items = self.kufar_client.items.search(
                 query_url=search['url'],
-                max_items=MAX_ITEMS_PER_SEARCH
+                max_items=get_max_items_per_search()
             )
             
             return items

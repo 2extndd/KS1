@@ -15,7 +15,7 @@ from flask import Flask
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from configuration_values import (
-    SEARCH_INTERVAL,
+    get_search_interval,
     LOG_LEVEL,
     LOG_FILE,
     WEB_UI_HOST,
@@ -263,7 +263,7 @@ def setup_scheduler():
     """Setup scheduled tasks"""
     try:
         # Schedule main search task
-        interval_minutes = SEARCH_INTERVAL // 60
+        interval_minutes = get_search_interval() // 60
         schedule.every(interval_minutes).minutes.do(search_and_notify)
         
         # Schedule proxy refresh (every 2 hours)
@@ -377,9 +377,10 @@ def main():
         
         # Check configuration
         logger.info("Checking configuration...")
-        from configuration_values import TELEGRAM_BOT_TOKEN
+        from configuration_values import get_telegram_bot_token
         
-        if not TELEGRAM_BOT_TOKEN:
+        telegram_bot_token = get_telegram_bot_token()
+        if not telegram_bot_token:
             logger.warning("Telegram bot token not configured - notifications will not work")
             db.add_log_entry('WARNING', 'Telegram bot token not configured', 'System', 'Notifications will not work')
         else:

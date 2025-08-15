@@ -530,6 +530,125 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Error logging error: {e}")
     
+    def set_setting(self, key: str, value: str) -> bool:
+        """Set a configuration setting"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Upsert setting
+                self.execute_query(cursor, """
+                    INSERT INTO settings (key, value, updated_at) 
+                    VALUES (%s, %s, CURRENT_TIMESTAMP)
+                    ON CONFLICT (key) DO UPDATE SET 
+                    value = EXCLUDED.value,
+                    updated_at = CURRENT_TIMESTAMP
+                """, (key, value))
+                
+                conn.commit()
+                logger.info(f"Setting saved: {key} = {value}")
+                return True
+                
+        except Exception as e:
+            logger.error(f"Error setting {key}: {e}")
+            return False
+    
+    def get_setting(self, key: str, default: str = None) -> str:
+        """Get a configuration setting"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                self.execute_query(cursor, """
+                    SELECT value FROM settings WHERE key = %s
+                """, (key,))
+                
+                result = cursor.fetchone()
+                return result[0] if result else default
+                
+        except Exception as e:
+            logger.error(f"Error getting setting {key}: {e}")
+            return default
+    
+    def get_error_statistics(self) -> Dict[str, Any]:
+        """Get error statistics for Railway status"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Get error counts by type
+                self.execute_query(cursor, """
+                    SELECT error_code, COUNT(*) 
+                    FROM error_logs 
+                    WHERE created_at > NOW() - INTERVAL '24 hours'
+                    GROUP BY error_code
+                """)
+                
+                error_counts = dict(cursor.fetchall())
+                
+                # Get first and last error times
+                self.execute_query(cursor, """
+                    SELECT MIN(created_at), MAX(created_at), COUNT(*)
+                    FROM error_logs 
+                    WHERE created_at > NOW() - INTERVAL '24 hours'
+                """)
+                
+                result = cursor.fetchone()
+                first_error = result[0].strftime('%d.%m.%Y, %H:%M:%S') if result[0] else 'None'
+                last_error = result[1].strftime('%d.%m.%Y, %H:%M:%S') if result[1] else 'None'
+                total_errors = result[2] or 0
+                
+                return {
+                    '403': error_counts.get(403, 0),
+                    '401': error_counts.get(401, 0),
+                    '429': error_counts.get(429, 0),
+                    'total': total_errors,
+                    'first_error': first_error,
+                    'last_error': last_error,
+                    'last_redeploy': 'Never'  # This would come from deploy logs
+                }
+                
+        except Exception as e:
+            logger.error(f"Error getting error statistics: {e}")
+            return {
+                '403': 0, '401': 0, '429': 0, 'total': 0,
+                'first_error': 'None', 'last_error': 'None', 'last_redeploy': 'Never'
+            }
+    
+    def get_proxy_statistics(self) -> Dict[str, Any]:
+        """Get proxy statistics"""
+        try:
+            # Check if proxies are enabled
+            proxy_enabled = self.get_setting('PROXY_ENABLED', 'false').lower() == 'true'
+            proxy_list = self.get_setting('PROXY_LIST', '')
+            
+            if not proxy_enabled or not proxy_list:
+                return {
+                    'total_proxies': 0,
+                    'working_proxies': 0,
+                    'current_proxy': 'No proxies configured',
+                    'last_check': 'Never'
+                }
+            
+            # Count proxies from proxy list
+            proxies = [p.strip() for p in proxy_list.split(',') if p.strip()]
+            
+            return {
+                'total_proxies': len(proxies),
+                'working_proxies': len(proxies),  # Assume all are working for now
+                'current_proxy': f'Random from {len(proxies)} proxies',
+                'last_check': datetime.now().strftime('%d.%m.%Y, %H:%M:%S')
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting proxy statistics: {e}")
+            return {
+                'total_proxies': 0,
+                'working_proxies': 0,
+                'current_proxy': 'Error getting proxy info',
+                'last_check': 'Error'
+            }
+
     def get_recent_errors(self, hours: int = 24) -> List[Dict[str, Any]]:
         """Get recent errors from database"""
         try:

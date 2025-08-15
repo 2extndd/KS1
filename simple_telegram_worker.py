@@ -12,14 +12,16 @@ from telegram.error import TelegramError, RetryAfter, TimedOut
 from telegram.constants import ParseMode
 
 from db import db
-from configuration_values import TELEGRAM_BOT_TOKEN
+from configuration_values import get_telegram_bot_token, get_telegram_chat_id
 
 logger = logging.getLogger(__name__)
 
 class TelegramWorker:
     """Handles sending Telegram notifications for new Kufar items"""
     
-    def __init__(self, bot_token: str = TELEGRAM_BOT_TOKEN):
+    def __init__(self, bot_token: str = None):
+        if not bot_token:
+            bot_token = get_telegram_bot_token()
         if not bot_token:
             raise ValueError("Telegram bot token is required")
         
@@ -289,7 +291,7 @@ class TelegramWorker:
 def send_notifications():
     """Synchronous wrapper for sending notifications"""
     try:
-        if not TELEGRAM_BOT_TOKEN:
+        if not get_telegram_bot_token():
             logger.error("Telegram bot token not configured")
             return {'error': 'Bot token not configured'}
         
