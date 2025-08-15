@@ -81,7 +81,12 @@
                                     Query 
                                     <i class="bi bi-arrow-down-up ms-1"></i>
                                 </th>
+                                <th style="width: 120px; cursor: pointer;" onclick="sortTable(2)">
+                                    Thread ID 
+                                    <i class="bi bi-arrow-down-up ms-1"></i>
+                                </th>
                                 <th style="width: 150px;">Last Found Item</th>
+                                <th style="width: 80px;">Items</th>
                                 <th style="width: 200px;">Actions</th>
                             </tr>
                         </thead>
@@ -94,10 +99,16 @@
                                         <i class="bi bi-link-45deg me-1"></i>
                                         {{ query.name or query.url|truncate(50) }}
                                     </a>
-                                    {% if query.thread_id and query.thread_id != '' and query.thread_id != '0' %}
-                                    <span class="text-primary fw-bold"> Thread: {{ query.thread_id }}</span>
-                                    {% endif %}
-                                    <span class="text-info fw-bold"> {{ query.items_count or 0 }} items</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <span class="text-primary fw-bold me-2">
+                                            {{ query.telegram_thread_id or '2' }}
+                                        </span>
+                                        <input type="checkbox" class="form-check-input" 
+                                               onclick="editThreadId({{ query.id }})" 
+                                               title="Edit Thread ID">
+                                    </div>
                                 </td>
                                 <td>
                                     <small class="text-muted">
@@ -107,6 +118,9 @@
                                         Never
                                         {% endif %}
                                     </small>
+                                </td>
+                                <td>
+                                    <span class="text-info fw-bold">{{ query.items_count or 0 }}</span>
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm" role="group">

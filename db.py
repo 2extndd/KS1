@@ -667,11 +667,12 @@ class DatabaseManager:
                 cursor = conn.cursor()
                 
                 self.execute_query(cursor, """
-                    SELECT title, created_at, search_name
-                    FROM items 
-                    ORDER BY created_at DESC 
+                    SELECT i.title, i.created_at, s.name as search_name
+                    FROM items i 
+                    LEFT JOIN searches s ON i.search_id = s.id
+                    ORDER BY i.created_at DESC 
                     LIMIT 1
-                """)
+                """, ())
                 
                 result = cursor.fetchone()
                 if result:
@@ -815,6 +816,19 @@ class DatabaseManager:
                 logger.info("All logs cleared")
         except Exception as e:
             logger.error(f"Error clearing logs: {e}")
+    
+    def clear_all_items(self):
+        """Clear all items from database"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                self.execute_query(cursor, "DELETE FROM items", ())
+                conn.commit()
+                logger.info("All items cleared")
+                return True
+        except Exception as e:
+            logger.error(f"Error clearing all items: {e}")
+            return False
     
     def get_recent_logs(self, minutes: int = 60) -> List[Dict[str, Any]]:
         """Get recent log entries"""

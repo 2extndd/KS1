@@ -36,10 +36,10 @@
             <div class="stats-icon">
                 <i class="bi bi-activity"></i>
             </div>
-            <div class="stats-number">{{ db_stats.get('api_requests', 0) }}</div>
+            <div class="stats-number">{{ searcher_status.total_api_requests or 0 }}</div>
             <div class="stats-label">API Requests</div>
             <div class="stats-sublabel">Requests to Kufar since start</div>
-            <div class="stats-sublabel">Uptime: 21m</div>
+            <div class="stats-sublabel">Uptime: {{ searcher_status.uptime or '0s' }}</div>
         </div>
     </div>
     
@@ -49,8 +49,8 @@
                 <i class="bi bi-clock"></i>
             </div>
             <div class="stats-label">Last Found Item</div>
-            <div class="stats-sublabel">{{ last_item.title[:30] if last_item else 'No items yet' }}</div>
-            <div class="stats-sublabel">{{ last_item.created_at.strftime('%Y-%m-%d %H:%M:%S') if last_item and last_item.created_at else 'Never' }}</div>
+            <div class="stats-sublabel">{{ searcher_status.last_found_item.title[:30] if searcher_status.last_found_item else 'No items yet' }}</div>
+            <div class="stats-sublabel">{{ searcher_status.last_found_item.date if searcher_status.last_found_item and searcher_status.last_found_item.date != 'Never' else 'Never' }}</div>
             <a href="#" class="btn btn-sm btn-outline-primary mt-2">
                 <i class="bi bi-eye"></i> View
             </a>
