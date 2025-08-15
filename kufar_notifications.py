@@ -293,31 +293,19 @@ def cleanup_old_data():
             cursor = conn.cursor()
             
             # Clean up old logs (keep last 7 days)
-            if db.is_postgres:
-                cursor.execute("""
-                    DELETE FROM logs 
-                    WHERE created_at < NOW() - INTERVAL %s
-                """, ('7 days',))
-                
-                # Clean up old error tracking (keep last 3 days)
-                cursor.execute("""
-                    DELETE FROM error_tracking 
-                    WHERE created_at < NOW() - INTERVAL %s
-                """, ('3 days',))
-            else:
-                # SQLite version
-                cursor.execute("""
-                    DELETE FROM logs 
-                    WHERE created_at < datetime('now', '-7 days')
-                """)
-                
-                cursor.execute("""
-                    DELETE FROM error_tracking 
-                    WHERE created_at < datetime('now', '-3 days')
-                """)
+            self.execute_query(cursor, """
+                DELETE FROM logs 
+                WHERE created_at < NOW() - INTERVAL %s
+            """, ('7 days',))
+            
+            # Clean up old error tracking (keep last 3 days)
+            self.execute_query(cursor, """
+                DELETE FROM error_tracking 
+                WHERE created_at < NOW() - INTERVAL %s
+            """, ('3 days',))
             
             # Clean up old items (keep last 30 days)
-            cursor.execute("""
+            self.execute_query(cursor, """
                 DELETE FROM items 
                 WHERE created_at < NOW() - INTERVAL %s
                 AND is_sent = TRUE

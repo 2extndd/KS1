@@ -41,7 +41,14 @@ class DatabaseManager:
                 # Try to get from environment
                 self.database_url = os.getenv('DATABASE_URL')
                 if not self.database_url:
-                    raise ValueError("DATABASE_URL not set on Railway. Please set it in Railway environment variables.")
+                    logger.error("🚨 CRITICAL ERROR: DATABASE_URL not set on Railway!")
+                    logger.error("📋 To fix this:")
+                    logger.error("   1. Go to Railway Dashboard")
+                    logger.error("   2. Add PostgreSQL service to your project")
+                    logger.error("   3. Railway will automatically create DATABASE_URL")
+                    logger.error("   4. Or manually set DATABASE_URL in Variables")
+                    logger.error("   5. Redeploy your application")
+                    raise ValueError("DATABASE_URL not set on Railway. Please add PostgreSQL service or set DATABASE_URL manually.")
             logger.info("Forcing PostgreSQL mode for Railway environment")
             logger.info(f"Using database: {self.database_url[:50]}..." if self.database_url else "No database URL")
         
@@ -111,7 +118,7 @@ class DatabaseManager:
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
-                """)
+                """, ())
                 
                 # Create items table (found ads from Kufar)
                 self.execute_query(cursor, """
@@ -133,7 +140,7 @@ class DatabaseManager:
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
-                """)
+                """, ())
                 
                 # Create settings table
                 self.execute_query(cursor, """
@@ -144,7 +151,7 @@ class DatabaseManager:
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
-                """)
+                """, ())
                 
                 # Create error_tracking table for auto-redeploy
                 self.execute_query(cursor, """
@@ -155,22 +162,20 @@ class DatabaseManager:
                         search_id INTEGER REFERENCES searches(id),
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
-                """)
+                """, ())
                 
                 # Create logs table (like in VS5)
                 self.execute_query(cursor, """
                     CREATE TABLE IF NOT EXISTS logs (
                         id SERIAL PRIMARY KEY,
-                        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        level VARCHAR(20) NOT NULL,
                         message TEXT NOT NULL,
                         source VARCHAR(100),
                         details TEXT
                     )
-                """)
+                """, ())
                 
                 conn.commit()
-                logger.info("Database initialized successfully")
+                logger.info("Database initialized successfully", ())
                 
         except Exception as e:
             logger.error(f"Error initializing database: {e}")
@@ -242,7 +247,7 @@ class DatabaseManager:
                 return searches
                 
         except Exception as e:
-            logger.error(f"Error getting active searches: {e}")
+            logger.error(f"Error getting active searches: {e}", ())
             return []
     
     def get_all_searches(self) -> List[Dict]:
@@ -270,7 +275,7 @@ class DatabaseManager:
                 return searches
                 
         except Exception as e:
-            logger.error(f"Error getting all searches: {e}")
+            logger.error(f"Error getting all searches: {e}", ())
             return []
     
     def get_search_query(self, search_id: int) -> Optional[Dict[str, Any]]:
@@ -298,7 +303,7 @@ class DatabaseManager:
                 return None
                 
         except Exception as e:
-            logger.error(f"Error getting search query: {e}")
+            logger.error(f"Error getting search query: {e}", ())
             return None
     
     def update_search_query(self, search_id: int, **kwargs) -> bool:
@@ -348,12 +353,12 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                self.execute_query(cursor, "DELETE FROM searches")
+                self.execute_query(cursor, "DELETE FROM searches", ())
                 conn.commit()
                 return True
                 
         except Exception as e:
-            logger.error(f"Error deleting all search queries: {e}")
+            logger.error(f"Error deleting all search queries: {e}", ())
             return False
     
     def delete_search_query(self, search_id: int) -> bool:
@@ -366,7 +371,7 @@ class DatabaseManager:
                 return cursor.rowcount > 0
                 
         except Exception as e:
-            logger.error(f"Error deleting search query: {e}")
+            logger.error(f"Error deleting search query: {e}", ())
             return False
     
     def add_item(self, item_data: Dict[str, Any], search_id: int = None) -> int:
@@ -382,7 +387,7 @@ class DatabaseManager:
                     """, (item_data['kufar_id'],))
                     
                     if cursor.fetchone():
-                        logger.info(f"Item already exists: {item_data.get('title', 'Unknown')}")
+                        logger.info(f"Item already exists: {item_data.get('title', 'Unknown')}", ())
                         return 0
                 
                 # Insert new item
@@ -409,7 +414,7 @@ class DatabaseManager:
                 
                 item_id = cursor.fetchone()[0]
                 conn.commit()
-                logger.info(f"Added new item: {item_data.get('title', 'Unknown')} (ID: {item_id})")
+                logger.info(f"Added new item: {item_data.get('title', 'Unknown')} (ID: {item_id})", ())
                 return item_id
                 
         except Exception as e:
@@ -421,13 +426,13 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                self.execute_query(cursor, """
                     SELECT i.*, s.telegram_chat_id, s.telegram_thread_id, s.name as search_name
                     FROM items i
                     JOIN searches s ON i.search_id = s.id
                     WHERE i.is_sent = FALSE
                     ORDER BY i.created_at ASC
-                """)
+                """, ())
                 
                 columns = [desc[0] for desc in cursor.description]
                 items = [dict(zip(columns, row)) for row in cursor.fetchall()]
@@ -455,7 +460,7 @@ class DatabaseManager:
                     WHERE id = %s
                 """, (item_id,))
                 conn.commit()
-                logger.debug(f"Marked item {item_id} as sent")
+                logger.debug(f"Marked item {item_id} as sent", ())
                 
         except Exception as e:
             logger.error(f"Error marking item as sent: {e}")
@@ -479,7 +484,7 @@ class DatabaseManager:
                 """, ('ERROR', error_message, 'search', str(error_code)))
                 
                 conn.commit()
-                logger.error(f"Logged error {error_code}: {error_message}")
+                logger.error(f"Logged error {error_code}: {error_message}", ())
                 
         except Exception as e:
             logger.error(f"Error logging error: {e}")
@@ -489,6 +494,7 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
+                # On Railway, always use PostgreSQL
                 self.execute_query(cursor, """
                     SELECT * FROM error_tracking
                     WHERE created_at >= NOW() - INTERVAL %s
@@ -501,7 +507,7 @@ class DatabaseManager:
                 return errors
                 
         except Exception as e:
-            logger.error(f"Error getting recent errors: {e}")
+            logger.error(f"Error getting recent errors: {e}", ())
             return []
     
     def get_items_stats(self) -> Dict[str, Any]:
@@ -513,28 +519,28 @@ class DatabaseManager:
                 stats = {}
                 
                 # Total items
-                self.execute_query(cursor, "SELECT COUNT(*) FROM items")
+                self.execute_query(cursor, "SELECT COUNT(*) FROM items", ())
                 stats['total_items'] = cursor.fetchone()[0]
                 
                 # Items today
                 self.execute_query(cursor, """
                     SELECT COUNT(*) FROM items 
                     WHERE DATE(created_at) = CURRENT_DATE
-                """)
+                """, ())
                 stats['items_today'] = cursor.fetchone()[0]
                 
                 # Unsent items
-                self.execute_query(cursor, "SELECT COUNT(*) FROM items WHERE is_sent = FALSE")
+                self.execute_query(cursor, "SELECT COUNT(*) FROM items WHERE is_sent = FALSE", ())
                 stats['unsent_items'] = cursor.fetchone()[0]
                 
                 # Active searches
-                self.execute_query(cursor, "SELECT COUNT(*) FROM searches WHERE is_active = TRUE")
+                self.execute_query(cursor, "SELECT COUNT(*) FROM searches WHERE is_active = TRUE", ())
                 stats['active_searches'] = cursor.fetchone()[0]
                 
                 return stats
                 
         except Exception as e:
-            logger.error(f"Error getting stats: {e}")
+            logger.error(f"Error getting stats: {e}", ())
             return {}
     
     def add_log_entry(self, level: str, message: str, source: str = None, details: str = None):
@@ -542,7 +548,7 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                self.execute_query(cursor, """
                     INSERT INTO logs (timestamp, level, message, source, details)
                     VALUES (CURRENT_TIMESTAMP, %s, %s, %s, %s)
                 """, (level, message, source, details))
@@ -582,7 +588,7 @@ class DatabaseManager:
                     })
                 return logs
         except Exception as e:
-            logger.error(f"Error getting logs: {e}")
+            logger.error(f"Error getting logs: {e}", ())
             return []
 
     def clear_logs(self):
@@ -590,9 +596,9 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                self.execute_query(cursor, "DELETE FROM logs")
+                self.execute_query(cursor, "DELETE FROM logs", ())
                 conn.commit()
-                logger.info("All logs cleared")
+                logger.info("All logs cleared", ())
         except Exception as e:
             logger.error(f"Error clearing logs: {e}")
     
@@ -601,6 +607,7 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
+                # On Railway, always use PostgreSQL
                 self.execute_query(cursor, """
                     SELECT timestamp, level, message, source, details
                     FROM logs 
@@ -620,7 +627,7 @@ class DatabaseManager:
                 return logs
                 
         except Exception as e:
-            logger.error(f"Error getting recent logs: {e}")
+            logger.error(f"Error getting recent logs: {e}", ())
             return []
 
 # Global database instance
