@@ -121,11 +121,11 @@ class DatabaseManager:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 
-                # Use PostgreSQL-style parameterized query with $1, $2, etc.
+                # Use standard Python-style parameterized query with %s
                 query = """
                     INSERT INTO searches (name, url, region, category, min_price, max_price, 
                                         keywords, telegram_chat_id, telegram_thread_id, is_active)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id
                 """
                 
@@ -215,7 +215,7 @@ class DatabaseManager:
                            keywords, telegram_chat_id, telegram_thread_id, is_active,
                            created_at, updated_at
                     FROM searches 
-                    WHERE id = $1
+                    WHERE id = %s
                 """, (search_id,))
                 
                 row = cursor.fetchone()
@@ -247,9 +247,8 @@ class DatabaseManager:
                 for key, value in kwargs.items():
                     if key in ['name', 'url', 'region', 'category', 'min_price', 'max_price', 
                               'keywords', 'telegram_chat_id', 'telegram_thread_id', 'is_active']:
-                        set_clauses.append(f"{key} = ${param_count}")
+                        set_clauses.append(f"{key} = %s")
                         values.append(value)
-                        param_count += 1
                 
                 if not set_clauses:
                     return False
@@ -258,7 +257,7 @@ class DatabaseManager:
                 query = f"""
                     UPDATE searches 
                     SET {', '.join(set_clauses)}, updated_at = CURRENT_TIMESTAMP
-                    WHERE id = ${param_count}
+                    WHERE id = %s
                 """
                 
                 cursor.execute(query, values)
@@ -287,7 +286,7 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM searches WHERE id = $1", (search_id,))
+                cursor.execute("DELETE FROM searches WHERE id = %s", (search_id,))
                 conn.commit()
                 return cursor.rowcount > 0
                 
@@ -304,7 +303,7 @@ class DatabaseManager:
                 # Check if item already exists
                 if 'kufar_id' in item_data:
                     cursor.execute("""
-                        SELECT id FROM items WHERE kufar_id = $1
+                        SELECT id FROM items WHERE kufar_id = %s
                     """, (item_data['kufar_id'],))
                     
                     if cursor.fetchone():
@@ -316,7 +315,7 @@ class DatabaseManager:
                     INSERT INTO items (title, url, price, currency, location, created_at, 
                                      images, telegram_chat_id, telegram_thread_id, search_id, 
                                      kufar_id, is_sent)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id
                 """, (
                     item_data.get('title', ''),
@@ -378,7 +377,7 @@ class DatabaseManager:
                 cursor = conn.cursor()
                 cursor.execute("""
                     UPDATE items SET is_sent = TRUE, updated_at = CURRENT_TIMESTAMP
-                    WHERE id = $1
+                    WHERE id = %s
                 """, (item_id,))
                 conn.commit()
                 logger.debug(f"Marked item {item_id} as sent")
@@ -395,13 +394,13 @@ class DatabaseManager:
                 # Add to error_tracking table
                 cursor.execute("""
                     INSERT INTO error_tracking (error_code, error_message, search_id)
-                    VALUES ($1, $2, $3)
+                    VALUES (%s, %s, %s)
                 """, (error_code, error_message, search_id))
                 
                 # Add to logs table
                 cursor.execute("""
                     INSERT INTO logs (level, message, source, details)
-                    VALUES ($1, $2, $3, $4)
+                    VALUES (%s, %s, %s, %s)
                 """, ('ERROR', error_message, 'search', str(error_code)))
                 
                 conn.commit()
@@ -417,7 +416,7 @@ class DatabaseManager:
                 cursor = conn.cursor()
                 cursor.execute("""
                     SELECT * FROM error_tracking
-                    WHERE created_at >= NOW() - INTERVAL $1
+                    WHERE created_at >= NOW() - INTERVAL %s
                     ORDER BY created_at DESC
                 """, (f"{hours} hours",))
                 
@@ -470,7 +469,7 @@ class DatabaseManager:
                 cursor = conn.cursor()
                 cursor.execute("""
                     INSERT INTO logs (timestamp, level, message, source, details)
-                    VALUES (CURRENT_TIMESTAMP, $1, $2, $3, $4)
+                    VALUES (CURRENT_TIMESTAMP, %s, %s, %s, %s)
                 """, (level, message, source, details))
                 conn.commit()
         except Exception as e:
@@ -485,16 +484,16 @@ class DatabaseManager:
                     cursor.execute("""
                         SELECT timestamp, level, message, source, details
                         FROM logs 
-                        WHERE level = $1
+                        WHERE level = %s
                         ORDER BY timestamp DESC 
-                        LIMIT $2
+                        LIMIT %s
                     """, (level, limit))
                 else:
                     cursor.execute("""
                         SELECT timestamp, level, message, source, details
                         FROM logs 
                         ORDER BY timestamp DESC 
-                        LIMIT $1
+                        LIMIT %s
                     """, (limit,))
                 
                 logs = []
@@ -530,7 +529,7 @@ class DatabaseManager:
                 cursor.execute("""
                     SELECT timestamp, level, message, source, details
                     FROM logs 
-                    WHERE timestamp >= NOW() - INTERVAL $1
+                    WHERE timestamp >= NOW() - INTERVAL %s
                     ORDER BY timestamp DESC
                 """, (f"{minutes} minutes",))
                 
