@@ -154,6 +154,16 @@ def create_app():
             flash(f'Error loading logs: {e}', 'error')
             return render_template('logs.html', logs=[], pagination={})
     
+    @app.route('/queries')
+    def queries():
+        """Queries page (like VS5)"""
+        try:
+            queries = db.get_all_searches()  # Get all searches with stats
+            return render_template('queries.html', queries=queries)
+        except Exception as e:
+            flash(f'Error loading queries: {e}', 'error')
+            return render_template('queries.html', queries=[])
+    
     # API Routes
     @app.route('/api/search/test', methods=['POST'])
     def api_test_search():
@@ -316,6 +326,114 @@ def create_app():
             minutes = int(request.args.get('minutes', 5))
             logs = db.get_recent_logs(minutes=minutes)
             return jsonify({'success': True, 'logs': logs})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
+    # Queries API endpoints
+    @app.route('/api/queries/add', methods=['POST'])
+    def api_add_query():
+        """Add new query"""
+        try:
+            data = request.get_json()
+            
+            # Validate required fields
+            if not data.get('url'):
+                return jsonify({'error': 'URL is required'}), 400
+            
+            # Create search query
+            search_data = {
+                'name': data.get('name', ''),
+                'url': data['url'],
+                'telegram_chat_id': os.getenv('TELEGRAM_CHAT_ID'),
+                'telegram_thread_id': data.get('thread_id'),
+                'is_active': True
+            }
+            
+            search_id = db.add_search_query(search_data)
+            if search_id:
+                db.add_log_entry('INFO', f'New query added: {search_data["name"] or search_data["url"]}', 'WebUI')
+                return jsonify({'success': True, 'id': search_id})
+            else:
+                return jsonify({'error': 'Failed to add query'}), 500
+                
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
+    @app.route('/api/queries/<int:query_id>', methods=['GET'])
+    def api_get_query(query_id):
+        """Get single query"""
+        try:
+            query = db.get_search_query(query_id)
+            if query:
+                return jsonify({'success': True, 'query': query})
+            else:
+                return jsonify({'error': 'Query not found'}), 404
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
+    @app.route('/api/queries/<int:query_id>', methods=['PUT'])
+    def api_update_query(query_id):
+        """Update query"""
+        try:
+            data = request.get_json()
+            
+            update_data = {}
+            if 'name' in data:
+                update_data['name'] = data['name']
+            if 'url' in data:
+                update_data['url'] = data['url']
+            if 'thread_id' in data:
+                update_data['telegram_thread_id'] = data['thread_id']
+            
+            success = db.update_search_query(query_id, update_data)
+            if success:
+                db.add_log_entry('INFO', f'Query updated: ID {query_id}', 'WebUI')
+                return jsonify({'success': True})
+            else:
+                return jsonify({'error': 'Failed to update query'}), 500
+                
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
+    @app.route('/api/queries/<int:query_id>', methods=['DELETE'])
+    def api_delete_query(query_id):
+        """Delete query"""
+        try:
+            success = db.delete_search_query(query_id)
+            if success:
+                db.add_log_entry('INFO', f'Query deleted: ID {query_id}', 'WebUI')
+                return jsonify({'success': True})
+            else:
+                return jsonify({'error': 'Failed to delete query'}), 500
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
+    @app.route('/api/queries/<int:query_id>/thread', methods=['PUT'])
+    def api_update_query_thread(query_id):
+        """Update query thread ID"""
+        try:
+            data = request.get_json()
+            thread_id = data.get('thread_id', '')
+            
+            success = db.update_search_query(query_id, {'telegram_thread_id': thread_id})
+            if success:
+                db.add_log_entry('INFO', f'Query thread ID updated: ID {query_id}, Thread: {thread_id}', 'WebUI')
+                return jsonify({'success': True})
+            else:
+                return jsonify({'error': 'Failed to update thread ID'}), 500
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
+    @app.route('/api/queries/all', methods=['DELETE'])
+    def api_delete_all_queries():
+        """Delete all queries"""
+        try:
+            success = db.delete_all_search_queries()
+            if success:
+                db.add_log_entry('WARNING', 'All queries deleted by user', 'WebUI')
+                return jsonify({'success': True})
+            else:
+                return jsonify({'error': 'Failed to delete all queries'}), 500
         except Exception as e:
             return jsonify({'error': str(e)}), 500
     

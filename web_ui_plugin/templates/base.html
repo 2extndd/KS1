@@ -81,8 +81,8 @@
                            href="{{ url_for('dashboard') }}">
                             <i class="bi bi-house-door"></i>Dashboard
                         </a>
-                        <a class="nav-link {% if request.endpoint == 'searches' %}active{% endif %}" 
-                           href="{{ url_for('searches') }}">
+                        <a class="nav-link {% if request.endpoint == 'queries' %}active{% endif %}" 
+                           href="{{ url_for('queries') }}">
                             <i class="bi bi-search"></i>Queries
                         </a>
                         <a class="nav-link {% if request.endpoint == 'items' %}active{% endif %}" 

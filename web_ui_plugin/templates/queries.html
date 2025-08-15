@@ -1,0 +1,386 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="h3 mb-4">Queries</h1>
+    </div>
+</div>
+
+<!-- Add New Query Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-plus-circle me-2"></i>Add New Query
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="addQueryForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="kufar_url" class="form-label">
+                                    Kufar search URL <span class="text-danger">*</span>
+                                </label>
+                                <input type="url" class="form-control" id="kufar_url" name="url" required 
+                                       placeholder="https://www.kufar.by/l/...">
+                                <div class="form-text">
+                                    Paste a valid Kufar search URL (e.g. `https://www.kufar.by/l/...`)
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="query_name" class="form-label">Name (optional)</label>
+                                <input type="text" class="form-control" id="query_name" name="name" 
+                                       placeholder="My search">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="thread_id" class="form-label">Thread ID (optional)</label>
+                                <input type="text" class="form-control" id="thread_id" name="thread_id" 
+                                       placeholder="123456">
+                                <div class="form-text">Telegram topic thread ID</div>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-plus me-2"></i>Add Query
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Current Queries Section -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-search me-2"></i>Current Queries
+                </h5>
+                {% if queries %}
+                <button class="btn btn-outline-danger btn-sm" onclick="removeAllQueries()">
+                    <i class="bi bi-trash me-1"></i>Remove All Queries
+                </button>
+                {% endif %}
+            </div>
+            <div class="card-body p-0">
+                {% if queries %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 40px;">#</th>
+                                <th>Query</th>
+                                <th style="width: 100px;">Thread ID</th>
+                                <th style="width: 150px;">Last Found Item</th>
+                                <th style="width: 80px;">Items</th>
+                                <th style="width: 200px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for query in queries %}
+                            <tr>
+                                <td class="fw-bold">{{ loop.index }}</td>
+                                <td>
+                                    <a href="{{ query.url }}" target="_blank" class="text-decoration-none">
+                                        <i class="bi bi-link-45deg me-1"></i>
+                                        {{ query.name or query.url|truncate(50) }}
+                                    </a>
+                                    {% if query.thread_id %}
+                                    <small class="text-muted d-block">Thread: {{ query.thread_id }}</small>
+                                    {% endif %}
+                                    <small class="text-muted d-block">{{ query.items_count or 0 }} items</small>
+                                </td>
+                                <td>
+                                    {% if query.thread_id %}
+                                    <span class="badge bg-info">{{ query.thread_id }}</span>
+                                    <button class="btn btn-sm btn-outline-secondary ms-1" onclick="editThreadId({{ query.id }})">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small class="text-muted">
+                                        {% if query.last_found_at %}
+                                        {{ query.last_found_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                                        {% else %}
+                                        Never
+                                        {% endif %}
+                                    </small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary rounded-pill">
+                                        {{ query.items_count or 0 }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="/items?query={{ query.id }}" class="btn btn-outline-primary" title="View Items">
+                                            <i class="bi bi-eye"></i> View Items
+                                        </a>
+                                        <button class="btn btn-outline-secondary" onclick="editQuery({{ query.id }})" title="Edit Link">
+                                            <i class="bi bi-pencil"></i> Edit Link
+                                        </button>
+                                        <button class="btn btn-outline-danger" onclick="removeQuery({{ query.id }}, '{{ query.name or query.url|truncate(30) }}')" title="Remove">
+                                            <i class="bi bi-trash"></i> Remove
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-search text-muted" style="font-size: 4rem;"></i>
+                    <h5 class="text-muted mt-3">No queries found</h5>
+                    <p class="text-muted">Add your first query above to start monitoring Kufar.by</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Query Modal -->
+<div class="modal fade" id="editQueryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Query Link</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editQueryForm">
+                    <input type="hidden" id="edit_query_id">
+                    <div class="mb-3">
+                        <label for="edit_kufar_url" class="form-label">Kufar URL:</label>
+                        <input type="url" class="form-control" id="edit_kufar_url" required>
+                        <div class="form-text">Update the Kufar search URL</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_query_name" class="form-label">Name (optional):</label>
+                        <input type="text" class="form-control" id="edit_query_name">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="updateQuery()">Update Query</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Remove Query Modal -->
+<div class="modal fade" id="removeQueryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to remove the query: <strong id="remove_query_name"></strong>?</p>
+                <input type="hidden" id="remove_query_id">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="confirmRemoveQuery()">Remove</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Remove All Queries Modal -->
+<div class="modal fade" id="removeAllModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to remove <strong>ALL</strong> queries? This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="confirmRemoveAllQueries()">Remove All</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Add new query
+document.getElementById('addQueryForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const data = {
+        url: formData.get('url'),
+        name: formData.get('name'),
+        thread_id: formData.get('thread_id')
+    };
+    
+    fetch('/api/queries/add', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Query added successfully!', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert('Error adding query: ' + data.error, 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert('Error adding query: ' + error.message, 'danger');
+    });
+});
+
+// Edit query
+function editQuery(queryId) {
+    fetch(`/api/queries/${queryId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('edit_query_id').value = queryId;
+                document.getElementById('edit_kufar_url').value = data.query.url;
+                document.getElementById('edit_query_name').value = data.query.name || '';
+                new bootstrap.Modal(document.getElementById('editQueryModal')).show();
+            } else {
+                showAlert('Error loading query: ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('Error loading query: ' + error.message, 'danger');
+        });
+}
+
+// Update query
+function updateQuery() {
+    const queryId = document.getElementById('edit_query_id').value;
+    const data = {
+        url: document.getElementById('edit_kufar_url').value,
+        name: document.getElementById('edit_query_name').value
+    };
+    
+    fetch(`/api/queries/${queryId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Query updated successfully!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('editQueryModal')).hide();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert('Error updating query: ' + data.error, 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert('Error updating query: ' + error.message, 'danger');
+    });
+}
+
+// Remove single query
+function removeQuery(queryId, queryName) {
+    document.getElementById('remove_query_id').value = queryId;
+    document.getElementById('remove_query_name').textContent = queryName;
+    new bootstrap.Modal(document.getElementById('removeQueryModal')).show();
+}
+
+function confirmRemoveQuery() {
+    const queryId = document.getElementById('remove_query_id').value;
+    
+    fetch(`/api/queries/${queryId}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Query removed successfully!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('removeQueryModal')).hide();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert('Error removing query: ' + data.error, 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert('Error removing query: ' + error.message, 'danger');
+    });
+}
+
+// Remove all queries
+function removeAllQueries() {
+    new bootstrap.Modal(document.getElementById('removeAllModal')).show();
+}
+
+function confirmRemoveAllQueries() {
+    fetch('/api/queries/all', {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('All queries removed successfully!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('removeAllModal')).hide();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert('Error removing all queries: ' + data.error, 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert('Error removing all queries: ' + error.message, 'danger');
+    });
+}
+
+// Edit thread ID
+function editThreadId(queryId) {
+    const newThreadId = prompt('Enter new Thread ID:');
+    if (newThreadId !== null) {
+        fetch(`/api/queries/${queryId}/thread`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ thread_id: newThreadId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('Thread ID updated successfully!', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showAlert('Error updating thread ID: ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('Error updating thread ID: ' + error.message, 'danger');
+        });
+    }
+}
+</script>
+{% endblock %}

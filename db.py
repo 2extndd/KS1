@@ -177,6 +177,105 @@ class DatabaseManager:
             logger.error(f"Error getting active searches: {e}")
             return []
     
+    def get_all_searches(self) -> List[Dict]:
+        """Get all search queries with item counts and stats"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT s.id, s.name, s.url, s.region, s.category, s.min_price, s.max_price, 
+                           s.keywords, s.telegram_chat_id, s.telegram_thread_id, s.is_active,
+                           s.created_at, s.updated_at,
+                           COUNT(i.id) as items_count,
+                           MAX(i.created_at) as last_found_at
+                    FROM searches s
+                    LEFT JOIN items i ON s.id = i.search_id
+                    GROUP BY s.id, s.name, s.url, s.region, s.category, s.min_price, s.max_price, 
+                             s.keywords, s.telegram_chat_id, s.telegram_thread_id, s.is_active,
+                             s.created_at, s.updated_at
+                    ORDER BY s.created_at DESC
+                """)
+                
+                columns = [desc[0] for desc in cursor.description]
+                searches = [dict(zip(columns, row)) for row in cursor.fetchall()]
+                
+                return searches
+                
+        except Exception as e:
+            logger.error(f"Error getting all searches: {e}")
+            return []
+    
+    def get_search_query(self, search_id: int) -> Optional[Dict]:
+        """Get single search query by ID"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT id, name, url, region, category, min_price, max_price, 
+                           keywords, telegram_chat_id, telegram_thread_id, is_active,
+                           created_at, updated_at
+                    FROM searches 
+                    WHERE id = %s
+                """, (search_id,))
+                
+                row = cursor.fetchone()
+                if row:
+                    columns = [desc[0] for desc in cursor.description]
+                    return dict(zip(columns, row))
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error getting search query {search_id}: {e}")
+            return None
+    
+    def update_search_query(self, search_id: int, update_data: Dict) -> bool:
+        """Update search query"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Build dynamic update query
+                set_clauses = []
+                values = []
+                
+                for key, value in update_data.items():
+                    set_clauses.append(f"{key} = %s")
+                    values.append(value)
+                
+                if not set_clauses:
+                    return False
+                
+                # Add updated_at
+                set_clauses.append("updated_at = CURRENT_TIMESTAMP")
+                values.append(search_id)
+                
+                query = f"""
+                    UPDATE searches 
+                    SET {', '.join(set_clauses)}
+                    WHERE id = %s
+                """
+                
+                cursor.execute(query, values)
+                conn.commit()
+                return cursor.rowcount > 0
+                
+        except Exception as e:
+            logger.error(f"Error updating search query {search_id}: {e}")
+            return False
+    
+    def delete_all_search_queries(self) -> bool:
+        """Delete all search queries"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM searches")
+                conn.commit()
+                return True
+                
+        except Exception as e:
+            logger.error(f"Error deleting all search queries: {e}")
+            return False
+    
     def add_item(self, kufar_id: str, search_id: int, title: str, **kwargs) -> Optional[int]:
         """Add new item if it doesn't exist"""
         try:
