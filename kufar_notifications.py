@@ -222,8 +222,7 @@ def search_and_notify():
         logger.info("Step 1: Searching for new items...")
         search_results = searcher.search_all_queries()
         
-        # Update metrics
-        total_api_requests += search_results.get('total_searches', 0)
+        # Update metrics (API requests are counted in core.py, just update items and time)
         total_items_found += search_results.get('new_items', 0)
         last_search_time = datetime.now()
         

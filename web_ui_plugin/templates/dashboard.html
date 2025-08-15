@@ -154,8 +154,27 @@ setInterval(function() {
         fetch('/api/stats')
             .then(response => response.json())
             .then(data => {
-                // Update stats if needed
-                console.log('Stats updated:', data);
+                if (data.success) {
+                    // Update API requests
+                    const apiRequestsEl = document.querySelector('.stats-card h3');
+                    if (apiRequestsEl && apiRequestsEl.textContent.includes('API Requests')) {
+                        apiRequestsEl.previousElementSibling.textContent = data.stats.total_api_requests;
+                    }
+                    
+                    // Update uptime
+                    const uptimeEl = document.querySelector('.badge:contains("Uptime")');
+                    if (uptimeEl) {
+                        uptimeEl.textContent = 'Uptime: ' + data.stats.uptime;
+                    }
+                    
+                    // Update last found item
+                    if (data.stats.last_found_item && data.stats.last_found_item.title !== 'No items yet') {
+                        const lastItemEl = document.querySelector('small:contains("Last Found Item")');
+                        if (lastItemEl) {
+                            lastItemEl.nextElementSibling.textContent = data.stats.last_found_item.title;
+                        }
+                    }
+                }
             })
             .catch(error => console.error('Error refreshing stats:', error));
     }
@@ -164,9 +183,9 @@ setInterval(function() {
 function forceScanAll() {
     console.log('🔍 Force Scan All button clicked');
     if (confirm('Force scan all queries? This may take some time.')) {
-        console.log('🔍 Confirmed, sending request to /api/search/run');
+        console.log('🔍 Confirmed, sending request to /api/force-scan');
         
-        fetch('/api/search/run', { method: 'POST' })
+        fetch('/api/force-scan', { method: 'POST' })
             .then(response => {
                 console.log('🔍 Response status:', response.status);
                 return response.json();
@@ -174,15 +193,15 @@ function forceScanAll() {
             .then(data => {
                 console.log('🔍 Response data:', data);
                 if (data.success) {
-                    alert('Scan started successfully!');
-                    setTimeout(() => location.reload(), 2000);
+                    showAlert(data.message || 'Force scan completed successfully!', 'success');
+                    setTimeout(() => location.reload(), 1000);
                 } else {
-                    alert('Error: ' + (data.error || 'Unknown error'));
+                    showAlert('Error: ' + (data.error || 'Unknown error'), 'danger');
                 }
             })
             .catch(error => {
                 console.error('❌ Error in Force Scan:', error);
-                alert('Error starting scan: ' + error.message);
+                showAlert('Error starting scan: ' + error.message, 'danger');
             });
     }
 }

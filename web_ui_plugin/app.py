@@ -35,10 +35,18 @@ def create_app():
             # Get statistics
             db_stats = db.get_items_stats()
             
-            # Get real searcher status
-            from kufar_notifications import total_api_requests, app_start_time
             from datetime import datetime
             import datetime as dt
+            
+            # Get real searcher status
+            try:
+                import kufar_notifications
+                total_api_requests = kufar_notifications.total_api_requests
+                app_start_time = kufar_notifications.app_start_time
+            except Exception as e:
+                logger.error(f"Error importing kufar_notifications: {e}")
+                total_api_requests = 0
+                app_start_time = datetime.now()
             
             # Calculate real uptime
             uptime_seconds = (datetime.now() - app_start_time).total_seconds()
@@ -616,6 +624,48 @@ def create_app():
                     'working_proxies': proxy_stats['working_proxies'],
                     'current_proxy': proxy_stats.get('current_proxy', 'No proxies configured'),
                     'last_check': proxy_stats.get('last_check', 'Never')
+                }
+            })
+            
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
+    @app.route('/api/stats', methods=['GET'])
+    def api_get_stats():
+        """Get real-time statistics for dashboard"""
+        try:
+            from datetime import datetime
+            import datetime as dt
+            
+            # Get real stats
+            try:
+                import kufar_notifications
+                total_api_requests = kufar_notifications.total_api_requests
+                app_start_time = kufar_notifications.app_start_time
+                total_items_found = kufar_notifications.total_items_found
+            except:
+                total_api_requests = 0
+                app_start_time = datetime.now()
+                total_items_found = 0
+            
+            # Calculate uptime
+            uptime_seconds = (datetime.now() - app_start_time).total_seconds()
+            uptime_str = str(dt.timedelta(seconds=int(uptime_seconds)))
+            
+            # Get last found item
+            last_item = db.get_last_found_item()
+            
+            # Get items count
+            db_stats = db.get_items_stats()
+            
+            return jsonify({
+                'success': True,
+                'stats': {
+                    'total_api_requests': total_api_requests,
+                    'uptime': uptime_str,
+                    'total_items': db_stats.get('total_items', 0),
+                    'active_queries': db_stats.get('active_searches', 0),
+                    'last_found_item': last_item
                 }
             })
             
