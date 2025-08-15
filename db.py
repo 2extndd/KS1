@@ -144,7 +144,12 @@ class DatabaseManager:
                 
                 cursor.execute(query, values)
                 
-                search_id = cursor.fetchone()[0]
+                result = cursor.fetchone()
+                if result is None:
+                    logger.error(f"Failed to get search ID for: {name}")
+                    raise Exception("Failed to get search ID from database")
+                
+                search_id = result[0]
                 conn.commit()
                 logger.info(f"Added new search: {name} (ID: {search_id})")
                 return search_id
