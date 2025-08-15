@@ -32,11 +32,12 @@ class TelegramWorker:
     async def send_item_notification(self, item: Dict[str, Any]) -> bool:
         """Send notification about new item"""
         try:
-            chat_id = item.get('telegram_chat_id')
-            thread_id = item.get('telegram_thread_id')
+            # Get chat_id from configuration
+            chat_id = get_telegram_chat_id()
+            thread_id = item.get('telegram_thread_id') or item.get('thread_id')
             
             if not chat_id:
-                logger.warning(f"No chat_id for item {item['id']}")
+                logger.warning(f"No telegram chat_id configured for notifications")
                 return False
             
             # Format message
@@ -286,6 +287,30 @@ class TelegramWorker:
             logger.error(f"Error in process_pending_notifications: {e}")
             results['errors'].append({'error': str(e)})
             return results
+
+def send_notification_for_item(item: Dict[str, Any]) -> bool:
+    """Send notification for a single item (synchronous)"""
+    try:
+        if not get_telegram_bot_token():
+            logger.error("Telegram bot token not configured")
+            return False
+        
+        worker = TelegramWorker()
+        
+        # Run async function synchronously
+        import asyncio
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        result = loop.run_until_complete(worker.send_item_notification(item))
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error sending notification for item: {e}")
+        return False
 
 # Async wrapper for synchronous usage
 def send_notifications():

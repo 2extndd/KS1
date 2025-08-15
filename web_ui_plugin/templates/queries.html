@@ -105,13 +105,16 @@
                                     <small class="text-muted d-block">{{ query.items_count or 0 }} items</small>
                                 </td>
                                 <td>
-                                    {% if query.thread_id %}
+                                    {% if query.thread_id and query.thread_id != '' and query.thread_id != '0' %}
                                     <span class="badge bg-info">{{ query.thread_id }}</span>
                                     <button class="btn btn-sm btn-outline-secondary ms-1" onclick="editThreadId({{ query.id }})">
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                     {% else %}
                                     <span class="text-muted">-</span>
+                                    <button class="btn btn-sm btn-outline-secondary ms-1" onclick="editThreadId({{ query.id }})">
+                                        <i class="bi bi-plus"></i>
+                                    </button>
                                     {% endif %}
                                 </td>
                                 <td>

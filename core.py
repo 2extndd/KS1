@@ -104,11 +104,20 @@ class KufarSearcher:
                         logger.info(f"Found {len(new_items)} new items for search '{search['name']}'")
                         db.add_log_entry('INFO', f"[DEBUG] Found items in queue! Getting them...", 'core', f"Processing {len(new_items)} new items")
                         
-                        # Log each new item
+                        # Log each new item and send notifications
                         for item in new_items:
                             db.add_log_entry('INFO', f"[DEBUG] Processing item {item['kufar_id']}: {item['title'][:50]}...", 'core', f"New item found: {item['title']}")
+                            
+                            # Send telegram notification
+                            try:
+                                from simple_telegram_worker import send_notification_for_item
+                                send_notification_for_item(item)
+                                db.add_log_entry('INFO', f"Telegram notification sent for item {item['kufar_id']}", 'core', f"Notification sent for: {item['title']}")
+                            except Exception as e:
+                                logger.error(f"Failed to send telegram notification: {e}")
+                                db.add_log_entry('ERROR', f"Failed to send telegram notification: {str(e)}", 'core', f"Notification error for item {item['kufar_id']}")
                     else:
-                        db.add_log_entry('INFO', f"[DEBUG] Item {search['id']} already exists in database, skipping...", 'core', f"No new items for query {search['name']}")
+                        db.add_log_entry('INFO', f"[DEBUG] No new items for query {search['name']}", 'core', f"No new items for query {search['name']}")
                     
                     results['successful_searches'] += 1
                     
@@ -153,6 +162,10 @@ class KufarSearcher:
                 max_items=get_max_items_per_search()
             )
             
+            # Update API request counter
+            from kufar_notifications import increment_api_requests
+            increment_api_requests()
+            
             return items
             
         except KufarAPIException as e:
@@ -175,6 +188,8 @@ class KufarSearcher:
         for item in items:
             try:
                 # Try to add item to database
+                from configuration_values import get_telegram_chat_id
+                
                 item_data = {
                     'kufar_id': item.id,
                     'title': item.title,
@@ -187,8 +202,8 @@ class KufarSearcher:
                     'seller_phone': item.seller_phone,
                     'url': item.url,
                     'raw_data': item.raw_data,
-                    'telegram_chat_id': search.get('telegram_chat_id'),
-                    'telegram_thread_id': search.get('telegram_thread_id')
+                    'search_name': search.get('name', 'Unknown'),
+                    'thread_id': search.get('thread_id')
                 }
                 
                 item_id = db.add_item(item_data, search['id'])
@@ -202,8 +217,10 @@ class KufarSearcher:
                         'currency': item.currency,
                         'url': item.url,
                         'search_name': search['name'],
-                        'telegram_chat_id': search.get('telegram_chat_id'),
-                        'telegram_thread_id': search.get('telegram_thread_id')
+                        'thread_id': search.get('thread_id'),
+                        'images': item.images,
+                        'location': item.location,
+                        'description': item.description
                     })
                 
             except Exception as e:

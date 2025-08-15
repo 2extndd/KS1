@@ -649,6 +649,41 @@ class DatabaseManager:
                 'last_check': 'Error'
             }
 
+    def get_last_found_item(self) -> Dict[str, Any]:
+        """Get the last found item for dashboard"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                self.execute_query(cursor, """
+                    SELECT title, created_at, search_name
+                    FROM items 
+                    ORDER BY created_at DESC 
+                    LIMIT 1
+                """)
+                
+                result = cursor.fetchone()
+                if result:
+                    return {
+                        'title': result[0],
+                        'date': result[1].strftime('%Y-%m-%d %H:%M:%S') if result[1] else 'Unknown',
+                        'search_name': result[2] or 'Unknown'
+                    }
+                else:
+                    return {
+                        'title': 'No items yet',
+                        'date': 'Never',
+                        'search_name': ''
+                    }
+                    
+        except Exception as e:
+            logger.error(f"Error getting last found item: {e}")
+            return {
+                'title': 'Error loading',
+                'date': 'Error',
+                'search_name': ''
+            }
+
     def get_recent_errors(self, hours: int = 24) -> List[Dict[str, Any]]:
         """Get recent errors from database"""
         try:

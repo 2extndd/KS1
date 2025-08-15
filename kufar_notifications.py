@@ -82,6 +82,11 @@ def update_start_time():
 # Call this when the app starts running
 update_start_time()
 
+def increment_api_requests():
+    """Increment the API request counter"""
+    global total_api_requests
+    total_api_requests += 1
+
 @app.route('/')
 def health_check():
     """Health check endpoint"""

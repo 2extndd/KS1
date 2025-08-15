@@ -34,7 +34,25 @@ def create_app():
         try:
             # Get statistics
             db_stats = db.get_items_stats()
-            searcher_status = searcher.get_searcher_status()
+            
+            # Get real searcher status
+            from kufar_notifications import total_api_requests, app_start_time
+            from datetime import datetime
+            import datetime as dt
+            
+            # Calculate real uptime
+            uptime_seconds = (datetime.now() - app_start_time).total_seconds()
+            uptime_str = str(dt.timedelta(seconds=int(uptime_seconds)))
+            
+            # Get last found item
+            last_item = db.get_last_found_item()
+            
+            searcher_status = {
+                'total_api_requests': total_api_requests,
+                'uptime': uptime_str,
+                'last_found_item': last_item,
+                'is_running': True
+            }
             
             # Get recent items (last 24 hours)
             recent_items = get_recent_items(24)

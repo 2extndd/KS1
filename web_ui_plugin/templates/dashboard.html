@@ -88,13 +88,19 @@
                         {% for item in recent_items[:4] %}
                         <div class="col-lg-3 col-md-6 mb-4">
                             <div class="item-card">
-                                {% if item.images %}
-                                    <img src="{{ item.images[0] }}" alt="{{ item.title }}" class="card-img-top">
-                                {% else %}
-                                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
-                                        <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
-                                    </div>
-                                {% endif %}
+                                <a href="{{ item.url }}" target="_blank" class="text-decoration-none">
+                                    {% if item.images %}
+                                        <div style="aspect-ratio: 4/5; overflow: hidden; position: relative;">
+                                            <img src="{{ item.images[0] }}" alt="{{ item.title }}" 
+                                                 class="w-100 h-100" style="object-fit: cover; object-position: center;">
+                                        </div>
+                                    {% else %}
+                                        <div class="bg-light d-flex align-items-center justify-content-center" 
+                                             style="aspect-ratio: 4/5;">
+                                            <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
+                                        </div>
+                                    {% endif %}
+                                </a>
                                 <div class="item-card-body">
                                     <h6 class="item-title">{{ item.title[:50] }}{% if item.title|length > 50 %}...{% endif %}</h6>
                                     <div class="item-price">
