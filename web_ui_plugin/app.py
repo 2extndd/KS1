@@ -349,7 +349,7 @@ def create_app():
                 'is_active': True
             }
             
-            search_id = db.add_search_query(search_data)
+            search_id = db.add_search(**search_data)
             if search_id:
                 db.add_log_entry('INFO', f'New query added: {search_data["name"] or search_data["url"]}', 'WebUI')
                 return jsonify({'success': True, 'id': search_id})

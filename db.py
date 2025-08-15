@@ -276,6 +276,18 @@ class DatabaseManager:
             logger.error(f"Error deleting all search queries: {e}")
             return False
     
+    def delete_search_query(self, search_id: int) -> bool:
+        """Delete single search query"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM searches WHERE id = %s", (search_id,))
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"Error deleting search query {search_id}: {e}")
+            return False
+    
     def add_item(self, kufar_id: str, search_id: int, title: str, **kwargs) -> Optional[int]:
         """Add new item if it doesn't exist"""
         try:
@@ -501,9 +513,9 @@ class DatabaseManager:
                 cursor.execute("""
                     SELECT timestamp, level, message, source, details
                     FROM logs 
-                    WHERE timestamp >= NOW() - INTERVAL '%s minutes'
+                    WHERE timestamp >= NOW() - INTERVAL %s
                     ORDER BY timestamp DESC
-                """, (minutes,))
+                """, (f"{minutes} minutes",))
                 
                 logs = []
                 for row in cursor.fetchall():
