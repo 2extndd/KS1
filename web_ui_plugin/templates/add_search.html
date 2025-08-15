@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+
+{% block title %}Add Search - KF Searcher{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0">
+                <i class="fas fa-plus me-2"></i>Add New Search
+            </h1>
+            <a href="{{ url_for('searches') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Searches
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-search me-2"></i>Search Configuration
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="searchForm">
+                    <!-- Basic Information -->
+                    <div class="mb-4">
+                        <h6 class="text-primary">Basic Information</h6>
+                        <hr>
+                        
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Search Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" name="name" required
+                                   placeholder="e.g., iPhone 13 Pro Minsk">
+                            <div class="form-text">Give your search a descriptive name</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="url" class="form-label">KF Search URL <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="url" class="form-control" id="url" name="url" required
+                                       placeholder="https://www.kufar.by/...">
+                                <button class="btn btn-outline-primary" type="button" onclick="testUrl()">
+                                    <i class="fas fa-check me-1"></i>Test URL
+                                </button>
+                            </div>
+                            <div class="form-text">
+                                Copy the URL from KF after setting up your search filters
+                            </div>
+                            <div id="urlValidation" class="mt-2"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Telegram Configuration -->
+                    <div class="mb-4">
+                        <h6 class="text-primary">Telegram Notifications</h6>
+                        <hr>
+                        
+                        <div class="mb-3">
+                            <label for="telegram_chat_id" class="form-label">Telegram Chat ID</label>
+                            <input type="text" class="form-control" id="telegram_chat_id" name="telegram_chat_id"
+                                   placeholder="e.g., -1001234567890">
+                            <div class="form-text">
+                                Chat ID where notifications will be sent. Leave empty to use default.
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="telegram_thread_id" class="form-label">Telegram Thread ID (Optional)</label>
+                            <input type="text" class="form-control" id="telegram_thread_id" name="telegram_thread_id"
+                                   placeholder="e.g., 123">
+                            <div class="form-text">
+                                For supergroups with topics/threads. Leave empty for main chat.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Additional Filters -->
+                    <div class="mb-4">
+                        <h6 class="text-primary">Additional Filters</h6>
+                        <hr>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="min_price" class="form-label">Minimum Price (BYN)</label>
+                                    <input type="number" class="form-control" id="min_price" name="min_price"
+                                           min="0" step="1" placeholder="0">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="max_price" class="form-label">Maximum Price (BYN)</label>
+                                    <input type="number" class="form-control" id="max_price" name="max_price"
+                                           min="0" step="1" placeholder="No limit">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="keywords" class="form-label">Additional Keywords</label>
+                            <input type="text" class="form-control" id="keywords" name="keywords"
+                                   placeholder="e.g., original, новый, идеал">
+                            <div class="form-text">
+                                Comma-separated keywords to further filter results
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Form Actions -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('searches') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
+                        <div>
+                            <button type="button" class="btn btn-outline-primary me-2" onclick="previewSearch()">
+                                <i class="fas fa-eye me-2"></i>Preview
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Save Search
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- URL Help Card -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-question-circle me-2"></i>How to get KF Search URL
+                </h6>
+            </div>
+            <div class="card-body">
+                <ol class="mb-0">
+                    <li>Go to <a href="https://www.kufar.by" target="_blank">kufar.by</a></li>
+                    <li>Use the search filters to set up your desired search (category, region, price range, etc.)</li>
+                    <li>Copy the URL from your browser's address bar</li>
+                    <li>Paste it into the "KF Search URL" field above</li>
+                    <li>Click "Test URL" to verify it works correctly</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-eye me-2"></i>Search Preview
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="previewContent">
+                <!-- Preview content will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="submitForm()">
+                    <i class="fas fa-save me-2"></i>Save Search
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let urlValidated = false;
+
+function testUrl() {
+    const url = document.getElementById('url').value;
+    const validationDiv = document.getElementById('urlValidation');
+    
+    if (!url) {
+        showValidationError('Please enter a URL first');
+        return;
+    }
+    
+    // Show loading state
+    validationDiv.innerHTML = `
+        <div class="alert alert-info">
+            <i class="fas fa-spinner fa-spin me-2"></i>Testing URL...
+        </div>
+    `;
+    
+    fetch('/api/search/test', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: url })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.valid) {
+            showValidationSuccess(data);
+            urlValidated = true;
+        } else {
+            showValidationError(data.error || 'Invalid URL');
+            urlValidated = false;
+        }
+    })
+    .catch(error => {
+        showValidationError('Error testing URL: ' + error.message);
+        urlValidated = false;
+    });
+}
+
+function showValidationSuccess(data) {
+    const validationDiv = document.getElementById('urlValidation');
+    let content = `
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle me-2"></i>URL is valid!
+    `;
+    
+    if (data.query) {
+        content += `<br><strong>Search Query:</strong> ${data.query}`;
+    }
+    if (data.category) {
+        content += `<br><strong>Category:</strong> ${data.category}`;
+    }
+    if (data.region) {
+        content += `<br><strong>Region:</strong> ${data.region}`;
+    }
+    if (data.price_from || data.price_to) {
+        content += `<br><strong>Price Range:</strong> ${data.price_from || '0'} - ${data.price_to || '∞'} BYN`;
+    }
+    
+    content += '</div>';
+    validationDiv.innerHTML = content;
+}
+
+function showValidationError(message) {
+    const validationDiv = document.getElementById('urlValidation');
+    validationDiv.innerHTML = `
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-circle me-2"></i>${message}
+        </div>
+    `;
+}
+
+function previewSearch() {
+    if (!urlValidated) {
+        alert('Please test the URL first');
+        return;
+    }
+    
+    // Collect form data
+    const formData = new FormData(document.getElementById('searchForm'));
+    const searchData = Object.fromEntries(formData);
+    
+    // Show preview modal with form data
+    const previewContent = document.getElementById('previewContent');
+    previewContent.innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Basic Information</h6>
+                <ul class="list-unstyled">
+                    <li><strong>Name:</strong> ${searchData.name || 'Not specified'}</li>
+                    <li><strong>URL:</strong> <small class="text-break">${searchData.url || 'Not specified'}</small></li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h6>Telegram Settings</h6>
+                <ul class="list-unstyled">
+                    <li><strong>Chat ID:</strong> ${searchData.telegram_chat_id || 'Default'}</li>
+                    <li><strong>Thread ID:</strong> ${searchData.telegram_thread_id || 'Main chat'}</li>
+                </ul>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-12">
+                <h6>Filters</h6>
+                <ul class="list-unstyled">
+                    <li><strong>Price Range:</strong> ${searchData.min_price || '0'} - ${searchData.max_price || '∞'} BYN</li>
+                    <li><strong>Keywords:</strong> ${searchData.keywords || 'None'}</li>
+                </ul>
+            </div>
+        </div>
+    `;
+    
+    const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+    previewModal.show();
+}
+
+function submitForm() {
+    document.getElementById('searchForm').submit();
+}
+
+// Form validation
+document.getElementById('searchForm').addEventListener('submit', function(e) {
+    const url = document.getElementById('url').value;
+    const name = document.getElementById('name').value;
+    
+    if (!url || !name) {
+        e.preventDefault();
+        alert('Please fill in all required fields');
+        return;
+    }
+    
+    if (!urlValidated) {
+        e.preventDefault();
+        alert('Please test the URL first to ensure it\'s valid');
+        return;
+    }
+});
+
+// Auto-test URL when it's pasted or changed
+document.getElementById('url').addEventListener('blur', function() {
+    const url = this.value;
+    if (url && !urlValidated) {
+        setTimeout(testUrl, 500); // Small delay to allow user to finish typing
+    }
+});
+</script>
+{% endblock %}

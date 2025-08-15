@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - KF Searcher{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="h3 mb-4">
+            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+        </h1>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title">{{ db_stats.get('total_items', 0) }}</h4>
+                        <p class="card-text">Total Items</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-box fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title">{{ db_stats.get('items_today', 0) }}</h4>
+                        <p class="card-text">Items Today</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-calendar-day fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title">{{ db_stats.get('unsent_items', 0) }}</h4>
+                        <p class="card-text">Pending Notifications</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-bell fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title">{{ db_stats.get('active_searches', 0) }}</h4>
+                        <p class="card-text">Active Searches</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-search fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Status -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-server me-2"></i>System Status
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Searcher Status</h6>
+                        <ul class="list-unstyled">
+                            <li>
+                                <span class="badge bg-{{ 'success' if searcher_status.get('client_initialized') else 'danger' }} me-2">
+                                    {{ 'Online' if searcher_status.get('client_initialized') else 'Offline' }}
+                                </span>
+                                Client Status
+                            </li>
+                            <li class="mt-2">
+                                <span class="badge bg-{{ 'success' if searcher_status.get('error_count', 0) == 0 else 'warning' }} me-2">
+                                    {{ searcher_status.get('error_count', 0) }}
+                                </span>
+                                Error Count
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Proxy Status</h6>
+                        {% if searcher_status.get('proxy_info') %}
+                            <ul class="list-unstyled">
+                                <li>
+                                    <span class="badge bg-{{ 'success' if searcher_status.proxy_info.get('proxy') else 'secondary' }} me-2">
+                                        {{ 'Active' if searcher_status.proxy_info.get('proxy') else 'None' }}
+                                    </span>
+                                    Proxy Status
+                                </li>
+                                {% if searcher_status.proxy_info.get('proxy') %}
+                                <li class="mt-2">
+                                    <small class="text-muted">{{ searcher_status.proxy_info.proxy }}</small>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        {% else %}
+                            <p class="text-muted">No proxy information available</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Items -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-clock me-2"></i>Recent Items
+                </h5>
+                <a href="{{ url_for('items') }}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if recent_items %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Price</th>
+                                    <th>Location</th>
+                                    <th>Search</th>
+                                    <th>Added</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in recent_items %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if item.images %}
+                                                <img src="{{ item.images[0] }}" alt="Item image" 
+                                                     class="rounded me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                                            {% endif %}
+                                            <div>
+                                                <strong>{{ item.title[:50] }}{% if item.title|length > 50 %}...{% endif %}</strong>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if item.price > 0 %}
+                                            <span class="fw-bold">{{ "{:,}".format(item.price).replace(',', ' ') }} {{ item.currency }}</span>
+                                        {% else %}
+                                            <span class="text-muted">Не указана</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ item.location or 'N/A' }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ item.search_name or 'Unknown' }}</span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ item.created_at.strftime('%d.%m %H:%M') if item.created_at else 'N/A' }}</small>
+                                    </td>
+                                    <td>
+                                        <a href="{{ item.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-external-link-alt"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">No recent items found</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Active Searches -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-search me-2"></i>Active Searches
+                </h5>
+                <a href="{{ url_for('searches') }}" class="btn btn-sm btn-outline-primary">Manage All</a>
+            </div>
+            <div class="card-body">
+                {% if active_searches %}
+                    <div class="row">
+                        {% for search in active_searches %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card border">
+                                <div class="card-body">
+                                    <h6 class="card-title">{{ search.name }}</h6>
+                                    <p class="card-text text-muted small">
+                                        Created: {{ search.created_at.strftime('%d.%m.%Y') if search.created_at else 'N/A' }}
+                                    </p>
+                                    {% if search.telegram_chat_id %}
+                                        <span class="badge bg-success me-2">Telegram Configured</span>
+                                    {% endif %}
+                                    <span class="badge bg-{{ 'success' if search.is_active else 'secondary' }}">
+                                        {{ 'Active' if search.is_active else 'Inactive' }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">No active searches configured</p>
+                    <div class="text-center">
+                        <a href="{{ url_for('add_search') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Add First Search
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-refresh dashboard every 30 seconds
+setInterval(function() {
+    // Only refresh stats, not the whole page
+    fetch('/api/stats')
+        .then(response => response.json())
+        .then(data => {
+            // Update stats cards
+            // This could be enhanced to update specific elements
+        })
+        .catch(error => console.error('Error refreshing stats:', error));
+}, 30000);
+</script>
+{% endblock %}

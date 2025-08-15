@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}Items - KF Searcher{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0">
+                <i class="fas fa-box me-2"></i>Items
+            </h1>
+            
+            <!-- Search Form -->
+            <form method="GET" class="d-flex">
+                <input type="text" name="search" class="form-control me-2" placeholder="Search items..." 
+                       value="{{ search_filter }}" style="width: 300px;">
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="fas fa-search"></i>
+                </button>
+                {% if search_filter %}
+                <a href="{{ url_for('items') }}" class="btn btn-outline-secondary ms-2">
+                    <i class="fas fa-times"></i>
+                </a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+</div>
+
+{% if items %}
+    <!-- Items Grid -->
+    <div class="row">
+        {% for item in items %}
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100">
+                {% if item.images %}
+                    <div id="carousel-{{ item.id }}" class="carousel slide" data-bs-ride="carousel">
+                        <div class="carousel-inner">
+                            {% for image in item.images[:3] %}
+                            <div class="carousel-item {{ 'active' if loop.first }}">
+                                <img src="{{ image }}" class="d-block w-100 card-img-top" alt="Item image" 
+                                     style="height: 200px; object-fit: cover;">
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% if item.images|length > 1 %}
+                        <button class="carousel-control-prev" type="button" data-bs-target="#carousel-{{ item.id }}" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon"></span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#carousel-{{ item.id }}" data-bs-slide="next">
+                            <span class="carousel-control-next-icon"></span>
+                        </button>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                        <i class="fas fa-image fa-3x text-muted"></i>
+                    </div>
+                {% endif %}
+                
+                <div class="card-body d-flex flex-column">
+                    <h6 class="card-title">{{ item.title[:80] }}{% if item.title|length > 80 %}...{% endif %}</h6>
+                    
+                    <div class="mb-2">
+                        {% if item.price > 0 %}
+                            <span class="h5 text-primary fw-bold">{{ "{:,}".format(item.price).replace(',', ' ') }} {{ item.currency }}</span>
+                        {% else %}
+                            <span class="text-muted">Цена не указана</span>
+                        {% endif %}
+                    </div>
+                    
+                    {% if item.location %}
+                    <p class="text-muted small mb-2">
+                        <i class="fas fa-map-marker-alt me-1"></i>{{ item.location }}
+                    </p>
+                    {% endif %}
+                    
+                    {% if item.description %}
+                    <p class="card-text small text-muted">
+                        {{ item.description[:100] }}{% if item.description|length > 100 %}...{% endif %}
+                    </p>
+                    {% endif %}
+                    
+                    <div class="mt-auto">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <small class="text-muted">
+                                <i class="fas fa-search me-1"></i>{{ item.search_name or 'Unknown' }}
+                            </small>
+                            <span class="badge bg-{{ 'success' if item.is_sent else 'warning' }}">
+                                {{ 'Sent' if item.is_sent else 'Pending' }}
+                            </span>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                {{ item.created_at.strftime('%d.%m.%Y %H:%M') if item.created_at else 'N/A' }}
+                            </small>
+                            <a href="{{ item.url }}" target="_blank" class="btn btn-sm btn-primary">
+                                <i class="fas fa-external-link-alt me-1"></i>View on KF
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Pagination -->
+    {% if pagination.total_pages > 1 %}
+    <nav aria-label="Items pagination">
+        <ul class="pagination justify-content-center">
+            {% if pagination.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('items', page=pagination.page-1, search=search_filter) }}">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+            {% endif %}
+            
+            {% set start_page = [pagination.page - 2, 1] | max %}
+            {% set end_page = [pagination.page + 2, pagination.total_pages] | min %}
+            
+            {% if start_page > 1 %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('items', page=1, search=search_filter) }}">1</a>
+                </li>
+                {% if start_page > 2 %}
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                {% endif %}
+            {% endif %}
+            
+            {% for page_num in range(start_page, end_page + 1) %}
+                <li class="page-item {{ 'active' if page_num == pagination.page }}">
+                    <a class="page-link" href="{{ url_for('items', page=page_num, search=search_filter) }}">
+                        {{ page_num }}
+                    </a>
+                </li>
+            {% endfor %}
+            
+            {% if end_page < pagination.total_pages %}
+                {% if end_page < pagination.total_pages - 1 %}
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                {% endif %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('items', page=pagination.total_pages, search=search_filter) }}">
+                        {{ pagination.total_pages }}
+                    </a>
+                </li>
+            {% endif %}
+            
+            {% if pagination.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('items', page=pagination.page+1, search=search_filter) }}">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    
+    <div class="text-center text-muted">
+        <small>
+            Showing {{ ((pagination.page - 1) * pagination.per_page + 1) }} - 
+            {{ [pagination.page * pagination.per_page, pagination.total] | min }} 
+            of {{ pagination.total }} items
+        </small>
+    </div>
+    {% endif %}
+    
+{% else %}
+    <!-- No Items -->
+    <div class="text-center py-5">
+        <i class="fas fa-box fa-4x text-muted mb-3"></i>
+        <h4 class="text-muted">No items found</h4>
+        {% if search_filter %}
+            <p class="text-muted">Try adjusting your search criteria</p>
+            <a href="{{ url_for('items') }}" class="btn btn-outline-primary">
+                <i class="fas fa-times me-2"></i>Clear Search
+            </a>
+        {% else %}
+            <p class="text-muted">Start by adding some searches to monitor KF</p>
+            <a href="{{ url_for('add_search') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Add Search
+            </a>
+        {% endif %}
+    </div>
+{% endif %}
+{% endblock %}

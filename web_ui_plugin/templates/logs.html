@@ -1,0 +1,418 @@
+{% extends "base.html" %}
+
+{% block title %}Logs - KF Searcher{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0">
+                <i class="fas fa-file-alt me-2"></i>System Logs
+            </h1>
+            
+            <!-- Log Level Filter -->
+            <div class="d-flex align-items-center">
+                <label class="form-label me-2 mb-0">Filter by level:</label>
+                <select class="form-select" style="width: auto;" onchange="filterLogs(this.value)">
+                    <option value="">All Levels</option>
+                    <option value="ERROR" {{ 'selected' if level_filter == 'ERROR' }}>Error</option>
+                    <option value="WARNING" {{ 'selected' if level_filter == 'WARNING' }}>Warning</option>
+                    <option value="INFO" {{ 'selected' if level_filter == 'INFO' }}>Info</option>
+                    <option value="DEBUG" {{ 'selected' if level_filter == 'DEBUG' }}>Debug</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if logs %}
+    <!-- Logs Table -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="card-title mb-0">Recent Logs</h6>
+            <div>
+                <button class="btn btn-sm btn-outline-primary" onclick="refreshLogs()">
+                    <i class="fas fa-sync me-1"></i>Refresh
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="exportLogs()">
+                    <i class="fas fa-download me-1"></i>Export
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 140px;">Timestamp</th>
+                            <th style="width: 80px;">Level</th>
+                            <th>Message</th>
+                            <th style="width: 100px;">Search ID</th>
+                            <th style="width: 80px;">Error Code</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                        <tr class="log-row log-{{ log.level.lower() if log.level else 'info' }}">
+                            <td>
+                                <small class="text-muted">
+                                    {{ log.created_at.strftime('%d.%m %H:%M:%S') if log.created_at else 'N/A' }}
+                                </small>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 
+                                    'danger' if log.level == 'ERROR' else
+                                    'warning' if log.level == 'WARNING' else
+                                    'info' if log.level == 'INFO' else
+                                    'secondary'
+                                }}">
+                                    {{ log.level or 'UNKNOWN' }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="log-message">
+                                    {{ log.message[:200] if log.message else 'No message' }}
+                                    {% if log.message and log.message|length > 200 %}
+                                        <span class="text-muted">... 
+                                            <a href="#" onclick="showFullMessage({{ log.id }})" class="text-decoration-none">
+                                                [show more]
+                                            </a>
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                <!-- Full message (hidden by default) -->
+                                {% if log.message and log.message|length > 200 %}
+                                <div id="full-message-{{ log.id }}" class="full-message mt-2" style="display: none;">
+                                    <small class="text-muted">{{ log.message }}</small>
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if log.search_id %}
+                                    <span class="badge bg-secondary">{{ log.search_id }}</span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if log.error_code %}
+                                    <span class="badge bg-{{ 
+                                        'danger' if log.error_code >= 500 else
+                                        'warning' if log.error_code >= 400 else
+                                        'info'
+                                    }}">
+                                        {{ log.error_code }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Pagination -->
+    {% if pagination.total_pages > 1 %}
+    <nav aria-label="Logs pagination" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if pagination.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('logs', page=pagination.page-1, level=level_filter) }}">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+            {% endif %}
+            
+            {% set start_page = [pagination.page - 2, 1] | max %}
+            {% set end_page = [pagination.page + 2, pagination.total_pages] | min %}
+            
+            {% if start_page > 1 %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('logs', page=1, level=level_filter) }}">1</a>
+                </li>
+                {% if start_page > 2 %}
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                {% endif %}
+            {% endif %}
+            
+            {% for page_num in range(start_page, end_page + 1) %}
+                <li class="page-item {{ 'active' if page_num == pagination.page }}">
+                    <a class="page-link" href="{{ url_for('logs', page=page_num, level=level_filter) }}">
+                        {{ page_num }}
+                    </a>
+                </li>
+            {% endfor %}
+            
+            {% if end_page < pagination.total_pages %}
+                {% if end_page < pagination.total_pages - 1 %}
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                {% endif %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('logs', page=pagination.total_pages, level=level_filter) }}">
+                        {{ pagination.total_pages }}
+                    </a>
+                </li>
+            {% endif %}
+            
+            {% if pagination.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('logs', page=pagination.page+1, level=level_filter) }}">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    
+    <div class="text-center text-muted">
+        <small>
+            Showing {{ ((pagination.page - 1) * pagination.per_page + 1) }} - 
+            {{ [pagination.page * pagination.per_page, pagination.total] | min }} 
+            of {{ pagination.total }} log entries
+        </small>
+    </div>
+    {% endif %}
+    
+    <!-- Log Statistics -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>Log Statistics (Last 24 Hours)
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="stat-item">
+                                <h4 class="text-danger">0</h4>
+                                <small class="text-muted">Errors</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-item">
+                                <h4 class="text-warning">0</h4>
+                                <small class="text-muted">Warnings</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-item">
+                                <h4 class="text-info">0</h4>
+                                <small class="text-muted">Info</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-item">
+                                <h4 class="text-secondary">0</h4>
+                                <small class="text-muted">Debug</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+{% else %}
+    <!-- No Logs -->
+    <div class="text-center py-5">
+        <i class="fas fa-file-alt fa-4x text-muted mb-3"></i>
+        <h4 class="text-muted">No logs found</h4>
+        {% if level_filter %}
+            <p class="text-muted">No logs found for level: {{ level_filter }}</p>
+            <button class="btn btn-outline-primary" onclick="filterLogs('')">
+                <i class="fas fa-times me-2"></i>Clear Filter
+            </button>
+        {% else %}
+            <p class="text-muted">System logs will appear here as the application runs</p>
+        {% endif %}
+    </div>
+{% endif %}
+
+<!-- Full Message Modal -->
+<div class="modal fade" id="messageModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-alt me-2"></i>Full Log Message
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="fullMessageContent" class="font-monospace small">
+                    <!-- Full message content will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-primary" onclick="copyMessage()">
+                    <i class="fas fa-copy me-2"></i>Copy
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentFullMessage = '';
+
+function filterLogs(level) {
+    const url = new URL(window.location);
+    if (level) {
+        url.searchParams.set('level', level);
+    } else {
+        url.searchParams.delete('level');
+    }
+    url.searchParams.delete('page'); // Reset to page 1 when filtering
+    window.location.href = url.toString();
+}
+
+function refreshLogs() {
+    window.location.reload();
+}
+
+function exportLogs() {
+    // Create export URL with current filters
+    const url = new URL(window.location);
+    url.pathname = '/api/logs/export';
+    
+    // Open in new tab for download
+    window.open(url.toString(), '_blank');
+}
+
+function showFullMessage(logId) {
+    const fullMessageDiv = document.getElementById(`full-message-${logId}`);
+    if (fullMessageDiv.style.display === 'none') {
+        fullMessageDiv.style.display = 'block';
+        
+        // Update the show more link
+        const showMoreLink = fullMessageDiv.previousElementSibling.querySelector('a');
+        if (showMoreLink) {
+            showMoreLink.textContent = '[show less]';
+            showMoreLink.onclick = () => hideFullMessage(logId);
+        }
+    }
+}
+
+function hideFullMessage(logId) {
+    const fullMessageDiv = document.getElementById(`full-message-${logId}`);
+    fullMessageDiv.style.display = 'none';
+    
+    // Update the show more link
+    const showMoreLink = fullMessageDiv.previousElementSibling.querySelector('a');
+    if (showMoreLink) {
+        showMoreLink.textContent = '[show more]';
+        showMoreLink.onclick = () => showFullMessage(logId);
+    }
+}
+
+function copyMessage() {
+    if (currentFullMessage) {
+        navigator.clipboard.writeText(currentFullMessage).then(function() {
+            showToast('Message copied to clipboard', 'success');
+        });
+    }
+}
+
+function showToast(message, type) {
+    // Simple toast notification
+    const alertClass = type === 'error' ? 'alert-danger' : 
+                      type === 'success' ? 'alert-success' : 'alert-info';
+    
+    const toast = document.createElement('div');
+    toast.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    toast.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 3000);
+}
+
+// Auto-refresh logs every 30 seconds
+setInterval(function() {
+    // Only refresh if we're on the first page and no specific filter
+    const urlParams = new URLSearchParams(window.location.search);
+    const page = urlParams.get('page');
+    const level = urlParams.get('level');
+    
+    if ((!page || page === '1') && !level) {
+        // Silently refresh the logs table content
+        fetch(window.location.href)
+            .then(response => response.text())
+            .then(html => {
+                // Parse the response and update only the logs table
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const newTable = doc.querySelector('.table-responsive');
+                const currentTable = document.querySelector('.table-responsive');
+                
+                if (newTable && currentTable) {
+                    currentTable.innerHTML = newTable.innerHTML;
+                }
+            })
+            .catch(error => {
+                console.error('Error refreshing logs:', error);
+            });
+    }
+}, 30000);
+</script>
+
+<style>
+.log-row.log-error {
+    border-left: 3px solid #dc3545;
+}
+
+.log-row.log-warning {
+    border-left: 3px solid #ffc107;
+}
+
+.log-row.log-info {
+    border-left: 3px solid #0dcaf0;
+}
+
+.log-row.log-debug {
+    border-left: 3px solid #6c757d;
+}
+
+.log-message {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
+.stat-item {
+    padding: 1rem;
+}
+
+.stat-item h4 {
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+}
+
+.full-message {
+    background-color: #f8f9fa;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+    border: 1px solid #dee2e6;
+}
+</style>
+{% endblock %}
