@@ -46,6 +46,15 @@ class DatabaseManager:
         else:
             return sqlite3.connect(self.database_url.replace('sqlite:///', ''))
     
+    def execute_query(self, cursor, query, values):
+        """Execute query with proper placeholder handling for both PostgreSQL and SQLite"""
+        if self.is_postgres:
+            self.execute_query(cursor, query, values)
+        else:
+            # Convert %s placeholders to ? for SQLite
+            sqlite_query = query.replace('%s', '?')
+            cursor.execute(sqlite_query, values)
+    
     def init_database(self):
         """Initialize database tables"""
         try:
@@ -53,7 +62,7 @@ class DatabaseManager:
                 cursor = conn.cursor()
                 
                 # Create searches table (equivalent to queries in VS5)
-                cursor.execute("""
+                self.execute_query(cursor, """
                     CREATE TABLE IF NOT EXISTS searches (
                         id SERIAL PRIMARY KEY,
                         name VARCHAR(255) NOT NULL,
@@ -163,7 +172,7 @@ class DatabaseManager:
                 
                 # Execute with proper error handling
                 try:
-                    cursor.execute(query, values)
+                    self.execute_query(cursor, query, values)
                 except Exception as e:
                     logger.error(f"SQL execution error: {e}")
                     logger.error(f"Query: {query}")
@@ -288,7 +297,7 @@ class DatabaseManager:
                 
                 # Execute with proper error handling
                 try:
-                    cursor.execute(query, values)
+                    self.execute_query(cursor, query, values)
                 except Exception as e:
                     logger.error(f"SQL execution error: {e}")
                     logger.error(f"Query: {query}")
@@ -306,7 +315,7 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM searches")
+                self.execute_query(cursor, "DELETE FROM searches")
                 conn.commit()
                 return True
                 
@@ -335,7 +344,7 @@ class DatabaseManager:
                 
                 # Check if item already exists
                 if 'kufar_id' in item_data:
-                    cursor.execute("""
+                    self.execute_query(cursor, """
                         SELECT id FROM items WHERE kufar_id = %s
                     """, (item_data['kufar_id'],))
                     
@@ -344,7 +353,7 @@ class DatabaseManager:
                         return 0
                 
                 # Insert new item
-                cursor.execute("""
+                self.execute_query(cursor, """
                     INSERT INTO items (title, url, price, currency, location, created_at, 
                                      images, telegram_chat_id, telegram_thread_id, search_id, 
                                      kufar_id, is_sent)
@@ -425,13 +434,13 @@ class DatabaseManager:
                 cursor = conn.cursor()
                 
                 # Add to error_tracking table
-                cursor.execute("""
+                self.execute_query(cursor, """
                     INSERT INTO error_tracking (error_code, error_message, search_id)
                     VALUES (%s, %s, %s)
                 """, (error_code, error_message, search_id))
                 
                 # Add to logs table
-                cursor.execute("""
+                self.execute_query(cursor, """
                     INSERT INTO logs (level, message, source, details)
                     VALUES (%s, %s, %s, %s)
                 """, ('ERROR', error_message, 'search', str(error_code)))
@@ -447,7 +456,7 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                self.execute_query(cursor, """
                     SELECT * FROM error_tracking
                     WHERE created_at >= NOW() - INTERVAL %s
                     ORDER BY created_at DESC
@@ -471,22 +480,22 @@ class DatabaseManager:
                 stats = {}
                 
                 # Total items
-                cursor.execute("SELECT COUNT(*) FROM items")
+                self.execute_query(cursor, "SELECT COUNT(*) FROM items")
                 stats['total_items'] = cursor.fetchone()[0]
                 
                 # Items today
-                cursor.execute("""
+                self.execute_query(cursor, """
                     SELECT COUNT(*) FROM items 
                     WHERE DATE(created_at) = CURRENT_DATE
                 """)
                 stats['items_today'] = cursor.fetchone()[0]
                 
                 # Unsent items
-                cursor.execute("SELECT COUNT(*) FROM items WHERE is_sent = FALSE")
+                self.execute_query(cursor, "SELECT COUNT(*) FROM items WHERE is_sent = FALSE")
                 stats['unsent_items'] = cursor.fetchone()[0]
                 
                 # Active searches
-                cursor.execute("SELECT COUNT(*) FROM searches WHERE is_active = TRUE")
+                self.execute_query(cursor, "SELECT COUNT(*) FROM searches WHERE is_active = TRUE")
                 stats['active_searches'] = cursor.fetchone()[0]
                 
                 return stats
@@ -514,7 +523,7 @@ class DatabaseManager:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 if level:
-                    cursor.execute("""
+                    self.execute_query(cursor, """
                         SELECT timestamp, level, message, source, details
                         FROM logs 
                         WHERE level = %s
@@ -522,7 +531,7 @@ class DatabaseManager:
                         LIMIT %s
                     """, (level, limit))
                 else:
-                    cursor.execute("""
+                    self.execute_query(cursor, """
                         SELECT timestamp, level, message, source, details
                         FROM logs 
                         ORDER BY timestamp DESC 
@@ -548,7 +557,7 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM logs")
+                self.execute_query(cursor, "DELETE FROM logs")
                 conn.commit()
                 logger.info("All logs cleared")
         except Exception as e:
@@ -559,7 +568,7 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                self.execute_query(cursor, """
                     SELECT timestamp, level, message, source, details
                     FROM logs 
                     WHERE timestamp >= NOW() - INTERVAL %s
