@@ -288,6 +288,37 @@ def create_app():
         except Exception as e:
             return jsonify({'error': str(e)}), 500
     
+    @app.route('/api/logs', methods=['GET'])
+    def api_get_logs():
+        """Get logs"""
+        try:
+            level = request.args.get('level')
+            limit = int(request.args.get('limit', 100))
+            logs = db.get_logs(limit=limit, level=level)
+            return jsonify({'success': True, 'logs': logs})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
+    @app.route('/api/logs/clear', methods=['POST'])
+    def api_clear_logs():
+        """Clear all logs"""
+        try:
+            db.clear_logs()
+            db.add_log_entry('INFO', 'System logs cleared by user', 'WebUI')
+            return jsonify({'success': True, 'message': 'Logs cleared successfully'})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
+    @app.route('/api/logs/recent', methods=['GET'])
+    def api_get_recent_logs():
+        """Get recent logs"""
+        try:
+            minutes = int(request.args.get('minutes', 5))
+            logs = db.get_recent_logs(minutes=minutes)
+            return jsonify({'success': True, 'logs': logs})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
     return app
 
 def get_recent_items(hours: int = 24):

@@ -109,6 +109,19 @@ class DatabaseManager:
                     )
                 """)
                 
+                # Create logs table (like in VS5)
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS logs (
+                        id SERIAL PRIMARY KEY,
+                        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        level VARCHAR(20) NOT NULL,
+                        message TEXT NOT NULL,
+                        source VARCHAR(100),
+                        details TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                
                 conn.commit()
                 logger.info("Database initialized successfully")
                 
@@ -322,6 +335,90 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Error getting stats: {e}")
             return {}
+    
+    def add_log_entry(self, level: str, message: str, source: str = None, details: str = None):
+        """Add log entry to database"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT INTO logs (timestamp, level, message, source, details)
+                    VALUES (CURRENT_TIMESTAMP, %s, %s, %s, %s)
+                """, (level, message, source, details))
+                conn.commit()
+        except Exception as e:
+            logger.error(f"Error adding log entry: {e}")
+    
+    def get_logs(self, limit: int = 100, level: str = None):
+        """Get log entries from database"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                if level:
+                    cursor.execute("""
+                        SELECT timestamp, level, message, source, details
+                        FROM logs 
+                        WHERE level = %s
+                        ORDER BY timestamp DESC 
+                        LIMIT %s
+                    """, (level, limit))
+                else:
+                    cursor.execute("""
+                        SELECT timestamp, level, message, source, details
+                        FROM logs 
+                        ORDER BY timestamp DESC 
+                        LIMIT %s
+                    """, (limit,))
+                
+                logs = []
+                for row in cursor.fetchall():
+                    logs.append({
+                        'timestamp': row[0],
+                        'level': row[1],
+                        'message': row[2],
+                        'source': row[3],
+                        'details': row[4]
+                    })
+                return logs
+        except Exception as e:
+            logger.error(f"Error getting logs: {e}")
+            return []
+    
+    def clear_logs(self):
+        """Clear all log entries"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM logs")
+                conn.commit()
+        except Exception as e:
+            logger.error(f"Error clearing logs: {e}")
+    
+    def get_recent_logs(self, minutes: int = 5):
+        """Get recent log entries"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT timestamp, level, message, source, details
+                    FROM logs 
+                    WHERE timestamp >= NOW() - INTERVAL '%s minutes'
+                    ORDER BY timestamp DESC
+                """, (minutes,))
+                
+                logs = []
+                for row in cursor.fetchall():
+                    logs.append({
+                        'timestamp': row[0].strftime('%Y-%m-%d %H:%M:%S') if row[0] else '',
+                        'level': row[1],
+                        'message': row[2],
+                        'source': row[3],
+                        'details': row[4]
+                    })
+                return logs
+        except Exception as e:
+            logger.error(f"Error getting recent logs: {e}")
+            return []
 
 # Global database instance
 db = DatabaseManager()

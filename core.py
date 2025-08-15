@@ -42,6 +42,7 @@ class KufarSearcher:
                 self._change_proxy_if_needed()
             else:
                 logger.info("Kufar client initialized successfully")
+            db.add_log_entry('INFO', 'Kufar client initialized successfully', 'KufarSearcher')
                 
         except Exception as e:
             logger.error(f"Failed to initialize Kufar client: {e}")
@@ -79,6 +80,7 @@ class KufarSearcher:
             
             if not searches:
                 logger.info("No active searches found")
+                db.add_log_entry('INFO', 'No active searches found', 'SearchCore')
                 return results
             
             # Process each search

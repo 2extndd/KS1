@@ -14,7 +14,7 @@
             <div class="stats-icon">
                 <i class="bi bi-box"></i>
             </div>
-            <div class="stats-number">{{ db_stats.get('total_items', 3142) }}</div>
+            <div class="stats-number">{{ db_stats.get('total_items', 0) }}</div>
             <div class="stats-label">Total Items</div>
             <div class="stats-sublabel">Items grabbed for monitored queries so far</div>
         </div>
@@ -25,7 +25,7 @@
             <div class="stats-icon">
                 <i class="bi bi-search"></i>
             </div>
-            <div class="stats-number">{{ db_stats.get('active_searches', 62) }}</div>
+            <div class="stats-number">{{ db_stats.get('active_searches', 0) }}</div>
             <div class="stats-label">Active Queries</div>
             <div class="stats-sublabel">Queries being monitored</div>
         </div>
@@ -36,7 +36,7 @@
             <div class="stats-icon">
                 <i class="bi bi-activity"></i>
             </div>
-            <div class="stats-number">{{ db_stats.get('api_requests', 1402) }}</div>
+            <div class="stats-number">{{ db_stats.get('api_requests', 0) }}</div>
             <div class="stats-label">API Requests</div>
             <div class="stats-sublabel">Requests to Kufar since start</div>
             <div class="stats-sublabel">Uptime: 21m</div>
@@ -49,8 +49,8 @@
                 <i class="bi bi-clock"></i>
             </div>
             <div class="stats-label">Last Found Item</div>
-            <div class="stats-sublabel">Chaussures New Rock</div>
-            <div class="stats-sublabel">{{ searcher_status.get('last_search', '2025-08-15 17:05:36') }}</div>
+            <div class="stats-sublabel">{{ last_item.title[:30] if last_item else 'No items yet' }}</div>
+            <div class="stats-sublabel">{{ last_item.created_at.strftime('%Y-%m-%d %H:%M:%S') if last_item and last_item.created_at else 'Never' }}</div>
             <a href="#" class="btn btn-sm btn-outline-primary mt-2">
                 <i class="bi bi-eye"></i> View
             </a>

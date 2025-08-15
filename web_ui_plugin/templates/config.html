@@ -45,82 +45,41 @@
 
                 <!-- Telegram Bot -->
                 <div class="row mb-4">
-                    <div class="col-md-6">
+                    <div class="col-12">
                         <h6 class="text-primary">
                             <i class="bi bi-telegram me-2"></i>Telegram Bot
                         </h6>
                         <hr>
                         
-                        <div class="form-check form-switch mb-3">
-                            <input class="form-check-input" type="checkbox" id="auto_start" checked>
-                            <label class="form-check-label" for="auto_start">
-                                Auto Start
-                            </label>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="bot_token" class="form-label">Bot Token</label>
-                            <input type="password" class="form-control" id="bot_token" 
-                                   value="7659760224:AAF_DCBX8j2s_dfvPhGOK_hg0yeruEWwXCc" readonly>
-                            <div class="form-text">Get this from BotFather</div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="chat_id" class="form-label">Chat ID</label>
-                            <input type="text" class="form-control" id="chat_id" 
-                                   value="-1002667144738" readonly>
-                            <div class="form-text">The chat ID where notifications will be sent</div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <span class="badge bg-success">Running</span>
-                            <button class="btn btn-danger btn-sm ms-2" id="stop_bot">Stop</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Country Allowlist -->
-                    <div class="col-md-6">
-                        <h6 class="text-primary">
-                            <i class="bi bi-globe me-2"></i>Country Allowlist
-                        </h6>
-                        <hr>
-                        
-                        <div class="mb-3">
-                            <label for="add_country" class="form-label">Add Country</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control" id="add_country" 
-                                       placeholder="DE" maxlength="2">
-                                <div class="form-text">2-letter country code (e.g., FR, DE, IT)</div>
-                                <button class="btn btn-outline-primary" type="button" id="add_country_btn">
-                                    <i class="bi bi-plus"></i> Add
-                                </button>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="auto_start" checked>
+                                    <label class="form-check-label" for="auto_start">
+                                        Auto Start
+                                    </label>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="bot_token" class="form-label">Bot Token</label>
+                                    <input type="password" class="form-control" id="bot_token" 
+                                           value="7659760224:AAF_DCBX8j2s_dfvPhGOK_hg0yeruEWwXCc" readonly>
+                                    <div class="form-text">Get this from BotFather</div>
+                                </div>
                             </div>
-                        </div>
-                        
-                        <div class="country-list">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="badge bg-secondary">DE</span>
-                                <button class="btn btn-sm btn-outline-danger">
-                                    <i class="bi bi-x"></i>
-                                </button>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="badge bg-secondary">FR</span>
-                                <button class="btn btn-sm btn-outline-danger">
-                                    <i class="bi bi-x"></i>
-                                </button>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="badge bg-secondary">NL</span>
-                                <button class="btn btn-sm btn-outline-danger">
-                                    <i class="bi bi-x"></i>
-                                </button>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="badge bg-secondary">IT</span>
-                                <button class="btn btn-sm btn-outline-danger">
-                                    <i class="bi bi-x"></i>
-                                </button>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="chat_id" class="form-label">Chat ID</label>
+                                    <input type="text" class="form-control" id="chat_id" 
+                                           value="-1002667144738" readonly>
+                                    <div class="form-text">The chat ID where notifications will be sent</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <span class="badge bg-success">Running</span>
+                                    <button class="btn btn-danger btn-sm ms-2" id="stop_bot">Stop</button>
+                                </div>
                             </div>
                         </div>
                     </div>
