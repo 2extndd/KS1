@@ -165,7 +165,20 @@ def create_app():
             if not url:
                 return jsonify({'error': 'URL is required'}), 400
             
+            # Validate URL format
             result = searcher.validate_search_url(url)
+            
+            if result['valid']:
+                # Try to search for items
+                try:
+                    items = searcher.search_query({'url': url, 'id': 0, 'name': 'Test'})
+                    result['test_results'] = {
+                        'items_found': len(items),
+                        'sample_titles': [item.title for item in items[:3]] if items else []
+                    }
+                except Exception as e:
+                    result['test_error'] = str(e)
+            
             return jsonify(result)
             
         except Exception as e:

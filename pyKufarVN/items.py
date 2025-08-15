@@ -235,20 +235,23 @@ class Items:
         self.last_request_time = time.time()
     
     def search(self, query_url: str, max_items: int = 50) -> List[Item]:
-        """Search for items using Kufar URL"""
+        """Search for items using Kufar URL via web scraping"""
         try:
-            # Parse the search URL to extract parameters
-            params = self._parse_search_url(query_url)
+            # Import scraper
+            import sys
+            import os
+            sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+            from kufar_scraper import KufarScraper
             
-            # Make API request
-            api_url = f"{KF_API_BASE_URL}/search/ad"
-            response_data = self._make_request(api_url, params)
+            # Create scraper instance
+            scraper = KufarScraper(proxy=self.proxy)
             
-            # Parse response
+            # Search for ads
+            ads_data = scraper.search_ads(query_url, max_items)
+            
+            # Convert to Item objects
             items = []
-            ads_data = response_data.get('ads', [])
-            
-            for ad_data in ads_data[:max_items]:
+            for ad_data in ads_data:
                 try:
                     item = Item(ad_data)
                     items.append(item)
@@ -269,34 +272,49 @@ class Items:
             parsed_url = urlparse(url)
             query_params = parse_qs(parsed_url.query)
             
-            # Convert query parameters to API format
+            # Convert query parameters to API format for real Kufar API
             api_params = {
                 'size': '50',  # Number of results
                 'sort': 'lst',  # Sort by listing time
+                'offset': '0',
+                'lang': 'ru'
             }
             
-            # Map common parameters
-            param_mapping = {
-                'q': 'query',  # Search query
-                'cat': 'category',  # Category
-                'rgn': 'region',  # Region
-                'prif': 'price_from',  # Price from
-                'prit': 'price_to',  # Price to
-                'cmp': 'company_ad',  # Company ads
-                'typ': 'type',  # Ad type
-            }
+            # Map Kufar.by parameters to API format
+            if 'query' in query_params or 'q' in query_params:
+                query = query_params.get('query', query_params.get('q', ['']))[0]
+                if query:
+                    api_params['query'] = query
             
-            for kufar_param, api_param in param_mapping.items():
-                if kufar_param in query_params:
-                    value = query_params[kufar_param][0]
-                    api_params[api_param] = value
+            if 'cat' in query_params:
+                api_params['cat'] = query_params['cat'][0]
+                
+            if 'rgn' in query_params:
+                api_params['rgn'] = query_params['rgn'][0]
+                
+            if 'price_from' in query_params or 'prif' in query_params:
+                price_from = query_params.get('price_from', query_params.get('prif', ['']))[0]
+                if price_from:
+                    api_params['price_from'] = price_from
+                    
+            if 'price_to' in query_params or 'prit' in query_params:
+                price_to = query_params.get('price_to', query_params.get('prit', ['']))[0]
+                if price_to:
+                    api_params['price_to'] = price_to
+            
+            # Add common filters
+            if 'cmp' in query_params:
+                api_params['cmp'] = query_params['cmp'][0]
+                
+            if 'typ' in query_params:
+                api_params['typ'] = query_params['typ'][0]
             
             return api_params
             
         except Exception as e:
             logger.error(f"Failed to parse URL {url}: {e}")
             # Return basic parameters if parsing fails
-            return {'size': '50', 'sort': 'lst'}
+            return {'size': '50', 'sort': 'lst', 'offset': '0', 'lang': 'ru'}
     
     def get_item_details(self, item_id: str) -> Optional[Item]:
         """Get detailed information about specific item"""

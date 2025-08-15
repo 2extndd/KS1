@@ -10,9 +10,9 @@ load_dotenv()
 
 # Kufar.by API Configuration
 KF_BASE_URL = "https://www.kufar.by"
-KF_API_BASE_URL = "https://api.kufar.by"
-KF_SEARCH_ENDPOINT = "/search/ad"
-KF_AD_ENDPOINT = "/ad"
+KF_API_BASE_URL = "https://www.kufar.by"
+KF_SEARCH_ENDPOINT = "/listings"
+KF_AD_ENDPOINT = "/item"
 
 # Database Configuration
 DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///kufar_searcher.db')
