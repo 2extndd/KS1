@@ -402,16 +402,27 @@ class DatabaseManager:
             return False
     
     def delete_search_query(self, search_id: int) -> bool:
-        """Delete search query"""
+        """Delete search query and associated items"""
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
+                
+                # First delete associated items
+                self.execute_query(cursor, "DELETE FROM items WHERE search_id = %s", (search_id,))
+                logger.info(f"Deleted {cursor.rowcount} items for search {search_id}")
+                
+                # Then delete the search query
                 self.execute_query(cursor, "DELETE FROM searches WHERE id = %s", (search_id,))
+                deleted_rows = cursor.rowcount
+                
                 conn.commit()
-                return cursor.rowcount > 0
+                logger.info(f"Deleted search query {search_id}, affected rows: {deleted_rows}")
+                return deleted_rows > 0
                 
         except Exception as e:
-            logger.error(f"Error deleting search query: {e}")
+            logger.error(f"Error deleting search query {search_id}: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return False
     
     def add_item(self, item_data: Dict[str, Any], search_id: int = None) -> int:

@@ -5,9 +5,13 @@ Based on VS5 web interface, adapted for Kufar.by
 
 import os
 import json
+import logging
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
 from werkzeug.exceptions import BadRequest
+
+# Setup logger
+logger = logging.getLogger(__name__)
 
 import sys
 import os
@@ -40,20 +44,20 @@ def create_app():
             import sys
             import os
             
-            # Add parent directory to path to import kufar_notifications
+            # Add parent directory to path
             current_dir = os.path.dirname(os.path.abspath(__file__))
             parent_dir = os.path.dirname(current_dir)
             if parent_dir not in sys.path:
                 sys.path.insert(0, parent_dir)
             
-            # Get real searcher status
+            # Get real searcher status from shared_state
             try:
-                import kufar_notifications
-                total_api_requests = getattr(kufar_notifications, 'total_api_requests', 0)
-                app_start_time = getattr(kufar_notifications, 'app_start_time', datetime.now())
-                logger.info(f"Successfully imported stats: API requests={total_api_requests}, start_time={app_start_time}")
+                import shared_state
+                total_api_requests = shared_state.get_total_api_requests()
+                app_start_time = shared_state.get_app_start_time()
+                logger.info(f"Successfully loaded stats: API requests={total_api_requests}, start_time={app_start_time}")
             except Exception as e:
-                logger.error(f"Error importing kufar_notifications: {e}")
+                logger.error(f"Error importing shared_state: {e}")
                 total_api_requests = 0
                 app_start_time = datetime.now()
             
@@ -668,12 +672,12 @@ def create_app():
             if parent_dir not in sys.path:
                 sys.path.insert(0, parent_dir)
             
-            # Get real stats
+            # Get real stats from shared_state
             try:
-                import kufar_notifications
-                total_api_requests = getattr(kufar_notifications, 'total_api_requests', 0)
-                app_start_time = getattr(kufar_notifications, 'app_start_time', datetime.now())
-                total_items_found = getattr(kufar_notifications, 'total_items_found', 0)
+                import shared_state
+                total_api_requests = shared_state.get_total_api_requests()
+                app_start_time = shared_state.get_app_start_time()
+                total_items_found = shared_state.get_total_items_found()
                 logger.info(f"API Stats: requests={total_api_requests}, start={app_start_time}")
             except Exception as e:
                 logger.error(f"Error in /api/stats: {e}")

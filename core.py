@@ -163,8 +163,11 @@ class KufarSearcher:
             )
             
             # Update API request counter
-            from kufar_notifications import increment_api_requests
-            increment_api_requests()
+            try:
+                import shared_state
+                shared_state.increment_api_requests()
+            except:
+                pass
             
             return items
             
