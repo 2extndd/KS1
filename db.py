@@ -135,10 +135,11 @@ class DatabaseManager:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 
+                # Use parameterized query with explicit column names
                 query = """
                     INSERT INTO searches (name, url, region, category, min_price, max_price, 
-                                        keywords, telegram_chat_id, telegram_thread_id)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                        keywords, telegram_chat_id, telegram_thread_id, is_active)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id
                 """
                 
@@ -146,7 +147,7 @@ class DatabaseManager:
                     name, url, kwargs.get('region'), kwargs.get('category'),
                     kwargs.get('min_price'), kwargs.get('max_price'),
                     kwargs.get('keywords'), kwargs.get('telegram_chat_id'),
-                    kwargs.get('telegram_thread_id')
+                    kwargs.get('telegram_thread_id'), True
                 ))
                 
                 search_id = cursor.fetchone()[0]

@@ -590,16 +590,26 @@ def get_logs_paginated(page: int = 1, per_page: int = 50, level_filter: str = ''
 
 def get_current_config():
     """Get current configuration"""
-    from ..configuration_values import (
-        SEARCH_INTERVAL, MAX_ITEMS_PER_SEARCH, 
-        PROXY_ENABLED, TELEGRAM_BOT_TOKEN,
-        MAX_ERRORS_BEFORE_REDEPLOY
-    )
-    
-    return {
-        'search_interval': SEARCH_INTERVAL,
-        'max_items_per_search': MAX_ITEMS_PER_SEARCH,
-        'proxy_enabled': PROXY_ENABLED,
-        'telegram_configured': bool(TELEGRAM_BOT_TOKEN),
-        'max_errors_before_redeploy': MAX_ERRORS_BEFORE_REDEPLOY
-    }
+    try:
+        from configuration_values import (
+            SEARCH_INTERVAL, MAX_ITEMS_PER_SEARCH, 
+            PROXY_ENABLED, TELEGRAM_BOT_TOKEN,
+            MAX_ERRORS_BEFORE_REDEPLOY
+        )
+        
+        return {
+            'search_interval': SEARCH_INTERVAL,
+            'max_items_per_search': MAX_ITEMS_PER_SEARCH,
+            'proxy_enabled': PROXY_ENABLED,
+            'telegram_configured': bool(TELEGRAM_BOT_TOKEN),
+            'max_errors_before_redeploy': MAX_ERRORS_BEFORE_REDEPLOY
+        }
+    except ImportError:
+        # Fallback values if import fails
+        return {
+            'search_interval': 300,
+            'max_items_per_search': 50,
+            'proxy_enabled': False,
+            'telegram_configured': False,
+            'max_errors_before_redeploy': 5
+        }

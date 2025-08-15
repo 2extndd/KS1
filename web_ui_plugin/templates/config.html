@@ -28,14 +28,14 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="items_per_query" class="form-label">Items Per Query</label>
-                                    <input type="number" class="form-control" id="items_per_query" value="2" min="1" max="100">
+                                    <input type="number" class="form-control" id="items_per_query" value="{{ config.get('max_items_per_search', 50) }}" min="1" max="100">
                                     <div class="form-text">Maximum number of items to fetch per query</div>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="query_refresh_delay" class="form-label">Query Refresh Delay (seconds)</label>
-                                    <input type="number" class="form-control" id="query_refresh_delay" value="30" min="10" max="3600">
+                                    <input type="number" class="form-control" id="query_refresh_delay" value="{{ config.get('search_interval', 300) }}" min="10" max="3600">
                                     <div class="form-text">Delay between query refreshes in seconds</div>
                                 </div>
                             </div>
@@ -63,7 +63,7 @@
                                 <div class="mb-3">
                                     <label for="bot_token" class="form-label">Bot Token</label>
                                     <input type="password" class="form-control" id="bot_token" 
-                                           value="7659760224:AAF_DCBX8j2s_dfvPhGOK_hg0yeruEWwXCc" readonly>
+                                           value="***HIDDEN***" readonly>
                                     <div class="form-text">Get this from BotFather</div>
                                 </div>
                             </div>
@@ -72,13 +72,18 @@
                                 <div class="mb-3">
                                     <label for="chat_id" class="form-label">Chat ID</label>
                                     <input type="text" class="form-control" id="chat_id" 
-                                           value="-1002667144738" readonly>
+                                           value="***HIDDEN***" readonly>
                                     <div class="form-text">The chat ID where notifications will be sent</div>
                                 </div>
                                 
                                 <div class="mb-3">
-                                    <span class="badge bg-success">Running</span>
-                                    <button class="btn btn-danger btn-sm ms-2" id="stop_bot">Stop</button>
+                                    {% if config.get('telegram_configured', False) %}
+                                        <span class="badge bg-success">Running</span>
+                                        <button class="btn btn-danger btn-sm ms-2" id="stop_bot">Stop</button>
+                                    {% else %}
+                                        <span class="badge bg-warning">Not Configured</span>
+                                        <button class="btn btn-success btn-sm ms-2" id="start_bot">Start</button>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
@@ -94,7 +99,7 @@
                         <hr>
                         
                         <div class="form-check form-switch mb-3">
-                            <input class="form-check-input" type="checkbox" id="check_proxies" checked>
+                            <input class="form-check-input" type="checkbox" id="check_proxies" {% if config.get('proxy_enabled', False) %}checked{% endif %}>
                             <label class="form-check-label" for="check_proxies">
                                 Check Proxies
                             </label>
@@ -104,9 +109,9 @@
                         <div class="mb-3">
                             <label for="proxy_list" class="form-label">Proxy List</label>
                             <textarea class="form-control" id="proxy_list" rows="5" 
-                                      placeholder="82.21.55.84:7348:wtlllndak:9vxcxlvhxvTh&#10;96.62.148.192:7402:wtlllndak:9vxcxlvhxvTh&#10;136.0.167.169:7172:wtlllndak:9vxcxlvhxvTh">82.21.55.84:7348:wtlllndak:9vxcxlvhxvTh
+                                      placeholder="Enter proxy list (one proxy per line)">{% if config.get('proxy_enabled', False) %}82.21.55.84:7348:wtlllndak:9vxcxlvhxvTh
 96.62.148.192:7402:wtlllndak:9vxcxlvhxvTh
-136.0.167.169:7172:wtlllndak:9vxcxlvhxvTh</textarea>
+136.0.167.169:7172:wtlllndak:9vxcxlvhxvTh{% endif %}</textarea>
                         </div>
                         
                         <div class="mb-3">
@@ -171,10 +176,10 @@
                     <div class="col-md-6">
                         <h6>Configuration</h6>
                         <div class="mb-2">
-                            <strong>Redeploy Threshold:</strong> 4 minutes
+                            <strong>Redeploy Threshold:</strong> {{ config.get('max_errors_before_redeploy', 5) }} errors
                         </div>
                         <div class="mb-2">
-                            <strong>Min HTTP Errors:</strong> 5
+                            <strong>Min HTTP Errors:</strong> {{ config.get('max_errors_before_redeploy', 5) }}
                         </div>
                         <div class="mb-3">
                             <strong>Redeploy Needed:</strong> <span class="badge bg-success">No</span>
@@ -213,7 +218,7 @@
                             <strong>Cache Initialized:</strong> <span class="badge bg-success">Yes</span>
                         </div>
                         <div class="mb-2">
-                            <strong>Total Cached Proxies:</strong> 59
+                            <strong>Total Cached Proxies:</strong> <span id="proxy_count">{% if config.get('proxy_enabled', False) %}59{% else %}0{% endif %}</span>
                         </div>
                         <div class="mb-2">
                             <strong>Proxy Validation:</strong> <span class="badge bg-success">Enabled</span>
