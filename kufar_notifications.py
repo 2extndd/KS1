@@ -29,7 +29,7 @@ from db import db
 
 # Configure logging for Railway environment
 if os.getenv('RAILWAY_ENVIRONMENT'):
-    # Railway environment - log to stdout only
+    # Railway environment - log to stdout and database
     logging.basicConfig(
         level=getattr(logging, LOG_LEVEL.upper()),
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -37,8 +37,12 @@ if os.getenv('RAILWAY_ENVIRONMENT'):
             logging.StreamHandler(sys.stdout)
         ]
     )
-    # Also log to database
-    db.add_log_entry('INFO', 'Application started in Railway environment', 'System')
+    # Force database logging on Railway
+    try:
+        db.add_log_entry('INFO', 'Application started in Railway environment', 'System', 'Railway deployment successful')
+        logger.info("Railway environment detected - database logging enabled")
+    except Exception as e:
+        logger.error(f"Failed to add initial log entry: {e}")
 else:
     # Local environment - log to file and stdout
     logging.basicConfig(
@@ -56,21 +60,23 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 
+# Global variables for tracking
+app_start_time = datetime.now()
+total_api_requests = 0
+total_items_found = 0
+last_search_time = None
+
 @app.route('/')
 def health_check():
     """Health check endpoint"""
     try:
-        # Check database connection
-        db_stats = db.get_items_stats()
-        
-        # Check searcher status
-        searcher_status = searcher.get_searcher_status()
+        # Get comprehensive system metrics
+        metrics = get_system_metrics()
         
         return {
             'status': 'healthy',
             'timestamp': datetime.now().isoformat(),
-            'database': db_stats,
-            'searcher': searcher_status
+            'metrics': metrics
         }
     except Exception as e:
         logger.error(f"Health check failed: {e}")
@@ -84,27 +90,127 @@ def health_check():
 def get_stats():
     """Get application statistics"""
     try:
-        return {
-            'database': db.get_items_stats(),
-            'searcher': searcher.get_searcher_status(),
-            'timestamp': datetime.now().isoformat()
-        }
+        return get_system_metrics()
     except Exception as e:
         logger.error(f"Error getting stats: {e}")
         return {'error': str(e)}, 500
 
+@app.route('/api/stats')
+def api_stats():
+    """API endpoint for stats (used by web UI)"""
+    try:
+        return get_system_metrics()
+    except Exception as e:
+        logger.error(f"Error getting API stats: {e}")
+        return {'error': str(e)}, 500
+
+def get_system_metrics():
+    """Get comprehensive system metrics"""
+    try:
+        current_time = datetime.now()
+        uptime = current_time - app_start_time
+        uptime_minutes = int(uptime.total_seconds() / 60)
+        
+        # Get database stats
+        db_stats = db.get_items_stats()
+        
+        # Get proxy status
+        proxy_status = get_proxy_status()
+        
+        # Get Railway redeploy status
+        railway_status = get_railway_status()
+        
+        return {
+            'uptime_minutes': uptime_minutes,
+            'uptime_formatted': f"{uptime_minutes}m",
+            'total_api_requests': total_api_requests,
+            'total_items_found': total_items_found,
+            'last_search_time': last_search_time.isoformat() if last_search_time else None,
+            'database': db_stats,
+            'proxy_system': proxy_status,
+            'railway_redeploy': railway_status,
+            'timestamp': current_time.isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error getting system metrics: {e}")
+        return {
+            'error': str(e),
+            'uptime_minutes': 0,
+            'uptime_formatted': '0m'
+        }
+
+def get_proxy_status():
+    """Get proxy system status"""
+    try:
+        # Check if proxy system is working
+        from proxies import ProxyManager
+        proxy_manager = ProxyManager()
+        working_proxies = proxy_manager.get_working_proxies()
+        
+        return {
+            'status': 'active' if working_proxies else 'inactive',
+            'working_proxies': len(working_proxies),
+            'total_proxies': len(proxy_manager.proxies) if hasattr(proxy_manager, 'proxies') else 0,
+            'last_check': datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error getting proxy status: {e}")
+        return {
+            'status': 'error',
+            'error': str(e),
+            'working_proxies': 0,
+            'total_proxies': 0
+        }
+
+def get_railway_status():
+    """Get Railway auto-redeploy system status"""
+    try:
+        # Check if redeployer is working
+        if hasattr(redeployer, 'is_active'):
+            status = 'active' if redeployer.is_active else 'inactive'
+        else:
+            status = 'unknown'
+        
+        return {
+            'status': status,
+            'auto_redeploy_enabled': os.getenv('RAILWAY_ENVIRONMENT') is not None,
+            'last_deploy': app_start_time.isoformat(),
+            'environment': os.getenv('RAILWAY_ENVIRONMENT', 'local')
+        }
+    except Exception as e:
+        logger.error(f"Error getting Railway status: {e}")
+        return {
+            'status': 'error',
+            'error': str(e),
+            'auto_redeploy_enabled': False
+        }
+
 def search_and_notify():
     """Main search and notification cycle"""
+    global total_api_requests, total_items_found, last_search_time
+    
     try:
         logger.info("=== Starting search and notification cycle ===")
         
         # 1. Search for new items
         logger.info("Step 1: Searching for new items...")
         search_results = searcher.search_all_queries()
+        
+        # Update metrics
+        total_api_requests += search_results.get('total_searches', 0)
+        total_items_found += search_results.get('new_items', 0)
+        last_search_time = datetime.now()
+        
         logger.info(f"Search completed: {search_results}")
         
+        # Log to database
+        try:
+            db.add_log_entry('INFO', f"Search cycle completed: {search_results.get('new_items', 0)} new items found", 'Searcher', str(search_results))
+        except Exception as log_error:
+            logger.error(f"Failed to log search results to database: {log_error}")
+        
         # 2. Send notifications for new items
-        if search_results['new_items'] > 0:
+        if search_results.get('new_items', 0) > 0:
             logger.info("Step 2: Sending Telegram notifications...")
             notification_results = send_notifications()
             logger.info(f"Notifications sent: {notification_results}")
@@ -112,7 +218,7 @@ def search_and_notify():
             logger.info("Step 2: No new items to notify about")
         
         # 3. Check for auto-redeploy if there were errors
-        if search_results['failed_searches'] > 0:
+        if search_results.get('failed_searches', 0) > 0:
             logger.info("Step 3: Checking if redeploy is needed...")
             redeploy_results = redeployer.check_and_redeploy_if_needed()
             logger.info(f"Redeploy check: {redeploy_results}")
@@ -127,7 +233,10 @@ def search_and_notify():
         logger.error(f"Error in search_and_notify cycle: {e}")
         
         # Log the error to database for redeploy tracking
-        db.log_error(500, f"Search cycle error: {e}")
+        try:
+            db.log_error(500, f"Search cycle error: {e}")
+        except Exception as log_error:
+            logger.error(f"Failed to log error to database: {log_error}")
 
 def setup_scheduler():
     """Setup scheduled tasks"""
@@ -178,16 +287,28 @@ def cleanup_old_data():
             cursor = conn.cursor()
             
             # Clean up old logs (keep last 7 days)
-            cursor.execute("""
-                DELETE FROM logs 
-                WHERE created_at < NOW() - INTERVAL %s
-            """, ('7 days',))
-            
-            # Clean up old error tracking (keep last 3 days)
-            cursor.execute("""
-                DELETE FROM error_tracking 
-                WHERE created_at < NOW() - INTERVAL %s
-            """, ('3 days',))
+            if db.is_postgres:
+                cursor.execute("""
+                    DELETE FROM logs 
+                    WHERE created_at < NOW() - INTERVAL %s
+                """, ('7 days',))
+                
+                # Clean up old error tracking (keep last 3 days)
+                cursor.execute("""
+                    DELETE FROM error_tracking 
+                    WHERE created_at < NOW() - INTERVAL %s
+                """, ('3 days',))
+            else:
+                # SQLite version
+                cursor.execute("""
+                    DELETE FROM logs 
+                    WHERE created_at < datetime('now', '-7 days')
+                """)
+                
+                cursor.execute("""
+                    DELETE FROM error_tracking 
+                    WHERE created_at < datetime('now', '-3 days')
+                """)
             
             # Clean up old items (keep last 30 days)
             cursor.execute("""
