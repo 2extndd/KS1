@@ -164,10 +164,11 @@ class KufarSearcher:
             
             # Update API request counter
             try:
-                import shared_state
-                shared_state.increment_api_requests()
-            except:
-                pass
+                import metrics_storage
+                metrics_storage.metrics_storage.increment_api_requests()
+                logger.info(f"API request counter incremented to: {metrics_storage.metrics_storage.get_total_api_requests()}")
+            except Exception as e:
+                logger.error(f"Failed to increment API counter: {e}")
             
             return items
             

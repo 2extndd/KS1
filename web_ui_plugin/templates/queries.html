@@ -78,15 +78,10 @@
                             <tr>
                                 <th style="width: 40px;">#</th>
                                 <th style="cursor: pointer;" onclick="sortTable(1)">
-                                    Query Name 
-                                    <i class="bi bi-arrow-down-up ms-1"></i>
-                                </th>
-                                <th style="width: 100px; cursor: pointer;" onclick="sortTable(2)">
-                                    Thread ID
+                                    Query 
                                     <i class="bi bi-arrow-down-up ms-1"></i>
                                 </th>
                                 <th style="width: 150px;">Last Found Item</th>
-                                <th style="width: 80px;">Items</th>
                                 <th style="width: 200px;">Actions</th>
                             </tr>
                         </thead>
@@ -95,27 +90,14 @@
                             <tr>
                                 <td class="fw-bold">{{ loop.index }}</td>
                                 <td>
-                                    <a href="{{ query.url }}" target="_blank" class="text-decoration-none">
+                                    <a href="{{ query.url }}" target="_blank" class="text-decoration-none fw-bold">
                                         <i class="bi bi-link-45deg me-1"></i>
                                         {{ query.name or query.url|truncate(50) }}
                                     </a>
-                                    {% if query.thread_id %}
-                                    <small class="text-muted d-block">Thread: {{ query.thread_id }}</small>
-                                    {% endif %}
-                                    <small class="text-muted d-block">{{ query.items_count or 0 }} items</small>
-                                </td>
-                                <td>
                                     {% if query.thread_id and query.thread_id != '' and query.thread_id != '0' %}
-                                    <span class="badge bg-info">{{ query.thread_id }}</span>
-                                    <button class="btn btn-sm btn-outline-secondary ms-1" onclick="editThreadId({{ query.id }})">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    {% else %}
-                                    <span class="text-muted">-</span>
-                                    <button class="btn btn-sm btn-outline-secondary ms-1" onclick="editThreadId({{ query.id }})">
-                                        <i class="bi bi-plus"></i>
-                                    </button>
+                                    <span class="text-primary fw-bold"> Thread: {{ query.thread_id }}</span>
                                     {% endif %}
+                                    <span class="text-info fw-bold"> {{ query.items_count or 0 }} items</span>
                                 </td>
                                 <td>
                                     <small class="text-muted">
@@ -125,11 +107,6 @@
                                         Never
                                         {% endif %}
                                     </small>
-                                </td>
-                                <td>
-                                    <span class="badge bg-primary rounded-pill">
-                                        {{ query.items_count or 0 }}
-                                    </span>
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm" role="group">

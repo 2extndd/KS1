@@ -226,11 +226,28 @@ class KufarScraper:
                         break
             
             # Extract image
-            img_elem = element.select_one('img')
-            if img_elem:
-                src = img_elem.get('src') or img_elem.get('data-src')
-                if src:
-                    ad_data['images'] = [src] if not src.startswith('data:') else []
+            # Extract image URL - improved selectors
+            img_selectors = [
+                'img[src*="rms.kufar.by"]',  # Real product images
+                'img[data-src*="rms.kufar.by"]',
+                'img[src*="kufar.by"]:not([src*="svg"])',  # Exclude SVG logos
+                'img[data-src*="kufar.by"]:not([data-src*="svg"])',
+                'img[src]',  # Fallback
+                'img[data-src]'
+            ]
+            
+            for selector in img_selectors:
+                img_elem = element.select_one(selector)
+                if img_elem:
+                    src = img_elem.get('src') or img_elem.get('data-src')
+                    if src and not src.startswith('data:') and 'svg' not in src.lower():
+                        # Ensure full URL
+                        if src.startswith('//'):
+                            src = 'https:' + src
+                        elif src.startswith('/'):
+                            src = 'https://www.kufar.by' + src
+                        ad_data['images'] = [src]
+                        break
             
             # Extract location
             location_selectors = [

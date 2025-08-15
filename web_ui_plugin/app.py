@@ -50,14 +50,14 @@ def create_app():
             if parent_dir not in sys.path:
                 sys.path.insert(0, parent_dir)
             
-            # Get real searcher status from shared_state
+            # Get real searcher status from metrics_storage
             try:
-                import shared_state
-                total_api_requests = shared_state.get_total_api_requests()
-                app_start_time = shared_state.get_app_start_time()
+                import metrics_storage
+                total_api_requests = metrics_storage.metrics_storage.get_total_api_requests()
+                app_start_time = metrics_storage.metrics_storage.get_app_start_time()
                 logger.info(f"Successfully loaded stats: API requests={total_api_requests}, start_time={app_start_time}")
             except Exception as e:
-                logger.error(f"Error importing shared_state: {e}")
+                logger.error(f"Error importing metrics_storage: {e}")
                 total_api_requests = 0
                 app_start_time = datetime.now()
             
@@ -672,12 +672,12 @@ def create_app():
             if parent_dir not in sys.path:
                 sys.path.insert(0, parent_dir)
             
-            # Get real stats from shared_state
+            # Get real stats from metrics_storage
             try:
-                import shared_state
-                total_api_requests = shared_state.get_total_api_requests()
-                app_start_time = shared_state.get_app_start_time()
-                total_items_found = shared_state.get_total_items_found()
+                import metrics_storage
+                total_api_requests = metrics_storage.metrics_storage.get_total_api_requests()
+                app_start_time = metrics_storage.metrics_storage.get_app_start_time()
+                total_items_found = metrics_storage.metrics_storage.get_total_items_found()
                 logger.info(f"API Stats: requests={total_api_requests}, start={app_start_time}")
             except Exception as e:
                 logger.error(f"Error in /api/stats: {e}")
