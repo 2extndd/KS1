@@ -446,10 +446,10 @@ def create_app():
             sys.path.append(os.path.dirname(os.path.abspath(__file__)))
             sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
             
-            from core import SearchCore
+            from core import KufarSearcher
             
-            # Initialize SearchCore and run scan
-            search_core = SearchCore()
+            # Initialize KufarSearcher and run scan
+            search_core = KufarSearcher()
             results = search_core.search_all_queries()
             
             logger.info(f"Force scan completed: {results}")

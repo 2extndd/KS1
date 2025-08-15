@@ -52,4 +52,7 @@ def get_all_stats():
         return dict(_state)
 
 # Initialize when module is imported
+import logging
+logger = logging.getLogger(__name__)
+logger.info(f"[SHARED_STATE] Initialized at {_state['app_start_time']}")
 print(f"[SHARED_STATE] Initialized at {_state['app_start_time']}")

@@ -82,10 +82,24 @@ def update_start_time():
 # Call this when the app starts running
 update_start_time()
 
+# Also update shared_state when app starts
+try:
+    import shared_state
+    shared_state.set_app_start_time(app_start_time)
+    logger.info(f"Updated shared_state app_start_time: {app_start_time}")
+except Exception as e:
+    logger.error(f"Failed to update shared_state: {e}")
+
 def increment_api_requests():
     """Increment the API request counter"""
     global total_api_requests
     total_api_requests += 1
+    # Also update shared_state
+    try:
+        import shared_state
+        shared_state.increment_api_requests()
+    except:
+        pass
 
 @app.route('/')
 def health_check():
