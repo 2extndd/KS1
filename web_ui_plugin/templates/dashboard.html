@@ -141,16 +141,19 @@
 
 {% block scripts %}
 <script>
-// Auto-refresh dashboard every 30 seconds
+// Auto-refresh dashboard every 5 minutes (less aggressive)
 setInterval(function() {
-    fetch('/api/stats')
-        .then(response => response.json())
-        .then(data => {
-            // Update stats if needed
-            console.log('Stats updated:', data);
-        })
-        .catch(error => console.error('Error refreshing stats:', error));
-}, 30000);
+    // Only refresh if user is not actively working
+    if (document.visibilityState === 'visible' && !document.querySelector(':focus')) {
+        fetch('/api/stats')
+            .then(response => response.json())
+            .then(data => {
+                // Update stats if needed
+                console.log('Stats updated:', data);
+            })
+            .catch(error => console.error('Error refreshing stats:', error));
+    }
+}, 300000); // 5 minutes instead of 30 seconds
 
 function forceScanAll() {
     if (confirm('Force scan all queries? This may take some time.')) {

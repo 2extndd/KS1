@@ -18,7 +18,15 @@ logger = logging.getLogger(__name__)
 class DatabaseManager:
     def __init__(self, database_url: str = DATABASE_URL):
         self.database_url = database_url
-        self.is_postgres = database_url.startswith('postgresql://') or database_url.startswith('postgres://')
+        
+        # Determine database type
+        if database_url and (database_url.startswith('postgresql://') or database_url.startswith('postgres://')):
+            self.is_postgres = True
+        elif database_url and database_url.startswith('sqlite://'):
+            self.is_postgres = False
+        else:
+            # Default to SQLite for local development
+            self.is_postgres = False
         
         # Fix PostgreSQL URL format if needed
         if self.is_postgres and self.database_url.startswith('postgres://'):
@@ -49,7 +57,7 @@ class DatabaseManager:
     def execute_query(self, cursor, query, values):
         """Execute query with proper placeholder handling for both PostgreSQL and SQLite"""
         if self.is_postgres:
-            self.execute_query(cursor, query, values)
+            cursor.execute(query, values)
         else:
             # Convert %s placeholders to ? for SQLite
             sqlite_query = query.replace('%s', '?')
@@ -81,7 +89,7 @@ class DatabaseManager:
                 """)
                 
                 # Create items table (found ads from Kufar)
-                cursor.execute("""
+                self.execute_query(cursor, """
                     CREATE TABLE IF NOT EXISTS items (
                         id SERIAL PRIMARY KEY,
                         kufar_id VARCHAR(100) UNIQUE NOT NULL,
@@ -103,7 +111,7 @@ class DatabaseManager:
                 """)
                 
                 # Create settings table
-                cursor.execute("""
+                self.execute_query(cursor, """
                     CREATE TABLE IF NOT EXISTS settings (
                         id SERIAL PRIMARY KEY,
                         key VARCHAR(100) UNIQUE NOT NULL,
@@ -114,7 +122,7 @@ class DatabaseManager:
                 """)
                 
                 # Create error_tracking table for auto-redeploy
-                cursor.execute("""
+                self.execute_query(cursor, """
                     CREATE TABLE IF NOT EXISTS error_tracking (
                         id SERIAL PRIMARY KEY,
                         error_code INTEGER NOT NULL,
@@ -125,7 +133,7 @@ class DatabaseManager:
                 """)
                 
                 # Create logs table (like in VS5)
-                cursor.execute("""
+                self.execute_query(cursor, """
                     CREATE TABLE IF NOT EXISTS logs (
                         id SERIAL PRIMARY KEY,
                         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -198,10 +206,10 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                self.execute_query(cursor, """
                     SELECT * FROM searches WHERE is_active = TRUE
                     ORDER BY created_at DESC
-                """)
+                """, ())
                 
                 columns = [desc[0] for desc in cursor.description]
                 searches = [dict(zip(columns, row)) for row in cursor.fetchall()]
@@ -217,7 +225,7 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                self.execute_query(cursor, """
                     SELECT s.id, s.name, s.url, s.region, s.category, s.min_price, s.max_price, 
                            s.keywords, s.telegram_chat_id, s.telegram_thread_id, s.is_active,
                            s.created_at, s.updated_at,
@@ -229,7 +237,7 @@ class DatabaseManager:
                              s.keywords, s.telegram_chat_id, s.telegram_thread_id, s.is_active,
                              s.created_at, s.updated_at
                     ORDER BY s.created_at DESC
-                """)
+                """, ())
                 
                 columns = [desc[0] for desc in cursor.description]
                 searches = [dict(zip(columns, row)) for row in cursor.fetchall()]
@@ -245,7 +253,7 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                self.execute_query(cursor, """
                     SELECT id, name, url, region, category, min_price, max_price, 
                            keywords, telegram_chat_id, telegram_thread_id, is_active,
                            created_at, updated_at
@@ -328,7 +336,7 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM searches WHERE id = %s", (search_id,))
+                self.execute_query(cursor, "DELETE FROM searches WHERE id = %s", (search_id,))
                 conn.commit()
                 return cursor.rowcount > 0
                 
@@ -417,7 +425,7 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                self.execute_query(cursor, """
                     UPDATE items SET is_sent = TRUE, updated_at = CURRENT_TIMESTAMP
                     WHERE id = %s
                 """, (item_id,))

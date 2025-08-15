@@ -156,9 +156,9 @@ function copyLogDetail() {
     });
 }
 
-// Auto-refresh logs every 10 seconds
+// Auto-refresh logs every 2 minutes (less aggressive)
 setInterval(() => {
-    if (document.visibilityState === 'visible') {
+    if (document.visibilityState === 'visible' && !document.querySelector(':focus')) {
         fetch('/api/logs/recent')
             .then(response => response.json())
             .then(data => {
@@ -173,7 +173,7 @@ setInterval(() => {
             })
             .catch(error => console.error('Error fetching recent logs:', error));
     }
-}, 10000);
+}, 120000); // 2 minutes instead of 10 seconds
 
 function createLogEntry(log) {
     const entry = document.createElement('div');
