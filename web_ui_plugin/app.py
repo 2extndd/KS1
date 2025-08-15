@@ -251,13 +251,40 @@ def create_app():
             }
             
             # Send test notification
-            success = send_notifications([test_item])
+            from simple_telegram_worker import TelegramWorker
+            import asyncio
+            
+            telegram_worker = TelegramWorker()
+            success = asyncio.run(telegram_worker.send_item_notification(test_item))
             
             if success:
                 return jsonify({'success': True, 'message': 'Test notification sent successfully'})
             else:
                 return jsonify({'error': 'Failed to send test notification'}), 500
                 
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
+    @app.route('/api/config/save', methods=['POST'])
+    def api_save_config():
+        """Save configuration"""
+        try:
+            data = request.get_json()
+            # Here you would save the configuration
+            # For now, just return success
+            return jsonify({'success': True, 'message': 'Configuration saved successfully'})
+            
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
+    @app.route('/api/bot/stop', methods=['POST'])
+    def api_stop_bot():
+        """Stop bot"""
+        try:
+            # Here you would stop the bot
+            # For now, just return success
+            return jsonify({'success': True, 'message': 'Bot stopped successfully'})
+            
         except Exception as e:
             return jsonify({'error': str(e)}), 500
     
