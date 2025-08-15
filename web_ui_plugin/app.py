@@ -37,12 +37,21 @@ def create_app():
             
             from datetime import datetime
             import datetime as dt
+            import sys
+            import os
+            
+            # Add parent directory to path to import kufar_notifications
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            parent_dir = os.path.dirname(current_dir)
+            if parent_dir not in sys.path:
+                sys.path.insert(0, parent_dir)
             
             # Get real searcher status
             try:
                 import kufar_notifications
-                total_api_requests = kufar_notifications.total_api_requests
-                app_start_time = kufar_notifications.app_start_time
+                total_api_requests = getattr(kufar_notifications, 'total_api_requests', 0)
+                app_start_time = getattr(kufar_notifications, 'app_start_time', datetime.now())
+                logger.info(f"Successfully imported stats: API requests={total_api_requests}, start_time={app_start_time}")
             except Exception as e:
                 logger.error(f"Error importing kufar_notifications: {e}")
                 total_api_requests = 0
@@ -425,12 +434,21 @@ def create_app():
     def api_force_scan():
         """Force scan all queries"""
         try:
+            logger.info("Force scan initiated via API")
+            
+            # Import SearchCore from core module
+            import sys
+            import os
+            sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+            sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            
             from core import SearchCore
             
             # Initialize SearchCore and run scan
             search_core = SearchCore()
             results = search_core.search_all_queries()
             
+            logger.info(f"Force scan completed: {results}")
             db.add_log_entry('INFO', 'Force Scan All initiated via WebUI', 'WebUI', f'Manual scan triggered - found {results.get("new_items", 0)} new items')
             
             return jsonify({
@@ -441,8 +459,13 @@ def create_app():
             
         except Exception as e:
             logger.error(f"Error in force scan: {e}")
+            import traceback
+            traceback.print_exc()
             db.add_log_entry('ERROR', f'Force Scan All failed: {str(e)}', 'WebUI', 'Manual scan error')
-            return jsonify({'error': str(e)}), 500
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
     
     @app.route('/api/logs', methods=['GET'])
     def api_get_logs():
@@ -531,7 +554,7 @@ def create_app():
             if 'thread_id' in data:
                 update_data['telegram_thread_id'] = data['thread_id']
             
-            success = db.update_search_query(query_id, update_data)
+            success = db.update_search_query(query_id, **update_data)
             if success:
                 db.add_log_entry('INFO', f'Query updated: ID {query_id}', 'WebUI')
                 return jsonify({'success': True})
@@ -561,7 +584,7 @@ def create_app():
             data = request.get_json()
             thread_id = data.get('thread_id', '')
             
-            success = db.update_search_query(query_id, {'telegram_thread_id': thread_id})
+            success = db.update_search_query(query_id, telegram_thread_id=thread_id)
             if success:
                 db.add_log_entry('INFO', f'Query thread ID updated: ID {query_id}, Thread: {thread_id}', 'WebUI')
                 return jsonify({'success': True})
@@ -637,13 +660,23 @@ def create_app():
             from datetime import datetime
             import datetime as dt
             
+            # Add parent directory to path
+            import sys
+            import os
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            parent_dir = os.path.dirname(current_dir)
+            if parent_dir not in sys.path:
+                sys.path.insert(0, parent_dir)
+            
             # Get real stats
             try:
                 import kufar_notifications
-                total_api_requests = kufar_notifications.total_api_requests
-                app_start_time = kufar_notifications.app_start_time
-                total_items_found = kufar_notifications.total_items_found
-            except:
+                total_api_requests = getattr(kufar_notifications, 'total_api_requests', 0)
+                app_start_time = getattr(kufar_notifications, 'app_start_time', datetime.now())
+                total_items_found = getattr(kufar_notifications, 'total_items_found', 0)
+                logger.info(f"API Stats: requests={total_api_requests}, start={app_start_time}")
+            except Exception as e:
+                logger.error(f"Error in /api/stats: {e}")
                 total_api_requests = 0
                 app_start_time = datetime.now()
                 total_items_found = 0
