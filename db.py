@@ -36,20 +36,58 @@ class DatabaseManager:
         # Force PostgreSQL mode for Railway
         if os.getenv('RAILWAY_ENVIRONMENT'):
             self.is_postgres = True
-            # On Railway, DATABASE_URL should be PostgreSQL
-            if not self.database_url or not (self.database_url.startswith('postgresql://') or self.database_url.startswith('postgres://')):
-                # Try to get from environment
+            logger.info("🚀 Railway environment detected - forcing PostgreSQL mode")
+            
+            # Try multiple ways to get DATABASE_URL
+            if not self.database_url:
+                # Method 1: Try direct environment variable
                 self.database_url = os.getenv('DATABASE_URL')
+                logger.info(f"Method 1 - DATABASE_URL from env: {'Set' if self.database_url else 'Not set'}")
+                
+                # Method 2: Try Railway-specific variables
                 if not self.database_url:
-                    logger.error("🚨 CRITICAL ERROR: DATABASE_URL not set on Railway!")
-                    logger.error("📋 To fix this:")
-                    logger.error("   1. Go to Railway Dashboard")
-                    logger.error("   2. Add PostgreSQL service to your project")
-                    logger.error("   3. Railway will automatically create DATABASE_URL")
-                    logger.error("   4. Or manually set DATABASE_URL in Variables")
-                    logger.error("   5. Redeploy your application")
-                    raise ValueError("DATABASE_URL not set on Railway. Please add PostgreSQL service or set DATABASE_URL manually.")
-            logger.info("Forcing PostgreSQL mode for Railway environment")
+                    self.database_url = os.getenv('RAILWAY_DATABASE_URL')
+                    logger.info(f"Method 2 - RAILWAY_DATABASE_URL: {'Set' if self.database_url else 'Not set'}")
+                
+                # Method 3: Try to construct from other Railway variables
+                if not self.database_url:
+                    db_host = os.getenv('RAILWAY_DATABASE_HOST')
+                    db_port = os.getenv('RAILWAY_DATABASE_PORT')
+                    db_name = os.getenv('RAILWAY_DATABASE_NAME')
+                    db_user = os.getenv('RAILWAY_DATABASE_USER')
+                    db_password = os.getenv('RAILWAY_DATABASE_PASSWORD')
+                    
+                    if all([db_host, db_port, db_name, db_user, db_password]):
+                        self.database_url = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+                        logger.info("Method 3 - Constructed DATABASE_URL from individual variables")
+                    else:
+                        logger.info(f"Method 3 - Individual DB vars: host={bool(db_host)}, port={bool(db_port)}, name={bool(db_name)}, user={bool(db_user)}, pass={bool(db_password)}")
+            
+            # Final check
+            if not self.database_url:
+                logger.error("🚨 CRITICAL ERROR: DATABASE_URL not found on Railway!")
+                logger.error("📋 Available environment variables:")
+                for key, value in os.environ.items():
+                    if 'DATABASE' in key.upper() or 'POSTGRES' in key.upper() or 'RAILWAY' in key.upper():
+                        logger.error(f"  {key}: {value[:50]}{'...' if len(value) > 50 else ''}")
+                
+                logger.error("📋 To fix this:")
+                logger.error("   1. Go to Railway Dashboard")
+                logger.error("   2. Add PostgreSQL service to your project")
+                logger.error("   3. Railway will automatically create DATABASE_URL")
+                logger.error("   4. Or manually set DATABASE_URL in Variables")
+                logger.error("   5. Redeploy your application")
+                logger.error("   6. Check that PostgreSQL service is running")
+                
+                raise ValueError("DATABASE_URL not found on Railway. Please add PostgreSQL service or set DATABASE_URL manually.")
+            
+            # Validate PostgreSQL URL format
+            if not (self.database_url.startswith('postgresql://') or self.database_url.startswith('postgres://')):
+                logger.error(f"🚨 Invalid DATABASE_URL format: {self.database_url[:50]}...")
+                logger.error("Expected format: postgresql://user:password@host:port/database")
+                raise ValueError("Invalid DATABASE_URL format. Expected postgresql:// or postgres://")
+            
+            logger.info("✅ DATABASE_URL found and validated for Railway")
             logger.info(f"Using database: {self.database_url[:50]}..." if self.database_url else "No database URL")
         
         # Don't initialize database immediately - let it be called explicitly
@@ -168,6 +206,8 @@ class DatabaseManager:
                 self.execute_query(cursor, """
                     CREATE TABLE IF NOT EXISTS logs (
                         id SERIAL PRIMARY KEY,
+                        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        level VARCHAR(20) NOT NULL,
                         message TEXT NOT NULL,
                         source VARCHAR(100),
                         details TEXT
@@ -175,7 +215,7 @@ class DatabaseManager:
                 """, ())
                 
                 conn.commit()
-                logger.info("Database initialized successfully", ())
+                logger.info("Database initialized successfully")
                 
         except Exception as e:
             logger.error(f"Error initializing database: {e}")
@@ -247,7 +287,7 @@ class DatabaseManager:
                 return searches
                 
         except Exception as e:
-            logger.error(f"Error getting active searches: {e}", ())
+            logger.error(f"Error getting active searches: {e}")
             return []
     
     def get_all_searches(self) -> List[Dict]:
@@ -275,7 +315,7 @@ class DatabaseManager:
                 return searches
                 
         except Exception as e:
-            logger.error(f"Error getting all searches: {e}", ())
+            logger.error(f"Error getting all searches: {e}")
             return []
     
     def get_search_query(self, search_id: int) -> Optional[Dict[str, Any]]:
@@ -303,7 +343,7 @@ class DatabaseManager:
                 return None
                 
         except Exception as e:
-            logger.error(f"Error getting search query: {e}", ())
+            logger.error(f"Error getting search query: {e}")
             return None
     
     def update_search_query(self, search_id: int, **kwargs) -> bool:
@@ -358,7 +398,7 @@ class DatabaseManager:
                 return True
                 
         except Exception as e:
-            logger.error(f"Error deleting all search queries: {e}", ())
+            logger.error(f"Error deleting all search queries: {e}")
             return False
     
     def delete_search_query(self, search_id: int) -> bool:
@@ -371,7 +411,7 @@ class DatabaseManager:
                 return cursor.rowcount > 0
                 
         except Exception as e:
-            logger.error(f"Error deleting search query: {e}", ())
+            logger.error(f"Error deleting search query: {e}")
             return False
     
     def add_item(self, item_data: Dict[str, Any], search_id: int = None) -> int:
@@ -387,7 +427,7 @@ class DatabaseManager:
                     """, (item_data['kufar_id'],))
                     
                     if cursor.fetchone():
-                        logger.info(f"Item already exists: {item_data.get('title', 'Unknown')}", ())
+                        logger.info(f"Item already exists: {item_data.get('title', 'Unknown')}")
                         return 0
                 
                 # Insert new item
@@ -414,7 +454,7 @@ class DatabaseManager:
                 
                 item_id = cursor.fetchone()[0]
                 conn.commit()
-                logger.info(f"Added new item: {item_data.get('title', 'Unknown')} (ID: {item_id})", ())
+                logger.info(f"Added new item: {item_data.get('title', 'Unknown')} (ID: {item_id})")
                 return item_id
                 
         except Exception as e:
@@ -460,7 +500,7 @@ class DatabaseManager:
                     WHERE id = %s
                 """, (item_id,))
                 conn.commit()
-                logger.debug(f"Marked item {item_id} as sent", ())
+                logger.debug(f"Marked item {item_id} as sent")
                 
         except Exception as e:
             logger.error(f"Error marking item as sent: {e}")
@@ -484,7 +524,7 @@ class DatabaseManager:
                 """, ('ERROR', error_message, 'search', str(error_code)))
                 
                 conn.commit()
-                logger.error(f"Logged error {error_code}: {error_message}", ())
+                logger.error(f"Logged error {error_code}: {error_message}")
                 
         except Exception as e:
             logger.error(f"Error logging error: {e}")
@@ -507,7 +547,7 @@ class DatabaseManager:
                 return errors
                 
         except Exception as e:
-            logger.error(f"Error getting recent errors: {e}", ())
+            logger.error(f"Error getting recent errors: {e}")
             return []
     
     def get_items_stats(self) -> Dict[str, Any]:
@@ -540,7 +580,7 @@ class DatabaseManager:
                 return stats
                 
         except Exception as e:
-            logger.error(f"Error getting stats: {e}", ())
+            logger.error(f"Error getting stats: {e}")
             return {}
     
     def add_log_entry(self, level: str, message: str, source: str = None, details: str = None):
@@ -588,7 +628,7 @@ class DatabaseManager:
                     })
                 return logs
         except Exception as e:
-            logger.error(f"Error getting logs: {e}", ())
+            logger.error(f"Error getting logs: {e}")
             return []
 
     def clear_logs(self):
@@ -598,7 +638,7 @@ class DatabaseManager:
                 cursor = conn.cursor()
                 self.execute_query(cursor, "DELETE FROM logs", ())
                 conn.commit()
-                logger.info("All logs cleared", ())
+                logger.info("All logs cleared")
         except Exception as e:
             logger.error(f"Error clearing logs: {e}")
     
@@ -627,7 +667,7 @@ class DatabaseManager:
                 return logs
                 
         except Exception as e:
-            logger.error(f"Error getting recent logs: {e}", ())
+            logger.error(f"Error getting recent logs: {e}")
             return []
 
 # Global database instance

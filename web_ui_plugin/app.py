@@ -484,7 +484,7 @@ def get_recent_items(hours: int = 24):
         with db.get_connection() as conn:
             cursor = conn.cursor()
             # On Railway, always use PostgreSQL
-            self.execute_query(cursor, """
+            cursor.execute("""
                 SELECT i.*, s.name as search_name
                 FROM items i
                 LEFT JOIN searches s ON i.search_id = s.id

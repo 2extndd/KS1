@@ -27,6 +27,9 @@ from simple_telegram_worker import send_notifications
 from railway_redeploy import redeployer
 from db import db
 
+# Create logger first
+logger = logging.getLogger(__name__)
+
 # Configure logging for Railway environment
 if os.getenv('RAILWAY_ENVIRONMENT'):
     # Railway environment - log to stdout and database
@@ -59,8 +62,6 @@ else:
             logging.StreamHandler(sys.stdout)
         ]
     )
-
-logger = logging.getLogger(__name__)
 
 # Flask app for web UI and health checks
 app = Flask(__name__)
@@ -293,19 +294,19 @@ def cleanup_old_data():
             cursor = conn.cursor()
             
             # Clean up old logs (keep last 7 days)
-            self.execute_query(cursor, """
+            db.execute_query(cursor, """
                 DELETE FROM logs 
                 WHERE created_at < NOW() - INTERVAL %s
             """, ('7 days',))
             
             # Clean up old error tracking (keep last 3 days)
-            self.execute_query(cursor, """
+            db.execute_query(cursor, """
                 DELETE FROM error_tracking 
                 WHERE created_at < NOW() - INTERVAL %s
             """, ('3 days',))
             
             # Clean up old items (keep last 30 days)
-            self.execute_query(cursor, """
+            db.execute_query(cursor, """
                 DELETE FROM items 
                 WHERE created_at < NOW() - INTERVAL %s
                 AND is_sent = TRUE

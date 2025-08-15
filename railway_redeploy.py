@@ -192,10 +192,10 @@ class RailwayRedeployer:
                 
                 # Delete recent error tracking entries
                 # On Railway, always use PostgreSQL
-                self.execute_query(cursor, """
+                cursor.execute("""
                     DELETE FROM error_tracking 
                     WHERE created_at >= NOW() - INTERVAL '2 hours'
-                """, ())
+                """)
                 
                 conn.commit()
                 logger.info("Error tracking cleared after redeploy")
