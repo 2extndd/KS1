@@ -3,6 +3,7 @@ Database models and operations for KF Searcher
 Based on VS5 database structure, adapted for Kufar.by
 """
 
+import os
 import sqlite3
 import psycopg2
 import psycopg2.extras
@@ -18,12 +19,30 @@ class DatabaseManager:
     def __init__(self, database_url: str = DATABASE_URL):
         self.database_url = database_url
         self.is_postgres = database_url.startswith('postgresql://') or database_url.startswith('postgres://')
-        self.init_database()
+        
+        # Fix PostgreSQL URL format if needed
+        if self.is_postgres and self.database_url.startswith('postgres://'):
+            self.database_url = self.database_url.replace('postgres://', 'postgresql://', 1)
+            logger.info("Fixed PostgreSQL URL format")
+        
+        # Force PostgreSQL mode for Railway
+        if os.getenv('RAILWAY_ENVIRONMENT'):
+            self.is_postgres = True
+            logger.info("Forcing PostgreSQL mode for Railway environment")
+        
+        # Don't initialize database immediately - let it be called explicitly
+        # self.init_database()
     
     def get_connection(self):
         """Get database connection based on database type"""
         if self.is_postgres:
-            return psycopg2.connect(self.database_url)
+            try:
+                conn = psycopg2.connect(self.database_url)
+                conn.autocommit = False
+                return conn
+            except Exception as e:
+                logger.error(f"Failed to connect to PostgreSQL: {e}")
+                raise
         else:
             return sqlite3.connect(self.database_url.replace('sqlite:///', ''))
     
@@ -142,7 +161,14 @@ class DatabaseManager:
                     True
                 )
                 
-                cursor.execute(query, values)
+                # Execute with proper error handling
+                try:
+                    cursor.execute(query, values)
+                except Exception as e:
+                    logger.error(f"SQL execution error: {e}")
+                    logger.error(f"Query: {query}")
+                    logger.error(f"Values: {values}")
+                    raise
                 
                 result = cursor.fetchone()
                 if result is None:
@@ -260,7 +286,14 @@ class DatabaseManager:
                     WHERE id = %s
                 """
                 
-                cursor.execute(query, values)
+                # Execute with proper error handling
+                try:
+                    cursor.execute(query, values)
+                except Exception as e:
+                    logger.error(f"SQL execution error: {e}")
+                    logger.error(f"Query: {query}")
+                    logger.error(f"Values: {values}")
+                    raise
                 conn.commit()
                 return cursor.rowcount > 0
                 
