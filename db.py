@@ -74,19 +74,6 @@ class DatabaseManager:
                     )
                 """)
                 
-                # Create logs table
-                cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS logs (
-                        id SERIAL PRIMARY KEY,
-                        level VARCHAR(20) NOT NULL,
-                        message TEXT NOT NULL,
-                        search_id INTEGER REFERENCES searches(id),
-                        item_id INTEGER REFERENCES items(id),
-                        error_code INTEGER,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                """)
-                
                 # Create settings table
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS settings (
@@ -117,8 +104,7 @@ class DatabaseManager:
                         level VARCHAR(20) NOT NULL,
                         message TEXT NOT NULL,
                         source VARCHAR(100),
-                        details TEXT,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        details TEXT
                     )
                 """)
                 

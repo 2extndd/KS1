@@ -444,13 +444,13 @@ def get_recent_items(hours: int = 24):
     try:
         with db.get_connection() as conn:
             cursor = conn.cursor()
-                            cursor.execute("""
-                    SELECT i.*, s.name as search_name
-                    FROM items i
-                    LEFT JOIN searches s ON i.search_id = s.id
-                    WHERE i.created_at >= NOW() - INTERVAL $1
-                    ORDER BY i.created_at DESC
-                """, (f"{hours} hours",))
+            cursor.execute("""
+                SELECT i.*, s.name as search_name
+                FROM items i
+                LEFT JOIN searches s ON i.search_id = s.id
+                WHERE i.created_at >= NOW() - INTERVAL $1
+                ORDER BY i.created_at DESC
+            """, (f"{hours} hours",))
             
             columns = [desc[0] for desc in cursor.description]
             items = [dict(zip(columns, row)) for row in cursor.fetchall()]
