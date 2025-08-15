@@ -176,25 +176,36 @@ class KufarScraper:
             
             # Extract price - updated selectors for modern Kufar
             price_selectors = [
+                # Try to find price in various formats
                 '[data-testid*="price"]', 
                 '[data-testid*="cost"]',
                 '.price', 
                 '[class*="Price"]',
-                '[class*="Cost"]'
+                '[class*="Cost"]',
+                '[class*="price"]',
+                # Common patterns on Kufar.by
+                'span:contains("р.")',
+                'div:contains("р.")',
+                '[class*="listing"] span',
+                '[class*="card"] span'
             ]
+            
             for selector in price_selectors:
-                price_elem = element.select_one(selector)
-                if price_elem:
-                    price_text = price_elem.get_text(strip=True)
-                    # Extract numeric price (handle Belarusian format)
-                    price_match = re.search(r'(\d+(?:\s+\d+)*)', price_text.replace(',', '').replace(' ', ''))
-                    if price_match:
-                        try:
-                            price_str = price_match.group(1).replace(' ', '')
-                            ad_data['price'] = int(price_str)
-                        except ValueError:
-                            pass
-                    break
+                try:
+                    price_elem = element.select_one(selector)
+                    if price_elem:
+                        price_text = price_elem.get_text(strip=True)
+                        # Look for price patterns: "100 р.", "1 500 р.", etc.
+                        price_match = re.search(r'(\d+(?:\s+\d+)*)\s*р\.?', price_text)
+                        if price_match:
+                            try:
+                                price_str = price_match.group(1).replace(' ', '')
+                                ad_data['price'] = int(price_str)
+                                break
+                            except ValueError:
+                                pass
+                except:
+                    continue
             
             # Extract URL - updated for modern Kufar
             link_selectors = ['a[href*="/item/"]', 'a[href*="/ad/"]', 'a[href]']
@@ -222,12 +233,33 @@ class KufarScraper:
                     ad_data['images'] = [src] if not src.startswith('data:') else []
             
             # Extract location
-            location_selectors = ['[data-testid*="location"]', '.location', '[class*="Location"]']
+            location_selectors = [
+                '[data-testid*="location"]', 
+                '.location', 
+                '[class*="Location"]',
+                '[class*="region"]',
+                '[class*="address"]',
+                # Look for common location patterns
+                'span:contains("Минск")',
+                'span:contains("Гомель")', 
+                'span:contains("Брест")',
+                'span:contains("Витебск")',
+                'span:contains("Гродно")',
+                'span:contains("Могилёв")',
+                'div:contains("область")',
+                'span[class*="text-muted"]:contains(",")'
+            ]
             for selector in location_selectors:
-                location_elem = element.select_one(selector)
-                if location_elem:
-                    ad_data['location'] = location_elem.get_text(strip=True)
-                    break
+                try:
+                    location_elem = element.select_one(selector)
+                    if location_elem:
+                        location_text = location_elem.get_text(strip=True)
+                        # Filter out non-location text
+                        if any(city in location_text for city in ['Минск', 'Гомель', 'Брест', 'Витебск', 'Гродно', 'Могилёв']) or 'область' in location_text:
+                            ad_data['location'] = location_text
+                            break
+                except:
+                    continue
             
             # Only return if we have at least title and URL
             if ad_data.get('title') and ad_data.get('url'):

@@ -73,6 +73,15 @@ total_api_requests = 0
 total_items_found = 0
 last_search_time = None
 
+# Update start time when app actually starts
+def update_start_time():
+    global app_start_time
+    app_start_time = datetime.now()
+    logger.info(f"App start time updated to: {app_start_time}")
+
+# Call this when the app starts running
+update_start_time()
+
 @app.route('/')
 def health_check():
     """Health check endpoint"""

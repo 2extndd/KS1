@@ -3,299 +3,319 @@
 {% block content %}
 <div class="row">
     <div class="col-12">
-        <h1 class="h3 mb-4">System Logs</h1>
-    </div>
-</div>
-
-<!-- Log Controls -->
-<div class="row mb-4">
-    <div class="col-md-6">
-        <div class="input-group">
-            <label class="input-group-text" for="log-level">Filter by level:</label>
-            <select class="form-select" id="log-level" onchange="filterLogs()">
-                <option value="">All Levels</option>
-                <option value="ERROR">Error</option>
-                <option value="WARNING">Warning</option>
-                <option value="INFO">Info</option>
-                <option value="DEBUG">Debug</option>
-            </select>
-        </div>
-    </div>
-    <div class="col-md-6">
-        <div class="btn-group float-end">
-            <button class="btn btn-outline-primary" onclick="refreshLogs()">
-                <i class="bi bi-arrow-clockwise me-1"></i>Refresh
-            </button>
-            <button class="btn btn-outline-danger" onclick="clearLogs()">
-                <i class="bi bi-trash me-1"></i>Clear Logs
-            </button>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0">Logs</h1>
+            <div class="d-flex gap-2 align-items-center">
+                <button class="btn btn-outline-primary btn-sm" onclick="refreshLogs()">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Refresh Now
+                </button>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="autoRefresh" checked>
+                    <label class="form-check-label" for="autoRefresh">Auto-Refresh: ON</label>
+                </div>
+                <select class="form-select form-select-sm" id="logLevel" style="width: 120px;" onchange="filterLogs()">
+                    <option value="">Log Level</option>
+                    <option value="INFO">INFO</option>
+                    <option value="WARNING">WARNING</option>
+                    <option value="ERROR">ERROR</option>
+                    <option value="DEBUG">DEBUG</option>
+                </select>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Logs Display -->
+<!-- Log Entries -->
 <div class="row">
     <div class="col-12">
         <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Log Entries</h5>
+                <span class="text-muted">{{ logs|length if logs else 0 }} entries</span>
+            </div>
             <div class="card-body p-0">
-                <div id="logs-container" class="logs-container">
-                    {% if logs %}
-                        {% for log in logs %}
-                        <div class="log-entry log-{{ log.level.lower() }}" data-level="{{ log.level }}">
-                            <div class="log-header">
-                                <span class="log-timestamp">{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</span>
-                                <span class="badge log-level-badge bg-{{ 'danger' if log.level == 'ERROR' else 'warning' if log.level == 'WARNING' else 'info' if log.level == 'INFO' else 'secondary' }}">
-                                    {{ log.level }}
-                                </span>
-                                <span class="log-source">{{ log.source or 'System' }}</span>
-                            </div>
-                            <div class="log-message">{{ log.message }}</div>
-                            {% if log.details %}
-                            <div class="log-details">
-                                <small class="text-muted">{{ log.details }}</small>
-                            </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 180px;">Timestamp</th>
+                                <th style="width: 80px;">Level</th>
+                                <th style="width: 100px;">Module</th>
+                                <th>Message</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logsTableBody">
+                            {% if logs %}
+                                {% for log in logs %}
+                                <tr class="log-row" data-level="{{ log.level }}"
+                                    data-bs-toggle="tooltip" data-bs-placement="top"
+                                    title="Click to view full details">
+                                    <td class="log-timestamp">{{ log.timestamp if log.timestamp else 'N/A' }}</td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if log.level == 'INFO' %}bg-info
+                                            {% elif log.level == 'WARNING' %}bg-warning
+                                            {% elif log.level == 'ERROR' %}bg-danger
+                                            {% elif log.level == 'DEBUG' %}bg-secondary
+                                            {% else %}bg-light text-dark{% endif %}">
+                                            {{ log.level }}
+                                        </span>
+                                    </td>
+                                    <td class="log-module">{{ log.source or 'core' }}</td>
+                                    <td class="log-message">
+                                        {{ log.message[:100] }}{% if log.message|length > 100 %}...{% endif %}
+                                        {% if log.details %}
+                                            <br><small class="text-muted">{{ log.details[:50] }}{% if log.details|length > 50 %}...{% endif %}</small>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted">
+                                        <i class="bi bi-file-text" style="font-size: 2rem;"></i>
+                                        <br>No logs available
+                                    </td>
+                                </tr>
                             {% endif %}
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="text-center py-5">
-                            <i class="bi bi-file-text text-muted" style="font-size: 4rem;"></i>
-                            <h5 class="text-muted mt-3">No logs found</h5>
-                            <p class="text-muted">System logs will appear here as the application runs</p>
-                        </div>
-                    {% endif %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-<!-- Log Detail Modal -->
-<div class="modal fade" id="logDetailModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Full Log Message</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <pre id="log-detail-content" class="bg-light p-3 rounded"></pre>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" onclick="copyLogDetail()">
-                    <i class="bi bi-clipboard me-1"></i>Copy
-                </button>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-let currentLogLevel = '';
-
-function filterLogs() {
-    const level = document.getElementById('log-level').value;
-    currentLogLevel = level;
-    
-    const entries = document.querySelectorAll('.log-entry');
-    entries.forEach(entry => {
-        if (level === '' || entry.dataset.level === level) {
-            entry.style.display = 'block';
-        } else {
-            entry.style.display = 'none';
-        }
-    });
-}
-
-function refreshLogs() {
-    fetch('/api/logs')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Error refreshing logs: ' + data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error refreshing logs');
-        });
-}
-
-function clearLogs() {
-    if (confirm('Are you sure you want to clear all logs? This action cannot be undone.')) {
-        fetch('/api/logs/clear', { method: 'POST' })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload();
-                } else {
-                    alert('Error clearing logs: ' + data.error);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error clearing logs');
-            });
-    }
-}
-
-function showLogDetail(message, details) {
-    document.getElementById('log-detail-content').textContent = message + (details ? '\n\nDetails:\n' + details : '');
-    new bootstrap.Modal(document.getElementById('logDetailModal')).show();
-}
-
-function copyLogDetail() {
-    const content = document.getElementById('log-detail-content').textContent;
-    navigator.clipboard.writeText(content).then(() => {
-        alert('Log copied to clipboard!');
-    });
-}
-
-// Auto-refresh logs every 2 minutes (less aggressive)
-setInterval(() => {
-    if (document.visibilityState === 'visible' && !document.querySelector(':focus')) {
-        fetch('/api/logs/recent')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success && data.logs && data.logs.length > 0) {
-                    // Add new logs without full page reload
-                    const container = document.getElementById('logs-container');
-                    data.logs.forEach(log => {
-                        const logEntry = createLogEntry(log);
-                        container.insertBefore(logEntry, container.firstChild);
-                    });
-                }
-            })
-            .catch(error => console.error('Error fetching recent logs:', error));
-    }
-}, 120000); // 2 minutes instead of 10 seconds
-
-function createLogEntry(log) {
-    const entry = document.createElement('div');
-    entry.className = `log-entry log-${log.level.toLowerCase()}`;
-    entry.dataset.level = log.level;
-    
-    const badgeClass = log.level === 'ERROR' ? 'danger' : 
-                      log.level === 'WARNING' ? 'warning' : 
-                      log.level === 'INFO' ? 'info' : 'secondary';
-    
-    entry.innerHTML = `
-        <div class="log-header">
-            <span class="log-timestamp">${log.timestamp}</span>
-            <span class="badge log-level-badge bg-${badgeClass}">${log.level}</span>
-            <span class="log-source">${log.source || 'System'}</span>
-        </div>
-        <div class="log-message">${log.message}</div>
-        ${log.details ? `<div class="log-details"><small class="text-muted">${log.details}</small></div>` : ''}
-    `;
-    
-    return entry;
-}
-
-// Click handlers for log entries
-document.addEventListener('click', function(e) {
-    if (e.target.closest('.log-entry')) {
-        const entry = e.target.closest('.log-entry');
-        const message = entry.querySelector('.log-message').textContent;
-        const details = entry.querySelector('.log-details');
-        const detailsText = details ? details.textContent : '';
-        showLogDetail(message, detailsText);
-    }
-});
-</script>
 {% endblock %}
 
 {% block styles %}
 <style>
-.logs-container {
-    max-height: 600px;
-    overflow-y: auto;
-    background: #f8f9fa;
-}
-
-.log-entry {
-    padding: 12px 16px;
-    border-bottom: 1px solid #e9ecef;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.log-entry:hover {
-    background-color: #e9ecef;
-}
-
-.log-entry:last-child {
-    border-bottom: none;
-}
-
-.log-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 4px;
-    font-size: 0.875rem;
-}
-
 .log-timestamp {
-    color: #6c757d;
     font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
+    color: #6c757d;
 }
 
-.log-level-badge {
-    font-size: 0.7rem;
-    padding: 2px 6px;
-}
-
-.log-source {
+.log-module {
+    font-weight: 600;
     color: #495057;
-    font-weight: 500;
 }
 
 .log-message {
     font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
     font-size: 0.9rem;
     line-height: 1.4;
-    color: #212529;
-    margin-bottom: 4px;
 }
 
-.log-details {
-    font-size: 0.8rem;
-    color: #6c757d;
-    font-style: italic;
+.log-row {
+    cursor: pointer;
+    transition: background-color 0.2s;
 }
 
-.log-error {
-    border-left: 4px solid #dc3545;
-    background-color: #fff5f5;
+.log-row:hover {
+    background-color: rgba(0,123,255,0.1);
 }
 
-.log-warning {
-    border-left: 4px solid #ffc107;
-    background-color: #fffdf5;
+.badge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+    min-width: 60px;
 }
 
-.log-info {
-    border-left: 4px solid #0dcaf0;
-    background-color: #f0fdff;
+.form-check-input:checked {
+    background-color: #198754;
+    border-color: #198754;
 }
 
-.log-debug {
-    border-left: 4px solid #6c757d;
+.table th {
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.9rem;
+}
+
+.table td {
+    vertical-align: middle;
+    border-bottom: 1px solid #f8f9fa;
+    padding: 0.75rem;
+}
+
+.card-header {
     background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: between;
+    align-items: center;
 }
 
-#log-detail-content {
-    white-space: pre-wrap;
-    word-break: break-word;
-    max-height: 400px;
-    overflow-y: auto;
+.card-header span {
+    margin-left: auto;
+    font-size: 0.9rem;
 }
 </style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let autoRefreshInterval;
+
+// Initialize auto-refresh
+function startAutoRefresh() {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+    }
+    
+    autoRefreshInterval = setInterval(() => {
+        if (document.getElementById('autoRefresh').checked && document.visibilityState === 'visible') {
+            refreshLogs(true); // Silent refresh
+        }
+    }, 5000); // Refresh every 5 seconds like VS5
+}
+
+// Refresh logs
+function refreshLogs(silent = false) {
+    if (!silent) {
+        showAlert('Refreshing logs...', 'info');
+    }
+    
+    fetch('/api/logs/recent?minutes=5')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.logs) {
+                updateLogsTable(data.logs);
+                if (!silent) {
+                    showAlert('Logs refreshed successfully', 'success');
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error refreshing logs:', error);
+            if (!silent) {
+                showAlert('Error refreshing logs', 'danger');
+            }
+        });
+}
+
+// Update logs table
+function updateLogsTable(logs) {
+    const tbody = document.getElementById('logsTableBody');
+    
+    logs.forEach(log => {
+        // Check if log already exists
+        const existingRows = tbody.querySelectorAll('.log-row');
+        const exists = Array.from(existingRows).some(row => {
+            return row.children[0].textContent === log.timestamp && 
+                   row.children[3].textContent.includes(log.message.substring(0, 50));
+        });
+        
+        if (!exists) {
+            const row = createLogRow(log);
+            tbody.insertBefore(row, tbody.firstChild);
+            
+            // Remove old rows if too many (keep last 100)
+            if (tbody.children.length > 100) {
+                tbody.removeChild(tbody.lastChild);
+            }
+        }
+    });
+    
+    // Apply current filter
+    filterLogs();
+}
+
+// Create log row
+function createLogRow(log) {
+    const row = document.createElement('tr');
+    row.className = 'log-row';
+    row.dataset.level = log.level;
+    
+    const badgeClass = log.level === 'INFO' ? 'bg-info' :
+                      log.level === 'WARNING' ? 'bg-warning' :
+                      log.level === 'ERROR' ? 'bg-danger' :
+                      log.level === 'DEBUG' ? 'bg-secondary' : 'bg-light text-dark';
+    
+    row.innerHTML = `
+        <td class="log-timestamp">${log.timestamp || 'N/A'}</td>
+        <td><span class="badge ${badgeClass}">${log.level}</span></td>
+        <td class="log-module">${log.source || 'core'}</td>
+        <td class="log-message">
+            ${log.message.length > 100 ? log.message.substring(0, 100) + '...' : log.message}
+            ${log.details ? '<br><small class="text-muted">' + (log.details.length > 50 ? log.details.substring(0, 50) + '...' : log.details) + '</small>' : ''}
+        </td>
+    `;
+    
+    return row;
+}
+
+// Filter logs by level
+function filterLogs() {
+    const selectedLevel = document.getElementById('logLevel').value;
+    const rows = document.querySelectorAll('.log-row');
+    
+    rows.forEach(row => {
+        if (!selectedLevel || row.dataset.level === selectedLevel) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// Auto-refresh toggle
+document.getElementById('autoRefresh').addEventListener('change', function() {
+    const label = this.nextElementSibling;
+    if (this.checked) {
+        label.textContent = 'Auto-Refresh: ON';
+        startAutoRefresh();
+    } else {
+        label.textContent = 'Auto-Refresh: OFF';
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+        }
+    }
+});
+
+// Row click handler
+document.addEventListener('click', function(e) {
+    const row = e.target.closest('.log-row');
+    if (row) {
+        const cells = row.children;
+        const logDetails = {
+            timestamp: cells[0].textContent,
+            level: cells[1].textContent.trim(),
+            module: cells[2].textContent,
+            message: cells[3].textContent
+        };
+        
+        // Show detailed log in a modal or alert
+        const details = `Time: ${logDetails.timestamp}\nLevel: ${logDetails.level}\nModule: ${logDetails.module}\nMessage: ${logDetails.message}`;
+        
+        // Create a modal or use browser alert for now
+        if (confirm('Log Details:\n\n' + details + '\n\nClick OK to copy to clipboard')) {
+            navigator.clipboard.writeText(details).then(() => {
+                showAlert('Log details copied to clipboard', 'success');
+            });
+        }
+    }
+});
+
+// Start auto-refresh on page load
+document.addEventListener('DOMContentLoaded', function() {
+    startAutoRefresh();
+    
+    // Initialize tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+
+// Stop auto-refresh when page is hidden
+document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'hidden' && autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+    } else if (document.visibilityState === 'visible' && document.getElementById('autoRefresh').checked) {
+        startAutoRefresh();
+    }
+});
+</script>
 {% endblock %}

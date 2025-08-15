@@ -33,30 +33,36 @@
         {% for item in items %}
         <div class="col-lg-4 col-md-6 mb-4">
             <div class="card h-100">
-                {% if item.images %}
-                    <div id="carousel-{{ item.id }}" class="carousel slide" data-bs-ride="carousel">
-                        <div class="carousel-inner">
-                            {% for image in item.images[:3] %}
-                            <div class="carousel-item {{ 'active' if loop.first }}">
-                                <img src="{{ image }}" class="d-block w-100 card-img-top" alt="Item image" 
-                                     style="height: 200px; object-fit: cover;">
+                <!-- Clickable Image with 4:5 aspect ratio -->
+                <a href="{{ item.url }}" target="_blank" class="text-decoration-none position-relative d-block">
+                    {% if item.images %}
+                        <div id="carousel-{{ item.id }}" class="carousel slide" data-bs-ride="carousel">
+                            <div class="carousel-inner">
+                                {% for image in item.images[:3] %}
+                                <div class="carousel-item {{ 'active' if loop.first }}">
+                                    <div style="aspect-ratio: 4/5; overflow: hidden; position: relative;">
+                                        <img src="{{ image }}" class="d-block w-100 h-100" alt="Item image" 
+                                             style="object-fit: cover; object-position: center;">
+                                    </div>
+                                </div>
+                                {% endfor %}
                             </div>
-                            {% endfor %}
+                            {% if item.images|length > 1 %}
+                            <button class="carousel-control-prev" type="button" data-bs-target="#carousel-{{ item.id }}" data-bs-slide="prev" onclick="event.stopPropagation();">
+                                <span class="carousel-control-prev-icon"></span>
+                            </button>
+                            <button class="carousel-control-next" type="button" data-bs-target="#carousel-{{ item.id }}" data-bs-slide="next" onclick="event.stopPropagation();">
+                                <span class="carousel-control-next-icon"></span>
+                            </button>
+                            {% endif %}
                         </div>
-                        {% if item.images|length > 1 %}
-                        <button class="carousel-control-prev" type="button" data-bs-target="#carousel-{{ item.id }}" data-bs-slide="prev">
-                            <span class="carousel-control-prev-icon"></span>
-                        </button>
-                        <button class="carousel-control-next" type="button" data-bs-target="#carousel-{{ item.id }}" data-bs-slide="next">
-                            <span class="carousel-control-next-icon"></span>
-                        </button>
-                        {% endif %}
-                    </div>
-                {% else %}
-                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
-                        <i class="fas fa-image fa-3x text-muted"></i>
-                    </div>
-                {% endif %}
+                    {% else %}
+                        <div class="bg-light d-flex align-items-center justify-content-center" 
+                             style="aspect-ratio: 4/5;">
+                            <i class="fas fa-image fa-3x text-muted"></i>
+                        </div>
+                    {% endif %}
+                </a>
                 
                 <div class="card-body d-flex flex-column">
                     <h6 class="card-title">{{ item.title[:80] }}{% if item.title|length > 80 %}...{% endif %}</h6>
@@ -69,11 +75,14 @@
                         {% endif %}
                     </div>
                     
-                    {% if item.location %}
                     <p class="text-muted small mb-2">
-                        <i class="fas fa-map-marker-alt me-1"></i>{{ item.location }}
+                        <i class="fas fa-map-marker-alt me-1"></i>
+                        {% if item.location and item.location != '' %}
+                            {{ item.location }}
+                        {% else %}
+                            Местоположение не указано
+                        {% endif %}
                     </p>
-                    {% endif %}
                     
                     {% if item.description %}
                     <p class="card-text small text-muted">

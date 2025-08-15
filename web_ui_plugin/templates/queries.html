@@ -77,8 +77,14 @@
                         <thead class="table-light">
                             <tr>
                                 <th style="width: 40px;">#</th>
-                                <th>Query</th>
-                                <th style="width: 100px;">Thread ID</th>
+                                <th style="cursor: pointer;" onclick="sortTable(1)">
+                                    Query Name 
+                                    <i class="bi bi-arrow-down-up ms-1"></i>
+                                </th>
+                                <th style="width: 100px; cursor: pointer;" onclick="sortTable(2)">
+                                    Thread ID
+                                    <i class="bi bi-arrow-down-up ms-1"></i>
+                                </th>
                                 <th style="width: 150px;">Last Found Item</th>
                                 <th style="width: 80px;">Items</th>
                                 <th style="width: 200px;">Actions</th>
@@ -380,6 +386,66 @@ function editThreadId(queryId) {
         .catch(error => {
             showAlert('Error updating thread ID: ' + error.message, 'danger');
         });
+    }
+}
+
+// Table sorting functionality (like VS5)
+let sortDirection = {};
+
+function sortTable(columnIndex) {
+    const table = document.querySelector('.table');
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    // Determine sort direction
+    if (!sortDirection[columnIndex]) {
+        sortDirection[columnIndex] = 'asc';
+    } else {
+        sortDirection[columnIndex] = sortDirection[columnIndex] === 'asc' ? 'desc' : 'asc';
+    }
+    
+    const direction = sortDirection[columnIndex];
+    
+    // Sort rows
+    rows.sort((a, b) => {
+        const aValue = a.children[columnIndex].textContent.trim().toLowerCase();
+        const bValue = b.children[columnIndex].textContent.trim().toLowerCase();
+        
+        if (columnIndex === 2) { // Thread ID column
+            // Handle numeric sorting for thread IDs
+            const aNum = parseInt(aValue) || 0;
+            const bNum = parseInt(bValue) || 0;
+            return direction === 'asc' ? aNum - bNum : bNum - aNum;
+        } else {
+            // Text sorting for query names
+            if (direction === 'asc') {
+                return aValue.localeCompare(bValue);
+            } else {
+                return bValue.localeCompare(aValue);
+            }
+        }
+    });
+    
+    // Update row numbers and re-append rows
+    rows.forEach((row, index) => {
+        row.children[0].textContent = index + 1; // Update row number
+        tbody.appendChild(row);
+    });
+    
+    // Update sort indicators
+    updateSortIndicators(columnIndex, direction);
+}
+
+function updateSortIndicators(activeColumn, direction) {
+    // Reset all indicators
+    document.querySelectorAll('th i.bi').forEach(icon => {
+        icon.className = 'bi bi-arrow-down-up ms-1';
+    });
+    
+    // Set active indicator
+    const activeHeader = document.querySelector(`th:nth-child(${activeColumn + 1}) i`);
+    if (activeHeader) {
+        activeHeader.className = direction === 'asc' ? 'bi bi-sort-up ms-1' : 'bi bi-sort-down ms-1';
     }
 }
 </script>

@@ -64,6 +64,7 @@ class KufarSearcher:
     def search_all_queries(self) -> Dict[str, Any]:
         """Search all active queries and return results summary"""
         logger.info("Starting search for all active queries")
+        db.add_log_entry('INFO', 'Starting Force Scan All - searching all active queries', 'core', 'Automated search cycle initiated')
         
         results = {
             'total_searches': 0,
@@ -80,16 +81,20 @@ class KufarSearcher:
             
             if not searches:
                 logger.info("No active searches found")
-                db.add_log_entry('INFO', 'No active searches found', 'SearchCore')
+                db.add_log_entry('INFO', 'No active searches found', 'core', 'No queries configured for monitoring')
                 return results
+            
+            db.add_log_entry('INFO', f'Found {len(searches)} active searches to process', 'core', f'Processing {len(searches)} search queries')
             
             # Process each search
             for search in searches:
                 try:
                     logger.info(f"Processing search: {search['name']} (ID: {search['id']})")
+                    db.add_log_entry('INFO', f"[DEBUG] Processing search: {search['name']}", 'core', f"Starting search for query ID {search['id']}")
                     
                     # Search for items
                     items = self.search_query(search)
+                    db.add_log_entry('INFO', f"[DEBUG] Got {len(items)} items from queue for query_id {search['id']}", 'core', f"Retrieved {len(items)} items from Kufar")
                     
                     if items:
                         # Process new items
@@ -97,6 +102,13 @@ class KufarSearcher:
                         results['new_items'] += len(new_items)
                         
                         logger.info(f"Found {len(new_items)} new items for search '{search['name']}'")
+                        db.add_log_entry('INFO', f"[DEBUG] Found items in queue! Getting them...", 'core', f"Processing {len(new_items)} new items")
+                        
+                        # Log each new item
+                        for item in new_items:
+                            db.add_log_entry('INFO', f"[DEBUG] Processing item {item['kufar_id']}: {item['title'][:50]}...", 'core', f"New item found: {item['title']}")
+                    else:
+                        db.add_log_entry('INFO', f"[DEBUG] Item {search['id']} already exists in database, skipping...", 'core', f"No new items for query {search['name']}")
                     
                     results['successful_searches'] += 1
                     
@@ -121,6 +133,7 @@ class KufarSearcher:
                             self.error_count += 1
             
             logger.info(f"Search completed. Results: {results}")
+            db.add_log_entry('INFO', f"Force Scan All completed: {results['successful_searches']}/{results['total_searches']} successful, {results['new_items']} new items", 'core', f"Scan results: {results}")
             return results
             
         except Exception as e:
