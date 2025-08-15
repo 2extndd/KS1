@@ -68,7 +68,7 @@ app = Flask(__name__)
 app.secret_key = SECRET_KEY
 
 # Global variables for tracking
-app_start_time = None
+app_start_time = datetime.now()  # Initialize immediately
 total_api_requests = 0
 total_items_found = 0
 last_search_time = None
@@ -115,8 +115,13 @@ def get_system_metrics():
     """Get comprehensive system metrics"""
     try:
         current_time = datetime.now()
-        uptime = current_time - app_start_time
-        uptime_minutes = int(uptime.total_seconds() / 60)
+        
+        # Calculate uptime safely
+        if app_start_time:
+            uptime = current_time - app_start_time
+            uptime_minutes = int(uptime.total_seconds() / 60)
+        else:
+            uptime_minutes = 0
         
         # Get database stats
         db_stats = db.get_items_stats()
@@ -152,12 +157,12 @@ def get_proxy_status():
         # Check if proxy system is working
         from proxies import ProxyManager
         proxy_manager = ProxyManager()
-        working_proxies = proxy_manager.get_working_proxies()
+        working_proxies = proxy_manager.working_proxies
         
         return {
             'status': 'active' if working_proxies else 'inactive',
             'working_proxies': len(working_proxies),
-            'total_proxies': len(proxy_manager.proxies) if hasattr(proxy_manager, 'proxies') else 0,
+            'total_proxies': len(proxy_manager.proxy_list) if hasattr(proxy_manager, 'proxy_list') else 0,
             'last_check': datetime.now().isoformat()
         }
     except Exception as e:
@@ -181,7 +186,7 @@ def get_railway_status():
         return {
             'status': status,
             'auto_redeploy_enabled': os.getenv('RAILWAY_ENVIRONMENT') is not None,
-            'last_deploy': app_start_time.isoformat(),
+            'last_deploy': app_start_time.isoformat() if app_start_time else datetime.now().isoformat(),
             'environment': os.getenv('RAILWAY_ENVIRONMENT', 'local')
         }
     except Exception as e:

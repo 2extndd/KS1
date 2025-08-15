@@ -432,23 +432,24 @@ class DatabaseManager:
                 
                 # Insert new item
                 self.execute_query(cursor, """
-                    INSERT INTO items (title, url, price, currency, location, created_at, 
-                                     images, telegram_chat_id, telegram_thread_id, search_id, 
-                                     kufar_id, is_sent)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    INSERT INTO items (kufar_id, search_id, title, price, currency, 
+                                     description, images, location, seller_name, 
+                                     seller_phone, url, raw_data, is_sent)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id
                 """, (
+                    item_data.get('kufar_id', ''),
+                    search_id or item_data.get('search_id'),
                     item_data.get('title', ''),
-                    item_data.get('url', ''),
                     item_data.get('price', 0),
                     item_data.get('currency', 'BYN'),
-                    item_data.get('location', ''),
-                    item_data.get('created_at'),
+                    item_data.get('description', ''),
                     json.dumps(item_data.get('images', [])),
-                    item_data.get('telegram_chat_id'),
-                    item_data.get('telegram_thread_id'),
-                    search_id,
-                    item_data.get('kufar_id'),
+                    item_data.get('location', ''),
+                    item_data.get('seller_name', ''),
+                    item_data.get('seller_phone', ''),
+                    item_data.get('url', ''),
+                    json.dumps(item_data.get('raw_data', {})) if item_data.get('raw_data') else None,
                     False
                 ))
                 
@@ -534,12 +535,20 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                # On Railway, always use PostgreSQL
-                self.execute_query(cursor, """
-                    SELECT * FROM error_tracking
-                    WHERE created_at >= NOW() - INTERVAL %s
-                    ORDER BY created_at DESC
-                """, (f"{hours} hours",))
+                if self.is_postgres:
+                    # PostgreSQL syntax
+                    self.execute_query(cursor, """
+                        SELECT * FROM error_tracking
+                        WHERE created_at >= NOW() - INTERVAL %s
+                        ORDER BY created_at DESC
+                    """, (f"{hours} hours",))
+                else:
+                    # SQLite syntax
+                    self.execute_query(cursor, """
+                        SELECT * FROM error_tracking
+                        WHERE created_at >= datetime('now', '-' || %s || ' hours')
+                        ORDER BY created_at DESC
+                    """, (hours,))
                 
                 columns = [desc[0] for desc in cursor.description]
                 errors = [dict(zip(columns, row)) for row in cursor.fetchall()]
@@ -647,13 +656,23 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                # On Railway, always use PostgreSQL
-                self.execute_query(cursor, """
-                    SELECT timestamp, level, message, source, details
-                    FROM logs 
-                    WHERE timestamp >= NOW() - INTERVAL %s
-                    ORDER BY timestamp DESC
-                """, (f"{minutes} minutes",))
+                
+                if self.is_postgres:
+                    # PostgreSQL syntax
+                    self.execute_query(cursor, """
+                        SELECT timestamp, level, message, source, details
+                        FROM logs 
+                        WHERE timestamp >= NOW() - INTERVAL %s
+                        ORDER BY timestamp DESC
+                    """, (f"{minutes} minutes",))
+                else:
+                    # SQLite syntax
+                    self.execute_query(cursor, """
+                        SELECT timestamp, level, message, source, details
+                        FROM logs 
+                        WHERE timestamp >= datetime('now', '-' || %s || ' minutes')
+                        ORDER BY timestamp DESC
+                    """, (minutes,))
                 
                 logs = []
                 for row in cursor.fetchall():

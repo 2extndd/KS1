@@ -115,9 +115,16 @@ class KufarScraper:
         ads = []
         
         try:
-            # Look for common ad container patterns
+            # Updated selectors for modern Kufar
             ad_selectors = [
+                # New Kufar selectors
+                '[data-testid*="listing"]',
                 '[data-testid*="ad"]',
+                '[class*="listing"]',
+                '[class*="CardComponent"]',
+                '[class*="Card__root"]',
+                'article',
+                # Legacy selectors
                 '.listing-card',
                 '.ad-card',
                 '.item-card',
@@ -148,40 +155,64 @@ class KufarScraper:
         try:
             ad_data = {}
             
-            # Extract title
-            title_selectors = ['[data-testid*="title"]', '.title', 'h2', 'h3', 'a[href*="/item/"]']
+            # Extract title - updated selectors for modern Kufar
+            title_selectors = [
+                '[data-testid*="title"]', 
+                '[data-testid*="subject"]',
+                'h3', 'h2', 'h4',
+                '.title', 
+                'a[href*="/item/"]',
+                'a[href*="/ad/"]',
+                '[class*="Title"]',
+                '[class*="Subject"]'
+            ]
             for selector in title_selectors:
                 title_elem = element.select_one(selector)
                 if title_elem:
-                    ad_data['title'] = title_elem.get_text(strip=True)
-                    break
+                    title_text = title_elem.get_text(strip=True)
+                    if title_text and len(title_text) > 3:  # Make sure it's not empty or too short
+                        ad_data['title'] = title_text
+                        break
             
-            # Extract price
-            price_selectors = ['[data-testid*="price"]', '.price', '[class*="Price"]']
+            # Extract price - updated selectors for modern Kufar
+            price_selectors = [
+                '[data-testid*="price"]', 
+                '[data-testid*="cost"]',
+                '.price', 
+                '[class*="Price"]',
+                '[class*="Cost"]'
+            ]
             for selector in price_selectors:
                 price_elem = element.select_one(selector)
                 if price_elem:
                     price_text = price_elem.get_text(strip=True)
-                    # Extract numeric price
-                    price_match = re.search(r'(\d+(?:\s*\d+)*)', price_text.replace(',', '').replace(' ', ''))
+                    # Extract numeric price (handle Belarusian format)
+                    price_match = re.search(r'(\d+(?:\s+\d+)*)', price_text.replace(',', '').replace(' ', ''))
                     if price_match:
-                        ad_data['price'] = int(price_match.group(1).replace(' ', ''))
+                        try:
+                            price_str = price_match.group(1).replace(' ', '')
+                            ad_data['price'] = int(price_str)
+                        except ValueError:
+                            pass
                     break
             
-            # Extract URL
-            link_elem = element.select_one('a[href*="/item/"]')
-            if link_elem:
-                href = link_elem.get('href')
-                if href:
-                    if href.startswith('/'):
-                        ad_data['url'] = f"https://www.kufar.by{href}"
-                    else:
-                        ad_data['url'] = href
-                    
-                    # Extract ID from URL
-                    id_match = re.search(r'/item/(\d+)', href)
-                    if id_match:
-                        ad_data['ad_id'] = id_match.group(1)
+            # Extract URL - updated for modern Kufar
+            link_selectors = ['a[href*="/item/"]', 'a[href*="/ad/"]', 'a[href]']
+            for selector in link_selectors:
+                link_elem = element.select_one(selector)
+                if link_elem:
+                    href = link_elem.get('href')
+                    if href and ('/item/' in href or '/ad/' in href):
+                        if href.startswith('/'):
+                            ad_data['url'] = f"https://www.kufar.by{href}"
+                        else:
+                            ad_data['url'] = href
+                        
+                        # Extract ID from URL
+                        id_match = re.search(r'/(?:item|ad)/(\d+)', href)
+                        if id_match:
+                            ad_data['ad_id'] = id_match.group(1)
+                        break
             
             # Extract image
             img_elem = element.select_one('img')
@@ -209,18 +240,20 @@ class KufarScraper:
     
     def _normalize_ad_data(self, raw_data: Dict) -> Dict[str, Any]:
         """Normalize ad data to consistent format"""
+        # For scraped data, the structure is different from API data
         normalized = {
-            'ad_id': str(raw_data.get('ad_id', raw_data.get('id', ''))),
-            'subject': raw_data.get('subject', raw_data.get('title', '')),
-            'body': raw_data.get('body', raw_data.get('description', '')),
-            'price_byn': raw_data.get('price_byn', raw_data.get('price', 0)),
-            'price_usd': raw_data.get('price_usd', 0),
+            'ad_id': str(raw_data.get('ad_id', '')),
+            'subject': raw_data.get('title', ''),  # Use 'title' from scraped data
+            'body': raw_data.get('description', ''),
+            'price_byn': raw_data.get('price', 0),
+            'price_usd': 0,  # Not available in scraped data usually
             'images': raw_data.get('images', []),
-            'area': raw_data.get('area', {}),
-            'account_parameters': raw_data.get('account_parameters', {}),
-            'list_time': raw_data.get('list_time', raw_data.get('created_at')),
-            'refresh_time': raw_data.get('refresh_time', raw_data.get('updated_at')),
-            'category': raw_data.get('category', {}),
+            'area': {'name': raw_data.get('location', '')},  # Convert location to area format
+            'account_parameters': {},
+            'list_time': None,  # Not available in scraped data
+            'refresh_time': None,
+            'category': {},
+            'url': raw_data.get('url', ''),  # Add URL to raw data
         }
         
         return normalized

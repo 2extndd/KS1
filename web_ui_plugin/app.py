@@ -493,14 +493,25 @@ def get_recent_items(hours: int = 24):
     try:
         with db.get_connection() as conn:
             cursor = conn.cursor()
-            # On Railway, always use PostgreSQL
-            cursor.execute("""
-                SELECT i.*, s.name as search_name
-                FROM items i
-                LEFT JOIN searches s ON i.search_id = s.id
-                WHERE i.created_at >= NOW() - INTERVAL %s
-                ORDER BY i.created_at DESC
-            """, (f"{hours} hours",))
+            
+            if db.is_postgres:
+                # PostgreSQL syntax
+                db.execute_query(cursor, """
+                    SELECT i.*, s.name as search_name
+                    FROM items i
+                    LEFT JOIN searches s ON i.search_id = s.id
+                    WHERE i.created_at >= NOW() - INTERVAL %s
+                    ORDER BY i.created_at DESC
+                """, (f"{hours} hours",))
+            else:
+                # SQLite syntax
+                db.execute_query(cursor, """
+                    SELECT i.*, s.name as search_name
+                    FROM items i
+                    LEFT JOIN searches s ON i.search_id = s.id
+                    WHERE i.created_at >= datetime('now', '-' || %s || ' hours')
+                    ORDER BY i.created_at DESC
+                """, (hours,))
             
             columns = [desc[0] for desc in cursor.description]
             items = [dict(zip(columns, row)) for row in cursor.fetchall()]
@@ -545,7 +556,7 @@ def get_items_paginated(page: int = 1, per_page: int = 20, search_filter: str = 
                 LEFT JOIN searches s ON i.search_id = s.id
                 {where_clause}
             """
-            cursor.execute(count_query, params)
+            db.execute_query(cursor, count_query, params)
             total = cursor.fetchone()[0]
             
             # Get items
@@ -557,7 +568,7 @@ def get_items_paginated(page: int = 1, per_page: int = 20, search_filter: str = 
                 ORDER BY i.created_at DESC
                 LIMIT %s OFFSET %s
             """
-            cursor.execute(items_query, params + [per_page, offset])
+            db.execute_query(cursor, items_query, params + [per_page, offset])
             
             columns = [desc[0] for desc in cursor.description]
             items = [dict(zip(columns, row)) for row in cursor.fetchall()]
@@ -606,7 +617,7 @@ def get_logs_paginated(page: int = 1, per_page: int = 50, level_filter: str = ''
             
             # Get total count
             count_query = f"SELECT COUNT(*) FROM logs {where_clause}"
-            cursor.execute(count_query, params)
+            db.execute_query(cursor, count_query, params)
             total = cursor.fetchone()[0]
             
             # Get logs
@@ -615,7 +626,7 @@ def get_logs_paginated(page: int = 1, per_page: int = 50, level_filter: str = ''
                 ORDER BY timestamp DESC
                 LIMIT %s OFFSET %s
             """
-            cursor.execute(logs_query, params + [per_page, offset])
+            db.execute_query(cursor, logs_query, params + [per_page, offset])
             
             columns = [desc[0] for desc in cursor.description]
             logs = [dict(zip(columns, row)) for row in cursor.fetchall()]

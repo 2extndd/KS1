@@ -162,20 +162,23 @@ class KufarSearcher:
         for item in items:
             try:
                 # Try to add item to database
-                item_id = db.add_item(
-                    kufar_id=item.id,
-                    search_id=search['id'],
-                    title=item.title,
-                    price=item.price,
-                    currency=item.currency,
-                    description=item.description,
-                    images=item.images,
-                    location=item.location,
-                    seller_name=item.seller_name,
-                    seller_phone=item.seller_phone,
-                    url=item.url,
-                    raw_data=item.raw_data
-                )
+                item_data = {
+                    'kufar_id': item.id,
+                    'title': item.title,
+                    'price': item.price,
+                    'currency': item.currency,
+                    'description': item.description,
+                    'images': item.images,
+                    'location': item.location,
+                    'seller_name': item.seller_name,
+                    'seller_phone': item.seller_phone,
+                    'url': item.url,
+                    'raw_data': item.raw_data,
+                    'telegram_chat_id': search.get('telegram_chat_id'),
+                    'telegram_thread_id': search.get('telegram_thread_id')
+                }
+                
+                item_id = db.add_item(item_data, search['id'])
                 
                 if item_id:  # New item was added
                     new_items.append({

@@ -68,8 +68,8 @@ class Item:
             # Images
             self.images = self._parse_images()
             
-            # URL
-            self.url = f"{KF_BASE_URL}/item/{self.id}"
+            # URL - use provided URL or construct from ID
+            self.url = self.raw_data.get('url', f"{KF_BASE_URL}/item/{self.id}")
             
             # Seller information
             self.seller_name = self.raw_data.get('account_parameters', {}).get('name', '')
@@ -253,7 +253,23 @@ class Items:
             items = []
             for ad_data in ads_data:
                 try:
-                    item = Item(ad_data)
+                    # Normalize scraped data before creating Item
+                    normalized_data = {
+                        'ad_id': ad_data.get('ad_id', ''),
+                        'subject': ad_data.get('title', ''),
+                        'body': ad_data.get('description', ''),
+                        'price_byn': ad_data.get('price', 0),
+                        'price_usd': 0,
+                        'images': ad_data.get('images', []),
+                        'area': {'name': ad_data.get('location', '')},
+                        'account_parameters': {},
+                        'list_time': None,
+                        'refresh_time': None,
+                        'category': {},
+                        'url': ad_data.get('url', ''),
+                    }
+                    
+                    item = Item(normalized_data)
                     items.append(item)
                 except Exception as e:
                     logger.warning(f"Failed to parse item: {e}")
