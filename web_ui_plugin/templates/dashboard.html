@@ -156,20 +156,27 @@ setInterval(function() {
 }, 300000); // 5 minutes instead of 30 seconds
 
 function forceScanAll() {
+    console.log('🔍 Force Scan All button clicked');
     if (confirm('Force scan all queries? This may take some time.')) {
+        console.log('🔍 Confirmed, sending request to /api/search/run');
+        
         fetch('/api/search/run', { method: 'POST' })
-            .then(response => response.json())
+            .then(response => {
+                console.log('🔍 Response status:', response.status);
+                return response.json();
+            })
             .then(data => {
+                console.log('🔍 Response data:', data);
                 if (data.success) {
                     alert('Scan started successfully!');
                     setTimeout(() => location.reload(), 2000);
                 } else {
-                    alert('Error: ' + data.error);
+                    alert('Error: ' + (data.error || 'Unknown error'));
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
-                alert('Error starting scan');
+                console.error('❌ Error in Force Scan:', error);
+                alert('Error starting scan: ' + error.message);
             });
     }
 }

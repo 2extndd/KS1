@@ -377,6 +377,8 @@ def main():
         # Determine run mode
         if len(sys.argv) > 1 and sys.argv[1] == 'web':
             # Run web server only
+            app_start_time = datetime.now()
+            
             logger.info(f"Starting web server on {WEB_UI_HOST}:{WEB_UI_PORT}")
             db.add_log_entry('INFO', f'Starting web server on {WEB_UI_HOST}:{WEB_UI_PORT}', 'System', 'Web server mode')
             

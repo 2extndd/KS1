@@ -237,9 +237,19 @@ def create_app():
     def api_run_search():
         """Run search manually"""
         try:
+            print(f"🔍 Force Scan All triggered at {datetime.now()}")
+            db.add_log_entry('INFO', 'Force Scan All triggered manually', 'Web UI', 'User requested manual search')
+            
             results = searcher.search_all_queries()
+            
+            print(f"🔍 Force Scan completed: {results}")
+            db.add_log_entry('INFO', f'Force Scan completed: {results}', 'Web UI', 'Manual search results')
+            
             return jsonify(results)
         except Exception as e:
+            error_msg = f"Error in Force Scan: {e}"
+            print(f"❌ {error_msg}")
+            db.add_log_entry('ERROR', error_msg, 'Web UI', 'Force scan error')
             return jsonify({'error': str(e)}), 500
     
     @app.route('/api/notifications/send', methods=['POST'])
