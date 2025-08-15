@@ -444,13 +444,13 @@ def get_recent_items(hours: int = 24):
     try:
         with db.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
-                SELECT i.*, s.name as search_name
-                FROM items i
-                LEFT JOIN searches s ON i.search_id = s.id
-                WHERE i.created_at >= NOW() - INTERVAL '%s hours'
-                ORDER BY i.created_at DESC
-            """, (hours,))
+                            cursor.execute("""
+                    SELECT i.*, s.name as search_name
+                    FROM items i
+                    LEFT JOIN searches s ON i.search_id = s.id
+                    WHERE i.created_at >= NOW() - INTERVAL $1
+                    ORDER BY i.created_at DESC
+                """, (f"{hours} hours",))
             
             columns = [desc[0] for desc in cursor.description]
             items = [dict(zip(columns, row)) for row in cursor.fetchall()]
@@ -483,7 +483,7 @@ def get_items_paginated(page: int = 1, per_page: int = 20, search_filter: str = 
         params = []
         
         if search_filter:
-            where_clause = "WHERE i.title ILIKE %s OR s.name ILIKE %s"
+            where_clause = "WHERE i.title ILIKE $1 OR s.name ILIKE $2"
             params = [f'%{search_filter}%', f'%{search_filter}%']
         
         with db.get_connection() as conn:
@@ -505,7 +505,7 @@ def get_items_paginated(page: int = 1, per_page: int = 20, search_filter: str = 
                 LEFT JOIN searches s ON i.search_id = s.id
                 {where_clause}
                 ORDER BY i.created_at DESC
-                LIMIT %s OFFSET %s
+                LIMIT $3 OFFSET $4
             """
             cursor.execute(items_query, params + [per_page, offset])
             
@@ -548,7 +548,7 @@ def get_logs_paginated(page: int = 1, per_page: int = 50, level_filter: str = ''
         params = []
         
         if level_filter:
-            where_clause = "WHERE level = %s"
+            where_clause = "WHERE level = $1"
             params = [level_filter]
         
         with db.get_connection() as conn:
@@ -563,7 +563,7 @@ def get_logs_paginated(page: int = 1, per_page: int = 50, level_filter: str = ''
             logs_query = f"""
                 SELECT * FROM logs {where_clause}
                 ORDER BY created_at DESC
-                LIMIT %s OFFSET %s
+                LIMIT $2 OFFSET $3
             """
             cursor.execute(logs_query, params + [per_page, offset])
             

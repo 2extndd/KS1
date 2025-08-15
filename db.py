@@ -135,11 +135,11 @@ class DatabaseManager:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 
-                # Use simple INSERT with explicit values to avoid parameter conflicts
+                # Use PostgreSQL-style parameterized query with $1, $2, etc.
                 query = """
                     INSERT INTO searches (name, url, region, category, min_price, max_price, 
                                         keywords, telegram_chat_id, telegram_thread_id, is_active)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                     RETURNING id
                 """
                 
@@ -214,8 +214,8 @@ class DatabaseManager:
             logger.error(f"Error getting all searches: {e}")
             return []
     
-    def get_search_query(self, search_id: int) -> Optional[Dict]:
-        """Get single search query by ID"""
+    def get_search_query(self, search_id: int) -> Optional[Dict[str, Any]]:
+        """Get search query by ID"""
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
@@ -224,20 +224,25 @@ class DatabaseManager:
                            keywords, telegram_chat_id, telegram_thread_id, is_active,
                            created_at, updated_at
                     FROM searches 
-                    WHERE id = %s
+                    WHERE id = $1
                 """, (search_id,))
                 
                 row = cursor.fetchone()
                 if row:
-                    columns = [desc[0] for desc in cursor.description]
-                    return dict(zip(columns, row))
+                    return {
+                        'id': row[0], 'name': row[1], 'url': row[2], 'region': row[3],
+                        'category': row[4], 'min_price': row[5], 'max_price': row[6],
+                        'keywords': row[7], 'telegram_chat_id': row[8], 
+                        'telegram_thread_id': row[9], 'is_active': row[10],
+                        'created_at': row[11], 'updated_at': row[12]
+                    }
                 return None
                 
         except Exception as e:
-            logger.error(f"Error getting search query {search_id}: {e}")
+            logger.error(f"Error getting search query: {e}")
             return None
     
-    def update_search_query(self, search_id: int, update_data: Dict) -> bool:
+    def update_search_query(self, search_id: int, **kwargs) -> bool:
         """Update search query"""
         try:
             with self.get_connection() as conn:
@@ -246,22 +251,23 @@ class DatabaseManager:
                 # Build dynamic update query
                 set_clauses = []
                 values = []
+                param_count = 1
                 
-                for key, value in update_data.items():
-                    set_clauses.append(f"{key} = %s")
-                    values.append(value)
+                for key, value in kwargs.items():
+                    if key in ['name', 'url', 'region', 'category', 'min_price', 'max_price', 
+                              'keywords', 'telegram_chat_id', 'telegram_thread_id', 'is_active']:
+                        set_clauses.append(f"{key} = ${param_count}")
+                        values.append(value)
+                        param_count += 1
                 
                 if not set_clauses:
                     return False
                 
-                # Add updated_at
-                set_clauses.append("updated_at = CURRENT_TIMESTAMP")
                 values.append(search_id)
-                
                 query = f"""
                     UPDATE searches 
-                    SET {', '.join(set_clauses)}
-                    WHERE id = %s
+                    SET {', '.join(set_clauses)}, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ${param_count}
                 """
                 
                 cursor.execute(query, values)
@@ -269,7 +275,7 @@ class DatabaseManager:
                 return cursor.rowcount > 0
                 
         except Exception as e:
-            logger.error(f"Error updating search query {search_id}: {e}")
+            logger.error(f"Error updating search query: {e}")
             return False
     
     def delete_all_search_queries(self) -> bool:
@@ -286,54 +292,64 @@ class DatabaseManager:
             return False
     
     def delete_search_query(self, search_id: int) -> bool:
-        """Delete single search query"""
+        """Delete search query"""
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM searches WHERE id = %s", (search_id,))
+                cursor.execute("DELETE FROM searches WHERE id = $1", (search_id,))
                 conn.commit()
                 return cursor.rowcount > 0
+                
         except Exception as e:
-            logger.error(f"Error deleting search query {search_id}: {e}")
+            logger.error(f"Error deleting search query: {e}")
             return False
     
-    def add_item(self, kufar_id: str, search_id: int, title: str, **kwargs) -> Optional[int]:
-        """Add new item if it doesn't exist"""
+    def add_item(self, item_data: Dict[str, Any], search_id: int = None) -> int:
+        """Add new item to database"""
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 
                 # Check if item already exists
-                cursor.execute("SELECT id FROM items WHERE kufar_id = %s", (kufar_id,))
-                existing = cursor.fetchone()
+                if 'kufar_id' in item_data:
+                    cursor.execute("""
+                        SELECT id FROM items WHERE kufar_id = $1
+                    """, (item_data['kufar_id'],))
+                    
+                    if cursor.fetchone():
+                        logger.info(f"Item already exists: {item_data.get('title', 'Unknown')}")
+                        return 0
                 
-                if existing:
-                    logger.debug(f"Item {kufar_id} already exists")
-                    return None
-                
-                query = """
-                    INSERT INTO items (kufar_id, search_id, title, price, currency, description,
-                                     images, location, seller_name, seller_phone, url, raw_data)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                # Insert new item
+                cursor.execute("""
+                    INSERT INTO items (title, url, price, currency, location, created_at, 
+                                     images, telegram_chat_id, telegram_thread_id, search_id, 
+                                     kufar_id, is_sent)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
                     RETURNING id
-                """
-                
-                cursor.execute(query, (
-                    kufar_id, search_id, title, kwargs.get('price'),
-                    kwargs.get('currency', 'BYN'), kwargs.get('description'),
-                    json.dumps(kwargs.get('images', [])), kwargs.get('location'),
-                    kwargs.get('seller_name'), kwargs.get('seller_phone'),
-                    kwargs.get('url'), json.dumps(kwargs.get('raw_data', {}))
+                """, (
+                    item_data.get('title', ''),
+                    item_data.get('url', ''),
+                    item_data.get('price', 0),
+                    item_data.get('currency', 'BYN'),
+                    item_data.get('location', ''),
+                    item_data.get('created_at'),
+                    json.dumps(item_data.get('images', [])),
+                    item_data.get('telegram_chat_id'),
+                    item_data.get('telegram_thread_id'),
+                    search_id,
+                    item_data.get('kufar_id'),
+                    False
                 ))
                 
                 item_id = cursor.fetchone()[0]
                 conn.commit()
-                logger.info(f"Added new item: {title} (ID: {item_id})")
+                logger.info(f"Added new item: {item_data.get('title', 'Unknown')} (ID: {item_id})")
                 return item_id
                 
         except Exception as e:
             logger.error(f"Error adding item: {e}")
-            return None
+            return 0
     
     def get_unsent_items(self) -> List[Dict]:
         """Get items that haven't been sent to Telegram"""
@@ -371,7 +387,7 @@ class DatabaseManager:
                 cursor = conn.cursor()
                 cursor.execute("""
                     UPDATE items SET is_sent = TRUE, updated_at = CURRENT_TIMESTAMP
-                    WHERE id = %s
+                    WHERE id = $1
                 """, (item_id,))
                 conn.commit()
                 logger.debug(f"Marked item {item_id} as sent")
@@ -388,14 +404,14 @@ class DatabaseManager:
                 # Add to error_tracking table
                 cursor.execute("""
                     INSERT INTO error_tracking (error_code, error_message, search_id)
-                    VALUES (%s, %s, %s)
+                    VALUES ($1, $2, $3)
                 """, (error_code, error_message, search_id))
                 
                 # Add to logs table
                 cursor.execute("""
-                    INSERT INTO logs (level, message, search_id, error_code)
-                    VALUES (%s, %s, %s, %s)
-                """, ('ERROR', error_message, search_id, error_code))
+                    INSERT INTO logs (level, message, source, details)
+                    VALUES ($1, $2, $3, $4)
+                """, ('ERROR', error_message, 'search', str(error_code)))
                 
                 conn.commit()
                 logger.error(f"Logged error {error_code}: {error_message}")
@@ -403,14 +419,14 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Error logging error: {e}")
     
-    def get_recent_errors(self, hours: int = 1) -> List[Dict]:
-        """Get recent errors for auto-redeploy check"""
+    def get_recent_errors(self, hours: int = 24) -> List[Dict[str, Any]]:
+        """Get recent errors from database"""
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
                     SELECT * FROM error_tracking
-                    WHERE created_at >= NOW() - INTERVAL %s
+                    WHERE created_at >= NOW() - INTERVAL $1
                     ORDER BY created_at DESC
                 """, (f"{hours} hours",))
                 
@@ -463,7 +479,7 @@ class DatabaseManager:
                 cursor = conn.cursor()
                 cursor.execute("""
                     INSERT INTO logs (timestamp, level, message, source, details)
-                    VALUES (CURRENT_TIMESTAMP, %s, %s, %s, %s)
+                    VALUES (CURRENT_TIMESTAMP, $1, $2, $3, $4)
                 """, (level, message, source, details))
                 conn.commit()
         except Exception as e:
@@ -478,16 +494,16 @@ class DatabaseManager:
                     cursor.execute("""
                         SELECT timestamp, level, message, source, details
                         FROM logs 
-                        WHERE level = %s
+                        WHERE level = $1
                         ORDER BY timestamp DESC 
-                        LIMIT %s
+                        LIMIT $2
                     """, (level, limit))
                 else:
                     cursor.execute("""
                         SELECT timestamp, level, message, source, details
                         FROM logs 
                         ORDER BY timestamp DESC 
-                        LIMIT %s
+                        LIMIT $1
                     """, (limit,))
                 
                 logs = []
@@ -503,7 +519,7 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Error getting logs: {e}")
             return []
-    
+
     def clear_logs(self):
         """Clear all log entries"""
         try:
@@ -511,10 +527,11 @@ class DatabaseManager:
                 cursor = conn.cursor()
                 cursor.execute("DELETE FROM logs")
                 conn.commit()
+                logger.info("All logs cleared")
         except Exception as e:
             logger.error(f"Error clearing logs: {e}")
     
-    def get_recent_logs(self, minutes: int = 5):
+    def get_recent_logs(self, minutes: int = 60) -> List[Dict[str, Any]]:
         """Get recent log entries"""
         try:
             with self.get_connection() as conn:
@@ -522,7 +539,7 @@ class DatabaseManager:
                 cursor.execute("""
                     SELECT timestamp, level, message, source, details
                     FROM logs 
-                    WHERE timestamp >= NOW() - INTERVAL %s
+                    WHERE timestamp >= NOW() - INTERVAL $1
                     ORDER BY timestamp DESC
                 """, (f"{minutes} minutes",))
                 
@@ -536,6 +553,7 @@ class DatabaseManager:
                         'details': row[4]
                     })
                 return logs
+                
         except Exception as e:
             logger.error(f"Error getting recent logs: {e}")
             return []
