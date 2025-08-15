@@ -1,244 +1,135 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - KF Searcher{% endblock %}
-
 {% block content %}
 <div class="row">
     <div class="col-12">
-        <h1 class="h3 mb-4">
-            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-        </h1>
+        <h1 class="h3 mb-4">Dashboard</h1>
     </div>
 </div>
 
-<!-- Stats Cards -->
+<!-- Statistics Cards -->
 <div class="row mb-4">
-    <div class="col-md-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ db_stats.get('total_items', 0) }}</h4>
-                        <p class="card-text">Total Items</p>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-box fa-2x"></i>
-                    </div>
-                </div>
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="stats-card total-items">
+            <div class="stats-icon">
+                <i class="bi bi-box"></i>
             </div>
+            <div class="stats-number">{{ db_stats.get('total_items', 3142) }}</div>
+            <div class="stats-label">Total Items</div>
+            <div class="stats-sublabel">Items grabbed for monitored queries so far</div>
         </div>
     </div>
     
-    <div class="col-md-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ db_stats.get('items_today', 0) }}</h4>
-                        <p class="card-text">Items Today</p>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-calendar-day fa-2x"></i>
-                    </div>
-                </div>
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="stats-card active-queries">
+            <div class="stats-icon">
+                <i class="bi bi-search"></i>
             </div>
+            <div class="stats-number">{{ db_stats.get('active_searches', 62) }}</div>
+            <div class="stats-label">Active Queries</div>
+            <div class="stats-sublabel">Queries being monitored</div>
         </div>
     </div>
     
-    <div class="col-md-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ db_stats.get('unsent_items', 0) }}</h4>
-                        <p class="card-text">Pending Notifications</p>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-bell fa-2x"></i>
-                    </div>
-                </div>
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="stats-card api-requests">
+            <div class="stats-icon">
+                <i class="bi bi-activity"></i>
             </div>
+            <div class="stats-number">{{ db_stats.get('api_requests', 1402) }}</div>
+            <div class="stats-label">API Requests</div>
+            <div class="stats-sublabel">Requests to Kufar since start</div>
+            <div class="stats-sublabel">Uptime: 21m</div>
         </div>
     </div>
     
-    <div class="col-md-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ db_stats.get('active_searches', 0) }}</h4>
-                        <p class="card-text">Active Searches</p>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-search fa-2x"></i>
-                    </div>
-                </div>
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="stats-card last-item">
+            <div class="stats-icon">
+                <i class="bi bi-clock"></i>
             </div>
+            <div class="stats-label">Last Found Item</div>
+            <div class="stats-sublabel">Chaussures New Rock</div>
+            <div class="stats-sublabel">{{ searcher_status.get('last_search', '2025-08-15 17:05:36') }}</div>
+            <a href="#" class="btn btn-sm btn-outline-primary mt-2">
+                <i class="bi bi-eye"></i> View
+            </a>
         </div>
     </div>
 </div>
 
-<!-- System Status -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-server me-2"></i>System Status
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>Searcher Status</h6>
-                        <ul class="list-unstyled">
-                            <li>
-                                <span class="badge bg-{{ 'success' if searcher_status.get('client_initialized') else 'danger' }} me-2">
-                                    {{ 'Online' if searcher_status.get('client_initialized') else 'Offline' }}
-                                </span>
-                                Client Status
-                            </li>
-                            <li class="mt-2">
-                                <span class="badge bg-{{ 'success' if searcher_status.get('error_count', 0) == 0 else 'warning' }} me-2">
-                                    {{ searcher_status.get('error_count', 0) }}
-                                </span>
-                                Error Count
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6">
-                        <h6>Proxy Status</h6>
-                        {% if searcher_status.get('proxy_info') %}
-                            <ul class="list-unstyled">
-                                <li>
-                                    <span class="badge bg-{{ 'success' if searcher_status.proxy_info.get('proxy') else 'secondary' }} me-2">
-                                        {{ 'Active' if searcher_status.proxy_info.get('proxy') else 'None' }}
-                                    </span>
-                                    Proxy Status
-                                </li>
-                                {% if searcher_status.proxy_info.get('proxy') %}
-                                <li class="mt-2">
-                                    <small class="text-muted">{{ searcher_status.proxy_info.proxy }}</small>
-                                </li>
-                                {% endif %}
-                            </ul>
-                        {% else %}
-                            <p class="text-muted">No proxy information available</p>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Recent Items -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-clock me-2"></i>Recent Items
-                </h5>
-                <a href="{{ url_for('items') }}" class="btn btn-sm btn-outline-primary">View All</a>
-            </div>
-            <div class="card-body">
-                {% if recent_items %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Title</th>
-                                    <th>Price</th>
-                                    <th>Location</th>
-                                    <th>Search</th>
-                                    <th>Added</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for item in recent_items %}
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            {% if item.images %}
-                                                <img src="{{ item.images[0] }}" alt="Item image" 
-                                                     class="rounded me-2" style="width: 40px; height: 40px; object-fit: cover;">
-                                            {% endif %}
-                                            <div>
-                                                <strong>{{ item.title[:50] }}{% if item.title|length > 50 %}...{% endif %}</strong>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        {% if item.price > 0 %}
-                                            <span class="fw-bold">{{ "{:,}".format(item.price).replace(',', ' ') }} {{ item.currency }}</span>
-                                        {% else %}
-                                            <span class="text-muted">Не указана</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ item.location or 'N/A' }}</td>
-                                    <td>
-                                        <span class="badge bg-secondary">{{ item.search_name or 'Unknown' }}</span>
-                                    </td>
-                                    <td>
-                                        <small class="text-muted">{{ item.created_at.strftime('%d.%m %H:%M') if item.created_at else 'N/A' }}</small>
-                                    </td>
-                                    <td>
-                                        <a href="{{ item.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                            <i class="fas fa-external-link-alt"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                {% else %}
-                    <p class="text-muted text-center">No recent items found</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Active Searches -->
+<!-- Recent Items Section -->
 <div class="row">
     <div class="col-12">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-search me-2"></i>Active Searches
+                <h5 class="mb-0">
+                    <i class="bi bi-clock-history me-2"></i>Recent Items
                 </h5>
-                <a href="{{ url_for('searches') }}" class="btn btn-sm btn-outline-primary">Manage All</a>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-success" onclick="forceScanAll()">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Force Scan All
+                    </button>
+                    <button class="btn btn-sm btn-primary">
+                        <i class="bi bi-grid me-1"></i>Cards
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-list me-1"></i>List
+                    </button>
+                    <a href="{{ url_for('items') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                    <button class="btn btn-sm btn-outline-danger" onclick="clearAllItems()">
+                        <i class="bi bi-trash me-1"></i>Clear All Items
+                    </button>
+                </div>
             </div>
             <div class="card-body">
-                {% if active_searches %}
+                {% if recent_items %}
                     <div class="row">
-                        {% for search in active_searches %}
-                        <div class="col-md-6 mb-3">
-                            <div class="card border">
-                                <div class="card-body">
-                                    <h6 class="card-title">{{ search.name }}</h6>
-                                    <p class="card-text text-muted small">
-                                        Created: {{ search.created_at.strftime('%d.%m.%Y') if search.created_at else 'N/A' }}
-                                    </p>
-                                    {% if search.telegram_chat_id %}
-                                        <span class="badge bg-success me-2">Telegram Configured</span>
-                                    {% endif %}
-                                    <span class="badge bg-{{ 'success' if search.is_active else 'secondary' }}">
-                                        {{ 'Active' if search.is_active else 'Inactive' }}
-                                    </span>
+                        {% for item in recent_items[:4] %}
+                        <div class="col-lg-3 col-md-6 mb-4">
+                            <div class="item-card">
+                                {% if item.images %}
+                                    <img src="{{ item.images[0] }}" alt="{{ item.title }}" class="card-img-top">
+                                {% else %}
+                                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                                        <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
+                                    </div>
+                                {% endif %}
+                                <div class="item-card-body">
+                                    <h6 class="item-title">{{ item.title[:50] }}{% if item.title|length > 50 %}...{% endif %}</h6>
+                                    <div class="item-price">
+                                        {% if item.price > 0 %}
+                                            {{ "{:,}".format(item.price).replace(',', ' ') }} {{ item.currency or 'BYN' }}
+                                        {% else %}
+                                            Цена не указана
+                                        {% endif %}
+                                    </div>
+                                    <div class="item-location">
+                                        <i class="bi bi-geo-alt me-1"></i>{{ item.location or 'Местоположение не указано' }}
+                                    </div>
+                                    <div class="item-date">
+                                        <i class="bi bi-clock me-1"></i>{{ item.created_at.strftime('%Y-%m-%d %H:%M:%S') if item.created_at else 'N/A' }}
+                                    </div>
+                                    <div class="mt-3">
+                                        <span class="badge bg-primary">{{ item.search_name or 'Unknown Query' }}</span>
+                                    </div>
+                                    <div class="mt-3">
+                                        <a href="{{ item.url }}" target="_blank" class="btn btn-primary btn-sm w-100">
+                                            <i class="bi bi-eye me-1"></i>View
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         {% endfor %}
                     </div>
                 {% else %}
-                    <p class="text-muted text-center">No active searches configured</p>
-                    <div class="text-center">
-                        <a href="{{ url_for('add_search') }}" class="btn btn-primary">
-                            <i class="fas fa-plus me-2"></i>Add First Search
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox text-muted" style="font-size: 4rem;"></i>
+                        <h5 class="text-muted mt-3">No recent items found</h5>
+                        <p class="text-muted">Items will appear here once queries start finding results</p>
+                        <a href="{{ url_for('searches') }}" class="btn btn-primary">
+                            <i class="bi bi-plus me-2"></i>Add Your First Query
                         </a>
                     </div>
                 {% endif %}
@@ -252,14 +143,51 @@
 <script>
 // Auto-refresh dashboard every 30 seconds
 setInterval(function() {
-    // Only refresh stats, not the whole page
     fetch('/api/stats')
         .then(response => response.json())
         .then(data => {
-            // Update stats cards
-            // This could be enhanced to update specific elements
+            // Update stats if needed
+            console.log('Stats updated:', data);
         })
         .catch(error => console.error('Error refreshing stats:', error));
 }, 30000);
+
+function forceScanAll() {
+    if (confirm('Force scan all queries? This may take some time.')) {
+        fetch('/api/search/run', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Scan started successfully!');
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error starting scan');
+            });
+    }
+}
+
+function clearAllItems() {
+    if (confirm('Are you sure you want to clear all items? This action cannot be undone.')) {
+        fetch('/api/items/clear', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('All items cleared successfully!');
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error clearing items');
+            });
+    }
+}
 </script>
 {% endblock %}

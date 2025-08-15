@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}KF Searcher{% endblock %}</title>
-    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <link rel="alternate icon" href="/static/favicon.ico">
+    <title>{% block title %}{% if request.endpoint == 'dashboard' %}Dashboard{% elif request.endpoint == 'items' %}Items{% elif request.endpoint == 'searches' %}Queries{% elif request.endpoint == 'config' %}Configuration{% elif request.endpoint == 'logs' %}Logs{% endif %} - KF Searcher{% endblock %}</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="alternate icon" href="{{ url_for('static', filename='favicon.ico') }}">
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
     <!-- Custom CSS -->
-    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
     
     <style>
         html, body {
@@ -59,86 +59,68 @@
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav class="navbar navbar-expand-lg navbar-dark" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
-                <i class="bi bi-search me-2"></i>KF Searcher
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('dashboard') }}">
+                <i class="bi bi-bell-fill me-2"></i>KF Searcher
             </a>
             
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" 
-                           href="{{ url_for('dashboard') }}">
-                            <i class="bi bi-house-door me-1"></i>Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'items' %}active{% endif %}" 
-                           href="{{ url_for('items') }}">
-                            <i class="bi bi-box me-1"></i>Items
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'searches' %}active{% endif %}" 
-                           href="{{ url_for('searches') }}">
-                            <i class="bi bi-search me-1"></i>Queries
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'config' %}active{% endif %}" 
-                           href="{{ url_for('config') }}">
-                            <i class="bi bi-gear me-1"></i>Configuration
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'logs' %}active{% endif %}" 
-                           href="{{ url_for('logs') }}">
-                            <i class="bi bi-journal-text me-1"></i>Logs
-                        </a>
-                    </li>
-                </ul>
-                
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <button class="btn btn-outline-light btn-sm" onclick="runSearch()">
-                            <i class="bi bi-play me-1"></i>Run Search
-                        </button>
-                    </li>
-                </ul>
-            </div>
         </div>
     </nav>
 
-    <!-- Flash Messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <div class="container mt-3">
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                {% endfor %}
+    <div class="container-fluid p-0">
+        <div class="row g-0">
+            <!-- Sidebar -->
+            <div class="col-lg-2">
+                <div class="sidebar collapse d-lg-block" id="sidebar">
+                    <nav class="nav flex-column pt-3">
+                        <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" 
+                           href="{{ url_for('dashboard') }}">
+                            <i class="bi bi-house-door"></i>Dashboard
+                        </a>
+                        <a class="nav-link {% if request.endpoint == 'searches' %}active{% endif %}" 
+                           href="{{ url_for('searches') }}">
+                            <i class="bi bi-search"></i>Queries
+                        </a>
+                        <a class="nav-link {% if request.endpoint == 'items' %}active{% endif %}" 
+                           href="{{ url_for('items') }}">
+                            <i class="bi bi-box"></i>Items
+                        </a>
+                        <a class="nav-link {% if request.endpoint == 'config' %}active{% endif %}" 
+                           href="{{ url_for('config') }}">
+                            <i class="bi bi-gear"></i>Configuration
+                        </a>
+                        <a class="nav-link {% if request.endpoint == 'logs' %}active{% endif %}" 
+                           href="{{ url_for('logs') }}">
+                            <i class="bi bi-journal-text"></i>Logs
+                        </a>
+                    </nav>
+                </div>
             </div>
-        {% endif %}
-    {% endwith %}
 
-    <!-- Main Content -->
-    <main class="container mt-4">
-        {% block content %}{% endblock %}
-    </main>
+            <!-- Main Content -->
+            <div class="col-lg-10">
+                <div class="main-content">
+                    <!-- Flash Messages -->
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
 
-    <!-- Footer -->
-    <footer class="bg-light mt-5 py-3">
-        <div class="container text-center text-muted">
-            <small>KF Searcher v1.0 - Monitoring Kufar.by</small>
+                    {% block content %}{% endblock %}
+                </div>
+            </div>
         </div>
-    </footer>
+    </div>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

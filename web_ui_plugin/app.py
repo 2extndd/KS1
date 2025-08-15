@@ -223,6 +223,44 @@ def create_app():
         except Exception as e:
             return jsonify({'error': str(e)}), 500
     
+    @app.route('/api/items/clear', methods=['POST'])
+    def api_clear_items():
+        """Clear all items"""
+        try:
+            db.clear_all_items()
+            return jsonify({'success': True, 'message': 'All items cleared successfully'})
+            
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
+    @app.route('/api/notifications/test', methods=['POST'])
+    def api_test_notification():
+        """Send test notification"""
+        try:
+            import os
+            # Create a test item
+            test_item = {
+                'title': 'Test Item - KF Searcher',
+                'price': 100,
+                'currency': 'BYN',
+                'location': 'Минск',
+                'url': 'https://www.kufar.by',
+                'images': [],
+                'telegram_chat_id': os.getenv('TELEGRAM_CHAT_ID'),
+                'telegram_thread_id': None
+            }
+            
+            # Send test notification
+            success = send_notifications([test_item])
+            
+            if success:
+                return jsonify({'success': True, 'message': 'Test notification sent successfully'})
+            else:
+                return jsonify({'error': 'Failed to send test notification'}), 500
+                
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
     return app
 
 def get_recent_items(hours: int = 24):
