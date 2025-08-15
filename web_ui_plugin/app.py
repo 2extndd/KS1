@@ -164,6 +164,45 @@ def create_app():
             flash(f'Error loading queries: {e}', 'error')
             return render_template('queries.html', queries=[])
     
+    @app.route('/queries/add', methods=['POST'])
+    def add_query():
+        """Add new query via API"""
+        try:
+            data = request.get_json()
+            if not data:
+                return jsonify({'error': 'No data provided'}), 400
+            
+            name = data.get('name', 'Unnamed Query')
+            url = data.get('url')
+            telegram_chat_id = data.get('telegram_chat_id')
+            telegram_thread_id = data.get('telegram_thread_id')
+            
+            if not url:
+                return jsonify({'error': 'URL is required'}), 400
+            
+            # Validate URL
+            url_info = searcher.validate_search_url(url)
+            if not url_info['valid']:
+                return jsonify({'error': f'Invalid URL: {url_info["error"]}'}), 400
+            
+            # Add search
+            search_id = db.add_search(
+                name=name,
+                url=url,
+                telegram_chat_id=telegram_chat_id,
+                telegram_thread_id=telegram_thread_id
+            )
+            
+            return jsonify({
+                'success': True,
+                'message': f'Query "{name}" added successfully',
+                'search_id': search_id
+            })
+            
+        except Exception as e:
+            logger.error(f"Error adding query: {e}")
+            return jsonify({'error': f'Error adding query: {e}'}), 500
+    
     # API Routes
     @app.route('/api/search/test', methods=['POST'])
     def api_test_search():

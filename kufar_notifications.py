@@ -37,12 +37,18 @@ if os.getenv('RAILWAY_ENVIRONMENT'):
             logging.StreamHandler(sys.stdout)
         ]
     )
+    
     # Force database logging on Railway
     try:
+        # Force PostgreSQL mode on Railway
+        db.force_postgres_mode()
+        logger.info(f"Database info: {db.get_database_info()}")
+        
         db.add_log_entry('INFO', 'Application started in Railway environment', 'System', 'Railway deployment successful')
         logger.info("Railway environment detected - database logging enabled")
     except Exception as e:
         logger.error(f"Failed to add initial log entry: {e}")
+        logger.error(f"Database info: {db.get_database_info()}")
 else:
     # Local environment - log to file and stdout
     logging.basicConfig(

@@ -36,20 +36,45 @@ class DatabaseManager:
         # Force PostgreSQL mode for Railway
         if os.getenv('RAILWAY_ENVIRONMENT'):
             self.is_postgres = True
+            # On Railway, DATABASE_URL should be PostgreSQL
+            if not self.database_url or not (self.database_url.startswith('postgresql://') or self.database_url.startswith('postgres://')):
+                # Try to get from environment
+                self.database_url = os.getenv('DATABASE_URL')
+                if not self.database_url:
+                    raise ValueError("DATABASE_URL not set on Railway. Please set it in Railway environment variables.")
             logger.info("Forcing PostgreSQL mode for Railway environment")
+            logger.info(f"Using database: {self.database_url[:50]}..." if self.database_url else "No database URL")
         
         # Don't initialize database immediately - let it be called explicitly
         # self.init_database()
+    
+    def force_postgres_mode(self):
+        """Force PostgreSQL mode (useful for Railway)"""
+        self.is_postgres = True
+        logger.info("Forced PostgreSQL mode")
+    
+    def get_database_info(self):
+        """Get database connection info for debugging"""
+        return {
+            'is_postgres': self.is_postgres,
+            'database_url': self.database_url[:50] + "..." if self.database_url and len(self.database_url) > 50 else self.database_url,
+            'railway_env': os.getenv('RAILWAY_ENVIRONMENT'),
+            'has_database_url': bool(self.database_url)
+        }
     
     def get_connection(self):
         """Get database connection based on database type"""
         if self.is_postgres:
             try:
+                if not self.database_url:
+                    raise ValueError("No database URL provided for PostgreSQL connection")
+                
                 conn = psycopg2.connect(self.database_url)
                 conn.autocommit = False
                 return conn
             except Exception as e:
                 logger.error(f"Failed to connect to PostgreSQL: {e}")
+                logger.error(f"Database info: {self.get_database_info()}")
                 raise
         else:
             return sqlite3.connect(self.database_url.replace('sqlite:///', ''))
