@@ -401,9 +401,9 @@ class DatabaseManager:
                 cursor = conn.cursor()
                 cursor.execute("""
                     SELECT * FROM error_tracking
-                    WHERE created_at >= NOW() - INTERVAL '%s hours'
+                    WHERE created_at >= NOW() - INTERVAL %s
                     ORDER BY created_at DESC
-                """, (hours,))
+                """, (f"{hours} hours",))
                 
                 columns = [desc[0] for desc in cursor.description]
                 errors = [dict(zip(columns, row)) for row in cursor.fetchall()]
