@@ -135,7 +135,7 @@ class DatabaseManager:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 
-                # Use parameterized query with explicit column names
+                # Use simple INSERT with explicit values to avoid parameter conflicts
                 query = """
                     INSERT INTO searches (name, url, region, category, min_price, max_price, 
                                         keywords, telegram_chat_id, telegram_thread_id, is_active)
@@ -143,12 +143,20 @@ class DatabaseManager:
                     RETURNING id
                 """
                 
-                cursor.execute(query, (
-                    name, url, kwargs.get('region'), kwargs.get('category'),
-                    kwargs.get('min_price'), kwargs.get('max_price'),
-                    kwargs.get('keywords'), kwargs.get('telegram_chat_id'),
-                    kwargs.get('telegram_thread_id'), True
-                ))
+                # Ensure all values are properly formatted for PostgreSQL
+                values = (
+                    str(name), str(url), 
+                    str(kwargs.get('region', '')) if kwargs.get('region') else None, 
+                    str(kwargs.get('category', '')) if kwargs.get('category') else None,
+                    int(kwargs.get('min_price', 0)) if kwargs.get('min_price') else None, 
+                    int(kwargs.get('max_price', 0)) if kwargs.get('max_price') else None,
+                    str(kwargs.get('keywords', '')) if kwargs.get('keywords') else None, 
+                    str(kwargs.get('telegram_chat_id', '')) if kwargs.get('telegram_chat_id') else None,
+                    str(kwargs.get('telegram_thread_id', '')) if kwargs.get('telegram_thread_id') else None, 
+                    True
+                )
+                
+                cursor.execute(query, values)
                 
                 search_id = cursor.fetchone()[0]
                 conn.commit()
