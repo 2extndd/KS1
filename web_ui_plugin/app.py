@@ -602,7 +602,7 @@ def get_logs_paginated(page: int = 1, per_page: int = 50, level_filter: str = ''
             # Get logs
             logs_query = f"""
                 SELECT * FROM logs {where_clause}
-                ORDER BY created_at DESC
+                ORDER BY timestamp DESC
                 LIMIT %s OFFSET %s
             """
             cursor.execute(logs_query, params + [per_page, offset])
