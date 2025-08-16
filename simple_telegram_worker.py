@@ -55,16 +55,25 @@ class TelegramWorker:
             images = item.get('images', [])
             
             if images:
-                # Send with images
+                # Send with images first, then text with button
                 success = await self._send_with_images(
                     chat_id=chat_id,
                     thread_id=thread_id,
                     message=message,
                     images=images[:10],  # Telegram limit: 10 photos per album
-                    reply_markup=keyboard
+                    reply_markup=None  # No keyboard for media group
                 )
+                
+                # Then send the message with button
+                if success and keyboard:
+                    await self._send_text_message(
+                        chat_id=chat_id,
+                        thread_id=thread_id,
+                        message=" ",  # Minimal text with button
+                        reply_markup=keyboard
+                    )
             else:
-                # Send text only
+                # Send text only with button
                 success = await self._send_text_message(
                     chat_id=chat_id,
                     thread_id=thread_id,
@@ -108,9 +117,16 @@ class TelegramWorker:
                 import re
                 # Look for size patterns like "48 (M)", "M", "Large", etc.
                 size_patterns = [
-                    r'\b(\d+\s*\([XSMLXL]+\))',  # 48 (M)
-                    r'\b([XSMLXL]{1,3})\b',      # M, XL, XXL
-                    r'\b(\d{2,3})\s*размер',     # 48 размер
+                    r'размер\s+(\d+\s*\([XSMLXL]+\))',  # размер 48 (M)
+                    r'размер\s+([XSMLXL]{1,3})\b',      # размер M, XL, XXL
+                    r'размер\s+(\d{2,3})\b',            # размер 48
+                    r'в\s+размере\s+([XSMLXL]{1,3})\b', # в размере XXL
+                    r'в\s+размере\s+(\d{2,3})\b',       # в размере 48
+                    r'size\s+([XSMLXL]{1,3})\b',        # size XL
+                    r'\b(\d+\s*\([XSMLXL]+\))',         # 48 (M)
+                    r'\b([XSMLXL]{1,3})\b',             # M, XL, XXL (standalone)
+                    r'\b(\d{2,3})\s*размер',            # 48 размер
+                    r'\b(large|medium|small)\b',        # Large, Medium, Small
                 ]
                 for pattern in size_patterns:
                     match = re.search(pattern, description, re.IGNORECASE)
@@ -221,11 +237,6 @@ class TelegramWorker:
                     kwargs['message_thread_id'] = int(thread_id)
                 
                 await self.bot.send_media_group(**kwargs)
-                
-                # Send button separately since media groups don't support inline keyboards
-                if reply_markup:
-                    await self._send_text_message(chat_id, thread_id, "⬆️ Открыть ссылку:", reply_markup)
-                
                 return True
                 
             except RetryAfter as e:
