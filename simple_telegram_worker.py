@@ -7,7 +7,7 @@ import logging
 import time
 import asyncio
 from typing import List, Dict, Any, Optional
-from telegram import Bot, InputMediaPhoto
+from telegram import Bot, InputMediaPhoto, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import TelegramError, RetryAfter, TimedOut
 from telegram.constants import ParseMode
 
@@ -43,6 +43,14 @@ class TelegramWorker:
             # Format message
             message = self._format_item_message(item)
             
+            # Create inline keyboard with "Open Kufar" button
+            keyboard = None
+            url = item.get('url', '')
+            if url:
+                keyboard = InlineKeyboardMarkup([
+                    [InlineKeyboardButton("Open Kufar", url=url)]
+                ])
+            
             # Prepare images
             images = item.get('images', [])
             
@@ -52,14 +60,16 @@ class TelegramWorker:
                     chat_id=chat_id,
                     thread_id=thread_id,
                     message=message,
-                    images=images[:10]  # Telegram limit: 10 photos per album
+                    images=images[:10],  # Telegram limit: 10 photos per album
+                    reply_markup=keyboard
                 )
             else:
                 # Send text only
                 success = await self._send_text_message(
                     chat_id=chat_id,
                     thread_id=thread_id,
-                    message=message
+                    message=message,
+                    reply_markup=keyboard
                 )
             
             if success:
@@ -84,39 +94,53 @@ class TelegramWorker:
             url = item.get('url', '')
             search_name = item.get('search_name', '')
             
+            # Extract size from description or raw_data if available
+            size = ""
+            description = item.get('description', '')
+            raw_data = item.get('raw_data', {})
+            
+            # Try to extract size from various sources
+            if isinstance(raw_data, dict):
+                size = raw_data.get('size', '') or raw_data.get('параметры', {}).get('размер', '')
+            
+            # If no size found, try to extract from description
+            if not size and description:
+                import re
+                # Look for size patterns like "48 (M)", "M", "Large", etc.
+                size_patterns = [
+                    r'\b(\d+\s*\([XSMLXL]+\))',  # 48 (M)
+                    r'\b([XSMLXL]{1,3})\b',      # M, XL, XXL
+                    r'\b(\d{2,3})\s*размер',     # 48 размер
+                ]
+                for pattern in size_patterns:
+                    match = re.search(pattern, description, re.IGNORECASE)
+                    if match:
+                        size = match.group(1)
+                        break
+            
             # Format price
             if price > 0:
-                price_text = f"{price:,} {currency}".replace(',', ' ')
+                price_text = f"<b>{price:,} {currency}</b>".replace(',', ' ')
             else:
-                price_text = "Цена не указана"
+                price_text = "<b>Цена не указана</b>"
             
             # Build message
             message_parts = [
-                f"🔍 <b>{search_name}</b>",
+                f"🔍 {search_name}",
                 "",
-                f"📦 <b>{title}</b>",
-                f"💰 {price_text}",
+                f"<b>{title}</b>",
+                f"💶 {price_text}",
             ]
             
+            # Add size if available
+            if size:
+                message_parts.append(f"⛓️ {size}")
+            
+            # Add location
             if location:
-                message_parts.append(f"📍 {location}")
-            
-            # Add seller info if available
-            seller_name = item.get('seller_name', '')
-            if seller_name:
-                message_parts.append(f"👤 {seller_name}")
-            
-            # Add description preview (first 200 chars)
-            description = item.get('description', '')
-            if description:
-                desc_preview = description[:200]
-                if len(description) > 200:
-                    desc_preview += "..."
-                message_parts.extend(["", f"📝 {desc_preview}"])
-            
-            # Add URL
-            if url:
-                message_parts.extend(["", f"🔗 <a href='{url}'>Открыть на Kufar</a>"])
+                message_parts.append(f"{location}")
+            else:
+                message_parts.append("Местоположение не указано")
             
             return "\n".join(message_parts)
             
@@ -124,7 +148,7 @@ class TelegramWorker:
             logger.error(f"Error formatting message: {e}")
             return f"Новое объявление: {item.get('title', 'Без названия')}"
     
-    async def _send_text_message(self, chat_id: str, thread_id: str = None, message: str = "") -> bool:
+    async def _send_text_message(self, chat_id: str, thread_id: str = None, message: str = "", reply_markup=None) -> bool:
         """Send text-only message"""
         for attempt in range(self.max_retries):
             try:
@@ -137,6 +161,9 @@ class TelegramWorker:
                 
                 if thread_id:
                     kwargs['message_thread_id'] = int(thread_id)
+                
+                if reply_markup:
+                    kwargs['reply_markup'] = reply_markup
                 
                 await self.bot.send_message(**kwargs)
                 return True
@@ -165,10 +192,10 @@ class TelegramWorker:
         return False
     
     async def _send_with_images(self, chat_id: str, thread_id: str = None, 
-                               message: str = "", images: List[str] = None) -> bool:
+                               message: str = "", images: List[str] = None, reply_markup=None) -> bool:
         """Send message with images as media group"""
         if not images:
-            return await self._send_text_message(chat_id, thread_id, message)
+            return await self._send_text_message(chat_id, thread_id, message, reply_markup)
         
         for attempt in range(self.max_retries):
             try:
@@ -194,6 +221,11 @@ class TelegramWorker:
                     kwargs['message_thread_id'] = int(thread_id)
                 
                 await self.bot.send_media_group(**kwargs)
+                
+                # Send button separately since media groups don't support inline keyboards
+                if reply_markup:
+                    await self._send_text_message(chat_id, thread_id, "⬆️ Открыть ссылку:", reply_markup)
+                
                 return True
                 
             except RetryAfter as e:
@@ -211,7 +243,7 @@ class TelegramWorker:
                 # If media group fails, try sending text only
                 if "media group" in str(e).lower() or "photo" in str(e).lower():
                     logger.info("Media group failed, sending text only")
-                    return await self._send_text_message(chat_id, thread_id, message)
+                    return await self._send_text_message(chat_id, thread_id, message, reply_markup)
                 
                 if "chat not found" in str(e).lower():
                     return False
@@ -222,7 +254,7 @@ class TelegramWorker:
             except Exception as e:
                 logger.error(f"Unexpected error sending media: {e}")
                 # Try fallback to text only
-                return await self._send_text_message(chat_id, thread_id, message)
+                return await self._send_text_message(chat_id, thread_id, message, reply_markup)
         
         return False
     

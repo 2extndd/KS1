@@ -94,30 +94,45 @@ class KufarSearcher:
                     
                     # Search for items
                     items = self.search_query(search)
-                    db.add_log_entry('INFO', f"[DEBUG] Got {len(items)} items from queue for query_id {search['id']}", 'core', f"Retrieved {len(items)} items from Kufar")
+                    total_items = len(items)
                     
                     if items:
                         # Process new items
                         new_items = self._process_new_items(items, search)
-                        results['new_items'] += len(new_items)
+                        new_count = len(new_items)
+                        duplicate_count = total_items - new_count
                         
-                        logger.info(f"Found {len(new_items)} new items for search '{search['name']}'")
-                        db.add_log_entry('INFO', f"[DEBUG] Found items in queue! Getting them...", 'core', f"Processing {len(new_items)} new items")
+                        results['new_items'] += new_count
                         
-                        # Log each new item and send notifications
+                        # Log in VS5 style with detailed statistics
+                        if new_count > 0:
+                            logger.info(f"[SEARCH] '{search['name']}': {total_items} total, {new_count} new, {duplicate_count} duplicates")
+                            db.add_log_entry('INFO', 
+                                           f"Search completed: {search['name']}", 
+                                           'core', 
+                                           f"Query ID {search['id']}: {total_items} total items, {new_count} new items, {duplicate_count} duplicates")
+                        else:
+                            logger.info(f"[SEARCH] '{search['name']}': {total_items} items found, all duplicates")
+                            db.add_log_entry('INFO', 
+                                           f"Search completed (all duplicates): {search['name']}", 
+                                           'core', 
+                                           f"Query ID {search['id']}: {total_items} items found, but all were duplicates")
+                        
+                        # Send telegram notifications for new items
                         for item in new_items:
-                            db.add_log_entry('INFO', f"[DEBUG] Processing item {item['kufar_id']}: {item['title'][:50]}...", 'core', f"New item found: {item['title']}")
-                            
-                            # Send telegram notification
                             try:
                                 from simple_telegram_worker import send_notification_for_item
                                 send_notification_for_item(item)
-                                db.add_log_entry('INFO', f"Telegram notification sent for item {item['kufar_id']}", 'core', f"Notification sent for: {item['title']}")
+                                logger.debug(f"Telegram notification sent for item {item['kufar_id']}")
                             except Exception as e:
                                 logger.error(f"Failed to send telegram notification: {e}")
                                 db.add_log_entry('ERROR', f"Failed to send telegram notification: {str(e)}", 'core', f"Notification error for item {item['kufar_id']}")
                     else:
-                        db.add_log_entry('INFO', f"[DEBUG] No new items for query {search['name']}", 'core', f"No new items for query {search['name']}")
+                        logger.info(f"[SEARCH] '{search['name']}': No items found")
+                        db.add_log_entry('INFO', 
+                                       f"Search completed (empty): {search['name']}", 
+                                       'core', 
+                                       f"Query ID {search['id']}: No items found on Kufar")
                     
                     results['successful_searches'] += 1
                     
@@ -165,15 +180,42 @@ class KufarSearcher:
             # Update API request counter
             try:
                 import metrics_storage
-                metrics_storage.metrics_storage.increment_api_requests()
-                logger.info(f"API request counter incremented to: {metrics_storage.metrics_storage.get_total_api_requests()}")
+                total_requests = metrics_storage.metrics_storage.increment_api_requests()
+                logger.debug(f"API request #{total_requests} completed for search query")
+                
+                # Also increment in shared_state for compatibility
+                try:
+                    import shared_state
+                    shared_state.increment_api_requests()
+                except:
+                    pass
             except Exception as e:
                 logger.error(f"Failed to increment API counter: {e}")
+                # Log this as it affects metrics accuracy
+                db.add_log_entry('ERROR', f'Failed to increment API counter: {e}', 'core', 'Metrics tracking error')
             
             return items
             
         except KufarAPIException as e:
             logger.error(f"Kufar API error for search {search['id']}: {e}")
+            
+            # Still increment API counter for failed requests
+            try:
+                import metrics_storage
+                total_requests = metrics_storage.metrics_storage.increment_api_requests()
+                logger.debug(f"API request #{total_requests} failed with error {e.status_code}")
+                
+                # Log the failed API request
+                db.add_log_entry('ERROR', f'Kufar API error {e.status_code}: {e}', 'core', f'Failed API request for search ID {search["id"]}')
+                
+                # Also increment in shared_state for compatibility
+                try:
+                    import shared_state
+                    shared_state.increment_api_requests()
+                except:
+                    pass
+            except Exception as counter_error:
+                logger.error(f"Failed to increment API counter for error: {counter_error}")
             
             # Handle specific error codes
             if e.status_code in [403, 429]:
@@ -183,6 +225,25 @@ class KufarSearcher:
             
         except Exception as e:
             logger.error(f"Unexpected error in search_query: {e}")
+            
+            # Still increment API counter for unexpected errors
+            try:
+                import metrics_storage
+                total_requests = metrics_storage.metrics_storage.increment_api_requests()
+                logger.debug(f"API request #{total_requests} failed with unexpected error")
+                
+                # Log the unexpected error
+                db.add_log_entry('ERROR', f'Unexpected search error: {e}', 'core', f'Unexpected error for search ID {search["id"]}')
+                
+                # Also increment in shared_state for compatibility
+                try:
+                    import shared_state
+                    shared_state.increment_api_requests()
+                except:
+                    pass
+            except Exception as counter_error:
+                logger.error(f"Failed to increment API counter for unexpected error: {counter_error}")
+            
             raise
     
     def _process_new_items(self, items: List[Any], search: Dict[str, Any]) -> List[Dict[str, Any]]:

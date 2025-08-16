@@ -7,11 +7,14 @@ import os
 import sqlite3
 import psycopg2
 import psycopg2.extras
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Optional, Any
 import json
 import logging
 from configuration_values import DATABASE_URL
+
+# Часовой пояс Беларуси (UTC+3)
+BELARUS_TZ = timezone(timedelta(hours=3))
 
 logger = logging.getLogger(__name__)
 
@@ -437,8 +440,19 @@ class DatabaseManager:
                         SELECT id FROM items WHERE kufar_id = %s
                     """, (item_data['kufar_id'],))
                     
-                    if cursor.fetchone():
-                        logger.info(f"Item already exists: {item_data.get('title', 'Unknown')}")
+                    existing = cursor.fetchone()
+                    if existing:
+                        # Log duplicate item in VS5 style
+                        title = item_data.get('title', 'Unknown')[:50]
+                        price = item_data.get('price', 0)
+                        currency = item_data.get('currency', 'BYN')
+                        price_str = f"{price} {currency}" if price > 0 else "Без цены"
+                        
+                        logger.info(f"[DUPLICATE] {title} ({price_str}) - already exists in database")
+                        self.add_log_entry('INFO', 
+                                         f'Duplicate item skipped: {title}', 
+                                         'core', 
+                                         f'Item ID {item_data["kufar_id"]} already exists - {price_str}')
                         return 0
                 
                 # Insert new item
@@ -466,7 +480,20 @@ class DatabaseManager:
                 
                 item_id = cursor.fetchone()[0]
                 conn.commit()
-                logger.info(f"Added new item: {item_data.get('title', 'Unknown')} (ID: {item_id})")
+                
+                # Log new item in VS5 style
+                title = item_data.get('title', 'Unknown')[:50]
+                price = item_data.get('price', 0)
+                currency = item_data.get('currency', 'BYN')
+                price_str = f"{price} {currency}" if price > 0 else "Без цены"
+                location = item_data.get('location', 'Без локации')
+                
+                logger.info(f"[NEW ITEM] {title} ({price_str}) from {location} - added to database")
+                self.add_log_entry('INFO', 
+                                 f'New item added: {title}', 
+                                 'core', 
+                                 f'Item ID {item_data["kufar_id"]} - {price_str} - {location}')
+                
                 return item_id
                 
         except Exception as e:
@@ -780,14 +807,26 @@ class DatabaseManager:
             return {}
     
     def add_log_entry(self, level: str, message: str, source: str = None, details: str = None):
-        """Add log entry to database"""
+        """Add log entry to database with Belarus timezone"""
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                self.execute_query(cursor, """
-                    INSERT INTO logs (timestamp, level, message, source, details)
-                    VALUES (CURRENT_TIMESTAMP, %s, %s, %s, %s)
-                """, (level, message, source, details))
+                
+                # Use Belarus timezone for timestamp
+                belarus_time = datetime.now(BELARUS_TZ)
+                
+                if self.is_postgres:
+                    self.execute_query(cursor, """
+                        INSERT INTO logs (timestamp, level, message, source, details)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (belarus_time, level, message, source, details))
+                else:
+                    # For SQLite, store as ISO string
+                    self.execute_query(cursor, """
+                        INSERT INTO logs (timestamp, level, message, source, details)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (belarus_time.isoformat(), level, message, source, details))
+                    
                 conn.commit()
         except Exception as e:
             logger.error(f"Error adding log entry: {e}")
@@ -877,8 +916,25 @@ class DatabaseManager:
                 logs = []
                 for row in cursor.fetchall():
                     try:
-                        timestamp = row[0].strftime('%Y-%m-%d %H:%M:%S') if row[0] else ''
-                    except:
+                        # Parse timestamp and convert to Belarus timezone for display
+                        if row[0]:
+                            if isinstance(row[0], str):
+                                # SQLite case - parse ISO string
+                                dt = datetime.fromisoformat(row[0].replace('Z', '+00:00'))
+                            else:
+                                # PostgreSQL case - already datetime object
+                                dt = row[0]
+                            
+                            # Convert to Belarus timezone if needed
+                            if dt.tzinfo is None:
+                                dt = dt.replace(tzinfo=timezone.utc)
+                            
+                            belarus_dt = dt.astimezone(BELARUS_TZ)
+                            timestamp = belarus_dt.strftime('%d.%m.%Y %H:%M:%S')
+                        else:
+                            timestamp = ''
+                    except Exception as e:
+                        logger.error(f"Error formatting timestamp {row[0]}: {e}")
                         timestamp = str(row[0]) if row[0] else ''
                     
                     logs.append({
