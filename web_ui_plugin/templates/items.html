@@ -29,7 +29,7 @@
 
 {% if items %}
     <!-- Items Grid -->
-    <div class="row">
+    <div class="row" id="items-grid-container">
         {% for item in items %}
         <div class="col-lg-2 col-md-3 col-sm-4 col-6 mb-4">
             <div class="card h-100">
@@ -257,20 +257,15 @@ function updateItemsPage() {
 }
 
 function updateItemsContent(items) {
-    // Находим контейнер с товарами - ищем .row который содержит .col-lg-2
-    let itemsContainer = null;
-    const rows = document.querySelectorAll('.row');
-    for (let row of rows) {
-        if (row.querySelector('.col-lg-2')) {
-            itemsContainer = row;
-            break;
-        }
-    }
+    // Находим конкретный контейнер с товарами по ID
+    const itemsContainer = document.getElementById('items-grid-container');
     
     if (!itemsContainer) {
-        console.log('❌ Контейнер товаров не найден');
+        console.log('❌ Контейнер товаров #items-grid-container не найден');
         return;
     }
+    
+    console.log('✅ Найден правильный контейнер товаров, обновляем только его');
     
     // Полностью заменяем контент
     itemsContainer.innerHTML = '';
@@ -300,7 +295,7 @@ function createItemCardHTMLForItemsPage(item) {
     
     return `
         <div class="col-lg-2 col-md-3 col-sm-4 col-6 mb-4">
-            <div class="card h-100 item-card">
+            <div class="card h-100">
                 <a href="${escapeHtml(item.url)}" target="_blank" class="text-decoration-none">
                     ${imageHTML}
                 </a>
@@ -372,9 +367,9 @@ function showNewItemsNotification() {
 
 // Инициализируем счетчик объявлений
 document.addEventListener('DOMContentLoaded', function() {
-    const itemsGrid = document.querySelector('.row .col-lg-2');
-    if (itemsGrid) {
-        lastItemCount = document.querySelectorAll('.row .col-lg-2').length;
+    const itemsContainer = document.getElementById('items-grid-container');
+    if (itemsContainer) {
+        lastItemCount = itemsContainer.querySelectorAll('.col-lg-2').length;
         console.log(`📊 Начальное количество объявлений: ${lastItemCount}`);
     }
 });
