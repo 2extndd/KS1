@@ -46,16 +46,20 @@ class TelegramWorker:
             # Create inline keyboard with "Open Kufar" button
             keyboard = None
             url = item.get('url', '')
+            logger.info(f"🔗 Item URL: {url}")
             if url:
                 keyboard = InlineKeyboardMarkup([
                     [InlineKeyboardButton("Open Kufar", url=url)]
                 ])
+                logger.info(f"✅ Created keyboard with button: Open Kufar -> {url}")
+            else:
+                logger.warning("❌ No URL found for item - button will not be created")
             
             # Prepare images
             images = item.get('images', [])
             
             if images:
-                # Send with images first, then text with button
+                # Send with images first
                 await self._send_with_images(
                     chat_id=chat_id,
                     thread_id=thread_id,
@@ -64,18 +68,23 @@ class TelegramWorker:
                     reply_markup=None  # No keyboard for media group
                 )
                 
-                # Always send the button message (regardless of media success)
+                # Then send button message (always send if keyboard exists)
                 if keyboard:
-                    success = await self._send_text_message(
+                    logger.info(f"📱 Sending button message with keyboard to chat {chat_id}")
+                    button_success = await self._send_text_message(
                         chat_id=chat_id,
                         thread_id=thread_id,
-                        message=" ",  # Minimal text with button
+                        message="🔗 Открыть на Kufar",  # Clear button text
                         reply_markup=keyboard
                     )
+                    logger.info(f"📱 Button message sent: {button_success}")
+                    success = button_success
                 else:
+                    logger.warning("❌ No keyboard to send - skipping button message")
                     success = True  # Images sent successfully
             else:
                 # Send text only with button
+                logger.info(f"📝 Sending text-only message with keyboard to chat {chat_id}")
                 success = await self._send_text_message(
                     chat_id=chat_id,
                     thread_id=thread_id,
@@ -155,10 +164,9 @@ class TelegramWorker:
                 message_parts.append(f"⛓️ {size}")
             
             # Add location
-            if location:
+            if location and location.strip():
                 message_parts.append(f"{location}")
-            else:
-                message_parts.append("Местоположение не указано")
+            # Skip location if not available (cleaner message)
             
             return "\n".join(message_parts)
             
@@ -182,8 +190,13 @@ class TelegramWorker:
                 
                 if reply_markup:
                     kwargs['reply_markup'] = reply_markup
+                    logger.info(f"🔧 Adding reply_markup to message: {type(reply_markup)}")
+                else:
+                    logger.info("🔧 No reply_markup provided")
                 
+                logger.info(f"📤 Sending message with kwargs: {list(kwargs.keys())}")
                 await self.bot.send_message(**kwargs)
+                logger.info("✅ Message sent successfully!")
                 return True
                 
             except RetryAfter as e:
