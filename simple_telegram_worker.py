@@ -64,29 +64,15 @@ class TelegramWorker:
             images = item.get('images', [])
             
             if images:
-                # Send with images first
-                await self._send_with_images(
+                # Send single photo with caption and button (no media group)
+                logger.info(f"📷 Sending single photo with caption and button to chat {chat_id}")
+                success = await self._send_single_photo_with_button(
                     chat_id=chat_id,
                     thread_id=thread_id,
                     message=message,
-                    images=images[:10],  # Telegram limit: 10 photos per album
-                    reply_markup=None  # No keyboard for media group
+                    photo_url=images[0],  # Use first image only
+                    reply_markup=keyboard
                 )
-                
-                # Then send button message (always send if keyboard exists)
-                if keyboard:
-                    logger.info(f"📱 Sending button message with keyboard to chat {chat_id}")
-                    button_success = await self._send_text_message(
-                        chat_id=chat_id,
-                        thread_id=thread_id,
-                        message="🔗 Открыть на Kufar",  # Clear button text
-                        reply_markup=keyboard
-                    )
-                    logger.info(f"📱 Button message sent: {button_success}")
-                    success = button_success
-                else:
-                    logger.warning("❌ No keyboard to send - skipping button message")
-                    success = True  # Images sent successfully
             else:
                 # Send text only with button
                 logger.info(f"📝 Sending text-only message with keyboard to chat {chat_id}")
@@ -178,6 +164,52 @@ class TelegramWorker:
         except Exception as e:
             logger.error(f"Error formatting message: {e}")
             return f"Новое объявление: {item.get('title', 'Без названия')}"
+    
+    async def _send_single_photo_with_button(self, chat_id: str, thread_id: str = None, 
+                                           message: str = "", photo_url: str = "", reply_markup=None) -> bool:
+        """Send single photo with caption and inline button"""
+        for attempt in range(self.max_retries):
+            try:
+                kwargs = {
+                    'chat_id': chat_id,
+                    'photo': photo_url,
+                    'caption': message,
+                    'parse_mode': ParseMode.HTML
+                }
+                
+                if thread_id:
+                    kwargs['message_thread_id'] = int(thread_id)
+                    logger.info(f"🎯 Setting photo message_thread_id to: {thread_id}")
+                else:
+                    logger.info(f"🎯 No thread_id for photo - sending to main chat")
+                
+                if reply_markup:
+                    kwargs['reply_markup'] = reply_markup
+                    logger.info(f"🔧 Adding reply_markup to photo: {type(reply_markup)}")
+                else:
+                    logger.info("🔧 No reply_markup provided for photo")
+                
+                logger.info(f"📤 Sending photo with kwargs: {list(kwargs.keys())}")
+                await self.bot.send_photo(**kwargs)
+                logger.info("✅ Photo with button sent successfully!")
+                return True
+                
+            except RetryAfter as e:
+                logger.warning(f"Rate limited, waiting {e.retry_after} seconds")
+                await asyncio.sleep(e.retry_after)
+                
+            except TimedOut:
+                logger.warning(f"Telegram timeout, attempt {attempt + 1}")
+                if attempt < self.max_retries - 1:
+                    await asyncio.sleep(self.retry_delay)
+                    
+            except Exception as e:
+                logger.error(f"Failed to send photo with button (attempt {attempt + 1}): {e}")
+                if attempt < self.max_retries - 1:
+                    await asyncio.sleep(self.retry_delay)
+        
+        logger.error("Failed to send photo with button after all retries")
+        return False
     
     async def _send_text_message(self, chat_id: str, thread_id: str = None, message: str = "", reply_markup=None) -> bool:
         """Send text-only message"""
