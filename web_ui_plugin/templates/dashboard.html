@@ -185,12 +185,24 @@ function updateDashboardData() {
 function updateStatsCards(data) {
     console.log('📊 Обновляем статистические карточки:', data);
     
+    // Отладка: проверяем все элементы
+    const allStatsCards = document.querySelectorAll('.stats-card');
+    console.log(`🔍 Найдено статистических карточек: ${allStatsCards.length}`);
+    allStatsCards.forEach((card, index) => {
+        console.log(`   Карточка ${index}: ${card.className}`);
+    });
+    
     // Обновляем API requests
     const apiRequestsEl = document.querySelector('.stats-card.api-requests .stats-number');
+    console.log('🔍 Элемент API requests:', apiRequestsEl);
     if (apiRequestsEl && data.total_api_requests !== undefined) {
         const oldValue = apiRequestsEl.textContent;
         apiRequestsEl.textContent = data.total_api_requests;
         console.log(`🔄 API Requests: ${oldValue} → ${data.total_api_requests}`);
+    } else {
+        console.log('❌ Элемент API requests не найден или данные отсутствуют');
+        console.log('   Элемент:', !!apiRequestsEl);
+        console.log('   Данные:', data.total_api_requests);
     }
     
     // Обновляем uptime в последнем sublabel элементе карточки API requests
@@ -204,17 +216,29 @@ function updateStatsCards(data) {
     
     // Обновляем общую статистику
     const totalItemsEl = document.querySelector('.stats-card.total-items .stats-number');
+    console.log('🔍 Элемент Total Items:', totalItemsEl);
     if (totalItemsEl && data.database && data.database.total_items !== undefined) {
         const oldValue = totalItemsEl.textContent;
         totalItemsEl.textContent = data.database.total_items;
         console.log(`📦 Total Items: ${oldValue} → ${data.database.total_items}`);
+    } else {
+        console.log('❌ Total Items не обновлен');
+        console.log('   Элемент:', !!totalItemsEl);
+        console.log('   Database:', !!data.database);
+        console.log('   Total items:', data.database?.total_items);
     }
     
     const activeQueriesEl = document.querySelector('.stats-card.active-queries .stats-number');
+    console.log('🔍 Элемент Active Queries:', activeQueriesEl);
     if (activeQueriesEl && data.database && data.database.active_searches !== undefined) {
         const oldValue = activeQueriesEl.textContent;
         activeQueriesEl.textContent = data.database.active_searches;
         console.log(`🔍 Active Queries: ${oldValue} → ${data.database.active_searches}`);
+    } else {
+        console.log('❌ Active Queries не обновлен');
+        console.log('   Элемент:', !!activeQueriesEl);
+        console.log('   Database:', !!data.database);
+        console.log('   Active searches:', data.database?.active_searches);
     }
 }
 
