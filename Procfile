@@ -1,4 +1,2 @@
-web: gunicorn --bind 0.0.0.0:$PORT simple_web_test:app
+web: gunicorn --bind 0.0.0.0:$PORT --timeout 30 --log-level info wsgi:application
 worker: python kufar_notifications.py worker
-original_web: python kufar_notifications.py web
-test_web: python simple_web_test.py
