@@ -63,10 +63,14 @@ if os.getenv('RAILWAY_ENVIRONMENT'):
         db.force_postgres_mode()
         logger.info(f"Database info: {db.get_database_info()}")
         
-        db.add_log_entry('INFO', 'Application started in Railway environment', 'System', 'Railway deployment successful')
-        logger.info("Railway environment detected - database logging enabled")
+        # Try to add log entry, but don't fail if database not ready
+        try:
+            db.add_log_entry('INFO', 'Application started in Railway environment', 'System', 'Railway deployment successful')
+            logger.info("Railway environment detected - database logging enabled")
+        except Exception as log_error:
+            logger.warning(f"Database not ready for logging: {log_error}")
     except Exception as e:
-        logger.error(f"Failed to add initial log entry: {e}")
+        logger.error(f"Failed to setup Railway database: {e}")
         logger.error(f"Database info: {db.get_database_info()}")
 else:
     # Local environment - log to file and stdout
@@ -426,20 +430,50 @@ def main():
     logger.info("=== KF Searcher (KS1) Starting ===")
     
     try:
-        # Initialize database
-        logger.info("Initializing database...")
+        # Initialize database with improved error handling
+        logger.info("🔄 Initializing PostgreSQL database...")
+        db_initialized = False
+        
         try:
+            # Force PostgreSQL mode for Railway
+            if os.getenv('RAILWAY_ENVIRONMENT'):
+                db.force_postgres_mode()
+                logger.info("✅ PostgreSQL mode enabled for Railway")
+            
+            # Initialize database
             db.init_database()
-            logger.info("Database initialized successfully")
+            logger.info("✅ Database initialized successfully")
+            db_initialized = True
+            
             # Add log entry to database
-            db.add_log_entry('INFO', 'Database initialized successfully', 'System', 'Database tables created')
-        except Exception as e:
-            logger.error(f"Database initialization failed: {e}")
-            # Try to continue anyway, database might be accessible later
             try:
-                db.add_log_entry('ERROR', f'Database initialization failed: {e}', 'System', 'Database init error')
-            except:
-                pass
+                db.add_log_entry('INFO', 'Database initialized successfully', 'System', 'Database tables created')
+            except Exception as log_error:
+                logger.warning(f"⚠️  Could not add log entry: {log_error}")
+                
+        except Exception as e:
+            logger.error(f"❌ Database initialization failed: {e}")
+            logger.error(f"Database info: {db.get_database_info()}")
+            
+            # Don't fail completely - try to start anyway for Railway
+            if os.getenv('RAILWAY_ENVIRONMENT'):
+                logger.warning("⚠️  Starting without database - will retry later")
+                try:
+                    # Try simplified connection test
+                    with db.get_connection() as conn:
+                        cursor = conn.cursor()
+                        cursor.execute("SELECT 1")
+                        logger.info("✅ Database connection test successful")
+                        db_initialized = True
+                except Exception as conn_error:
+                    logger.error(f"❌ Database connection test failed: {conn_error}")
+            else:
+                raise  # In local mode, fail completely
+        
+        if db_initialized:
+            logger.info("✅ Database готова к работе")
+        else:
+            logger.warning("⚠️  Продолжаем без базы данных")
         
         # Check configuration
         logger.info("Checking configuration...")
@@ -448,9 +482,15 @@ def main():
         telegram_bot_token = get_telegram_bot_token()
         if not telegram_bot_token:
             logger.warning("Telegram bot token not configured - notifications will not work")
-            db.add_log_entry('WARNING', 'Telegram bot token not configured', 'System', 'Notifications will not work')
+            if db_initialized:
+                try:
+                    db.add_log_entry('WARNING', 'Telegram bot token not configured', 'System', 'Notifications will not work')
+                except: pass
         else:
-            db.add_log_entry('INFO', 'Telegram bot token configured', 'System', 'Notifications enabled')
+            if db_initialized:
+                try:
+                    db.add_log_entry('INFO', 'Telegram bot token configured', 'System', 'Notifications enabled')
+                except: pass
         
         # Setup scheduler
         setup_scheduler()
@@ -461,7 +501,10 @@ def main():
             app_start_time = datetime.now()
             
             logger.info(f"Starting web server on {WEB_UI_HOST}:{WEB_UI_PORT}")
-            db.add_log_entry('INFO', f'Starting web server on {WEB_UI_HOST}:{WEB_UI_PORT}', 'System', 'Web server mode')
+            if db_initialized:
+                try:
+                    db.add_log_entry('INFO', f'Starting web server on {WEB_UI_HOST}:{WEB_UI_PORT}', 'System', 'Web server mode')
+                except: pass
             
             # Import and setup web UI
             from web_ui_plugin.app import create_app
