@@ -298,18 +298,38 @@ def search_and_notify():
             logger.error(f"Failed to log error to database: {log_error}")
 
 def setup_scheduler():
-    """Setup scheduled tasks - простая логика без адаптивности"""
+    """Setup scheduled tasks - учитываем реальный Query Refresh Delay"""
     try:
         interval_seconds = get_search_interval()
         
-        # Простая логика: проверяем готовность каждую минуту
-        # Каждый фильтр сканируется строго через Query Refresh Delay секунд
-        schedule.every(1).minutes.do(search_and_notify)
+        # ИСПРАВЛЕНО: планировщик учитывает реальный Query Refresh Delay
+        if interval_seconds < 60:
+            # Для коротких интервалов - проверяем каждые N секунд
+            schedule.every(interval_seconds).seconds.do(search_and_notify)
+            check_frequency = f"каждые {interval_seconds} секунд"
+        else:
+            # Для длинных интервалов - проверяем каждую минуту
+            schedule.every(1).minutes.do(search_and_notify)
+            check_frequency = "каждую минуту"
         
         logger.info(f"✅ Планировщик настроен:")
         logger.info(f"   • Query Refresh Delay: {interval_seconds} секунд")
-        logger.info(f"   • Проверка готовности: каждую минуту")
+        logger.info(f"   • Проверка готовности: {check_frequency}")
         logger.info(f"   • Каждый фильтр сканируется строго через {interval_seconds} секунд после последнего сканирования")
+        
+        # Предупреждение о высокой нагрузке
+        if interval_seconds < 30:
+            logger.warning(f"⚠️  ВНИМАНИЕ: Query Refresh Delay = {interval_seconds}с может создать высокую нагрузку на Kufar.by!")
+            logger.warning(f"⚠️  Рекомендуется использовать интервал ≥ 60 секунд для стабильной работы")
+            
+            # Примерный расчет нагрузки
+            try:
+                searches = db.get_active_searches()
+                if searches:
+                    estimated_requests_per_hour = len(searches) * (3600 / interval_seconds)
+                    logger.warning(f"⚠️  Примерная нагрузка: {estimated_requests_per_hour:.0f} запросов/час к Kufar.by")
+            except:
+                pass
         
         # Schedule proxy refresh (every 2 hours)
         schedule.every(2).hours.do(refresh_proxies)
