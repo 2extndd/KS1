@@ -805,6 +805,44 @@ def create_app():
         except Exception as e:
             logger.error(f"Error getting items: {e}")
             return jsonify({'error': str(e)}), 500
+    
+    @app.route('/api/logs/recent', methods=['GET'])
+    def api_get_recent_logs():
+        """API endpoint for getting recent logs"""
+        try:
+            minutes = int(request.args.get('minutes', 10))  # Получаем логи за последние N минут
+            page = 1
+            per_page = 50
+            level_filter = request.args.get('level', '')
+            
+            # Получаем логи
+            result = get_logs_paginated(page=page, per_page=per_page, level_filter=level_filter)
+            
+            # Фильтруем только свежие логи (за последние N минут)
+            from datetime import datetime, timedelta
+            cutoff_time = datetime.now() - timedelta(minutes=minutes)
+            
+            recent_logs = []
+            for log in result.get('logs', []):
+                try:
+                    # Парсим время лога
+                    log_time = datetime.fromisoformat(log['created_at'].replace('Z', '+00:00'))
+                    if log_time.replace(tzinfo=None) >= cutoff_time:
+                        recent_logs.append(log)
+                except:
+                    # Если не удается распарсить время, включаем лог
+                    recent_logs.append(log)
+            
+            return jsonify({
+                'success': True,
+                'logs': recent_logs,
+                'count': len(recent_logs),
+                'timestamp': datetime.now().isoformat()
+            })
+            
+        except Exception as e:
+            logger.error(f"Error getting recent logs: {e}")
+            return jsonify({'error': str(e)}), 500
 
     return app
 

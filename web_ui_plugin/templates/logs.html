@@ -174,7 +174,7 @@ function startAutoRefresh() {
 // Refresh logs
 function refreshLogs(silent = false) {
     if (!silent) {
-        showAlert('Refreshing logs...', 'info');
+        console.log('🔄 Обновление логов...');
     }
     
     fetch('/api/logs/recent?minutes=5')
@@ -182,16 +182,14 @@ function refreshLogs(silent = false) {
         .then(data => {
             if (data.success && data.logs) {
                 updateLogsTable(data.logs);
+                updateLogCount(data.count);
                 if (!silent) {
-                    showAlert('Logs refreshed successfully', 'success');
+                    console.log('✅ Логи обновлены успешно');
                 }
             }
         })
         .catch(error => {
-            console.error('Error refreshing logs:', error);
-            if (!silent) {
-                showAlert('Error refreshing logs', 'danger');
-            }
+            console.error('❌ Ошибка обновления логов:', error);
         });
 }
 
@@ -199,27 +197,50 @@ function refreshLogs(silent = false) {
 function updateLogsTable(logs) {
     const tbody = document.getElementById('logsTableBody');
     
+    if (!logs || logs.length === 0) {
+        return;
+    }
+    
+    // Сохраняем текущую позицию скролла
+    const container = document.querySelector('.table-responsive');
+    const scrollTop = container.scrollTop;
+    
     logs.forEach(log => {
-        // Check if log already exists
+        // Проверяем есть ли уже такой лог
         const existingRows = tbody.querySelectorAll('.log-row');
+        const logKey = `${log.created_at}-${log.module}-${log.message.substring(0, 30)}`;
+        
         const exists = Array.from(existingRows).some(row => {
-            return row.children[0].textContent === log.timestamp && 
-                   row.children[3].textContent.includes(log.message.substring(0, 50));
+            const rowKey = `${row.dataset.timestamp}-${row.children[2].textContent}-${row.children[3].textContent.substring(0, 30)}`;
+            return rowKey === logKey;
         });
         
         if (!exists) {
             const row = createLogRow(log);
             tbody.insertBefore(row, tbody.firstChild);
             
-            // Remove old rows if too many (keep last 100)
+            // Ограничиваем количество строк
             if (tbody.children.length > 100) {
                 tbody.removeChild(tbody.lastChild);
             }
         }
     });
     
+    // Восстанавливаем позицию скролла если пользователь не в самом верху
+    if (scrollTop > 0) {
+        container.scrollTop = scrollTop;
+    }
+    
     // Apply current filter
     filterLogs();
+}
+
+// Update log count
+function updateLogCount(count) {
+    const countSpan = document.querySelector('.card-header span');
+    if (countSpan) {
+        countSpan.textContent = `${count} recent entries`;
+    }
 }
 
 // Create log row
@@ -227,6 +248,7 @@ function createLogRow(log) {
     const row = document.createElement('tr');
     row.className = 'log-row';
     row.dataset.level = log.level;
+    row.dataset.timestamp = log.created_at;
     
     const badgeClass = log.level === 'INFO' ? 'bg-info' :
                       log.level === 'WARNING' ? 'bg-warning' :
