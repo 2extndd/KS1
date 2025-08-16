@@ -17,8 +17,12 @@ KF_AD_ENDPOINT = "/item"
 # Database Configuration
 # На Railway используется PostgreSQL, локально - SQLite
 if os.getenv('RAILWAY_ENVIRONMENT'):
+    print("🚀 Railway environment detected")
+    
     # На Railway ждем PostgreSQL URL из переменной окружения
     DATABASE_URL = os.getenv('DATABASE_URL')
+    print(f"📍 DATABASE_URL from env: {'SET' if DATABASE_URL else 'NOT SET'}")
+    
     if not DATABASE_URL:
         # Если нет DATABASE_URL, пытаемся собрать из отдельных переменных Railway
         db_host = os.getenv('PGHOST') or os.getenv('DATABASE_HOST')
@@ -27,10 +31,33 @@ if os.getenv('RAILWAY_ENVIRONMENT'):
         db_user = os.getenv('PGUSER') or os.getenv('DATABASE_USER')
         db_password = os.getenv('PGPASSWORD') or os.getenv('DATABASE_PASSWORD')
         
+        print(f"📍 Individual DB vars: host={bool(db_host)}, port={bool(db_port)}, name={bool(db_name)}, user={bool(db_user)}, password={bool(db_password)}")
+        
         if all([db_host, db_name, db_user, db_password]):
             DATABASE_URL = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+            print(f"✅ Constructed DATABASE_URL from individual variables")
         else:
-            raise ValueError("DATABASE_URL not found for Railway deployment. Please add PostgreSQL service to your Railway project.")
+            print("❌ Missing PostgreSQL variables, checking for other DATABASE_URL patterns...")
+            
+            # Проверяем альтернативные переменные Railway
+            for env_var in ['DATABASE_URL', 'POSTGRES_URL', 'POSTGRESQL_URL', 'DB_URL']:
+                alt_url = os.getenv(env_var)
+                if alt_url:
+                    DATABASE_URL = alt_url
+                    print(f"✅ Found DATABASE_URL in {env_var}")
+                    break
+            
+            if not DATABASE_URL:
+                print("🔍 Available environment variables with 'DB' or 'POSTGRES':")
+                for key, value in os.environ.items():
+                    if any(term in key.upper() for term in ['DB', 'POSTGRES', 'DATABASE']):
+                        print(f"  {key}: {value[:50]}{'...' if len(value) > 50 else ''}")
+                
+                # Fallback на SQLite вместо краша
+                print("⚠️ No PostgreSQL found, falling back to SQLite for now")
+                DATABASE_URL = 'sqlite:///kufar_searcher.db'
+    
+    print(f"🔗 Final DATABASE_URL: {DATABASE_URL[:50]}{'...' if len(DATABASE_URL) > 50 else ''}")
 else:
     # Локальная разработка - используем SQLite
     DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///kufar_searcher.db')
