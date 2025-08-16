@@ -86,9 +86,18 @@ def get_search_interval():
     try:
         from db import get_db
         value = get_db().get_setting('SEARCH_INTERVAL')
-        return int(value) if value else int(os.getenv('SEARCH_INTERVAL', '300'))
-    except:
-        return int(os.getenv('SEARCH_INTERVAL', '300'))
+        env_value = os.getenv('SEARCH_INTERVAL', '300')
+        
+        if value:
+            print(f"🔧 SEARCH_INTERVAL from database: {value}")
+            return int(value)
+        else:
+            print(f"🔧 SEARCH_INTERVAL from environment (default): {env_value}")
+            return int(env_value)
+    except Exception as e:
+        env_value = os.getenv('SEARCH_INTERVAL', '300')
+        print(f"🔧 SEARCH_INTERVAL fallback due to error: {env_value} (error: {e})")
+        return int(env_value)
 
 def get_max_items_per_search():
     """Get max items per search from database or environment"""

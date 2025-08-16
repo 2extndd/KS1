@@ -364,11 +364,11 @@ def setup_scheduler():
         # Schedule proxy refresh (every 2 hours)
         schedule.every(2).hours.do(refresh_proxies)
         
-        # Schedule database cleanup (daily at 3 AM)
-        schedule.every().day.at("03:00").do(cleanup_old_data)
+        # Schedule database cleanup (weekly on Sunday at 3 AM) - менее агрессивно
+        schedule.every().sunday.at("03:00").do(cleanup_old_data)
         
         logger.info(f"   • Обновление прокси: каждые 2 часа")
-        logger.info(f"   • Очистка БД: ежедневно в 03:00")
+        logger.info(f"   • Очистка БД: еженедельно по воскресеньям в 03:00 (логи 7 дней, объявления 30 дней)")
         
     except Exception as e:
         logger.error(f"Ошибка настройки планировщика: {e}")
