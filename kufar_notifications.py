@@ -280,10 +280,12 @@ def search_and_notify():
     global total_api_requests, total_items_found, last_search_time
     
     try:
-        logger.info("=== Starting search and notification cycle ===")
+        logger.info("🔍 === Starting search and notification cycle ===")
         
         # 1. Search for new items
-        logger.info("Step 1: Searching for new items...")
+        logger.info("🎯 Step 1: Searching for new items...")
+        logger.info(f"⏰ Current time: {datetime.now().strftime('%H:%M:%S')}")
+        
         search_results = searcher.search_all_queries()
         
         # Update metrics (API requests are counted in core.py, just update items and time)
@@ -430,22 +432,37 @@ def cleanup_old_data():
 
 def run_scheduler():
     """Run the scheduler loop"""
-    logger.info("Starting KF Searcher scheduler...")
+    logger.info("🚀 Starting KF Searcher scheduler...")
+    logger.info(f"🔧 Планировщик будет проверять задачи каждые 60 секунд")
     
     try:
         # Run initial search immediately
-        logger.info("Running initial search...")
+        logger.info("⚡ Running initial search immediately...")
         search_and_notify()
         
         # Start scheduler loop
+        loop_count = 0
         while True:
+            loop_count += 1
+            logger.debug(f"🔄 Scheduler loop #{loop_count} - checking pending tasks...")
+            
+            pending_jobs = schedule.jobs
+            logger.debug(f"📋 Pending jobs: {len(pending_jobs)}")
+            
             schedule.run_pending()
+            
+            # Логируем каждый 10-й цикл для отслеживания
+            if loop_count % 10 == 0:
+                logger.info(f"💓 Scheduler heartbeat: loop #{loop_count}, {len(pending_jobs)} jobs scheduled")
+            
             time.sleep(60)  # Check every minute
             
     except KeyboardInterrupt:
-        logger.info("Scheduler stopped by user")
+        logger.info("🛑 Scheduler stopped by user")
     except Exception as e:
-        logger.error(f"Scheduler error: {e}")
+        logger.error(f"💥 Scheduler error: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
         raise
 
 def main():
