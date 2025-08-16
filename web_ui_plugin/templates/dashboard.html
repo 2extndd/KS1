@@ -67,6 +67,7 @@
                     <i class="bi bi-clock-history me-2"></i>Recent Items
                 </h5>
                 <div class="btn-group">
+                    <span id="workerStatus" class="badge bg-warning me-2">Worker: Checking...</span>
                     <button class="btn btn-sm btn-success" onclick="forceScanAll()">
                         <i class="bi bi-arrow-clockwise me-1"></i>Force Scan All
                     </button>
@@ -399,5 +400,46 @@ function clearAllItems() {
             });
     }
 }
+
+// Check worker status every 30 seconds
+function checkWorkerStatus() {
+    fetch('/api/worker/status')
+        .then(response => response.json())
+        .then(data => {
+            const statusElement = document.getElementById('workerStatus');
+            if (data.success) {
+                let badgeClass = 'bg-danger';
+                let statusText = 'Worker: Error';
+                
+                if (data.status === 'running_and_scanning') {
+                    badgeClass = 'bg-success';
+                    statusText = 'Worker: ✅ Active';
+                } else if (data.status === 'running_no_scans') {
+                    badgeClass = 'bg-warning';
+                    statusText = 'Worker: ⚠️ Idle';
+                } else {
+                    badgeClass = 'bg-danger';
+                    statusText = 'Worker: ❌ Offline';
+                }
+                
+                statusElement.className = `badge ${badgeClass} me-2`;
+                statusElement.textContent = statusText;
+                statusElement.title = data.message;
+            } else {
+                statusElement.className = 'badge bg-secondary me-2';
+                statusElement.textContent = 'Worker: Unknown';
+            }
+        })
+        .catch(error => {
+            console.error('Error checking worker status:', error);
+            const statusElement = document.getElementById('workerStatus');
+            statusElement.className = 'badge bg-secondary me-2';
+            statusElement.textContent = 'Worker: Check Failed';
+        });
+}
+
+// Initial check and then every 30 seconds
+checkWorkerStatus();
+setInterval(checkWorkerStatus, 30000);
 </script>
 {% endblock %}

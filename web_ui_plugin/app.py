@@ -483,7 +483,7 @@ def create_app():
     def api_force_scan():
         """Force scan all queries"""
         try:
-            logger.info("Force scan initiated via API")
+            logger.info("🔍 Force scan initiated via API (WEB process)")
             
             # Import SearchCore from core module
             import sys
@@ -497,8 +497,8 @@ def create_app():
             search_core = KufarSearcher()
             results = search_core.search_all_queries()
             
-            logger.info(f"Force scan completed: {results}")
-            get_db().add_log_entry('INFO', 'Force Scan All initiated via WebUI', 'WebUI', f'Manual scan triggered - found {results.get("new_items", 0)} new items')
+            logger.info(f"✅ Force scan completed: {results}")
+            get_db().add_log_entry('INFO', 'Force Scan All initiated via WebUI (manual trigger)', 'WebUI', f'Manual scan triggered - found {results.get("new_items", 0)} new items')
             
             return jsonify({
                 'success': True, 
@@ -507,10 +507,84 @@ def create_app():
             })
             
         except Exception as e:
-            logger.error(f"Error in force scan: {e}")
+            logger.error(f"❌ Error in force scan: {e}")
             import traceback
             traceback.print_exc()
             get_db().add_log_entry('ERROR', f'Force Scan All failed: {str(e)}', 'WebUI', 'Manual scan error')
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+    
+    @app.route('/api/worker/status', methods=['GET'])
+    def api_worker_status():
+        """Check if worker process is running by checking recent scheduler logs"""
+        try:
+            from datetime import datetime, timedelta
+            
+            # Проверяем есть ли логи от scheduler'а за последние 5 минут
+            recent_time = datetime.now() - timedelta(minutes=5)
+            
+            with get_db().get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Ищем логи планировщика за последние 5 минут
+                if get_db().is_postgres:
+                    query = """
+                        SELECT COUNT(*) FROM logs 
+                        WHERE (component LIKE '%scheduler%' OR component LIKE '%main%' OR message LIKE '%scheduler%')
+                        AND timestamp >= %s
+                    """
+                else:
+                    query = """
+                        SELECT COUNT(*) FROM logs 
+                        WHERE (component LIKE '%scheduler%' OR component LIKE '%main%' OR message LIKE '%scheduler%')
+                        AND datetime(timestamp) >= datetime(?)
+                    """
+                
+                get_db().execute_query(cursor, query, [recent_time.isoformat()])
+                recent_scheduler_logs = cursor.fetchone()[0]
+                
+                # Ищем логи поиска за последние 10 минут
+                search_time = datetime.now() - timedelta(minutes=10)
+                if get_db().is_postgres:
+                    search_query = """
+                        SELECT COUNT(*) FROM logs 
+                        WHERE (message LIKE '%search and notification cycle%' OR message LIKE '%Starting search%')
+                        AND timestamp >= %s
+                    """
+                else:
+                    search_query = """
+                        SELECT COUNT(*) FROM logs 
+                        WHERE (message LIKE '%search and notification cycle%' OR message LIKE '%Starting search%')
+                        AND datetime(timestamp) >= datetime(?)
+                    """
+                
+                get_db().execute_query(cursor, search_query, [search_time.isoformat()])
+                recent_search_logs = cursor.fetchone()[0]
+                
+                # Определяем статус
+                if recent_scheduler_logs > 0:
+                    if recent_search_logs > 0:
+                        status = "running_and_scanning"
+                        message = "Worker running and scanning"
+                    else:
+                        status = "running_no_scans"
+                        message = "Worker running but no recent scans"
+                else:
+                    status = "not_running"
+                    message = "Worker not running (no recent scheduler logs)"
+                
+                return jsonify({
+                    'success': True,
+                    'status': status,
+                    'message': message,
+                    'scheduler_logs': recent_scheduler_logs,
+                    'search_logs': recent_search_logs
+                })
+                
+        except Exception as e:
+            logger.error(f"Error checking worker status: {e}")
             return jsonify({
                 'success': False,
                 'error': str(e)
@@ -973,6 +1047,44 @@ def get_logs_paginated(page: int = 1, per_page: int = 50, level_filter: str = ''
             
             columns = [desc[0] for desc in cursor.description]
             logs = [dict(zip(columns, row)) for row in cursor.fetchall()]
+            
+            # Конвертируем timestamp в белорусское время для отображения
+            from db import BELARUS_TZ
+            try:
+                import pytz
+            except ImportError:
+                logger.warning("pytz not available, timestamps may not display correctly")
+                pytz = None
+            for log in logs:
+                if log.get('timestamp'):
+                    try:
+                        # Если timestamp - строка, парсим её
+                        if isinstance(log['timestamp'], str):
+                            if log['timestamp'].endswith('Z'):
+                                # UTC время
+                                dt = datetime.fromisoformat(log['timestamp'].replace('Z', '+00:00'))
+                            elif '+' in log['timestamp'] or log['timestamp'].endswith('00'):
+                                # Уже с timezone
+                                dt = datetime.fromisoformat(log['timestamp'])
+                            else:
+                                # Без timezone - считаем UTC
+                                if pytz:
+                                    dt = datetime.fromisoformat(log['timestamp']).replace(tzinfo=pytz.UTC)
+                                else:
+                                    dt = datetime.fromisoformat(log['timestamp'])
+                        else:
+                            # datetime объект
+                            dt = log['timestamp']
+                            if dt.tzinfo is None and pytz:
+                                dt = dt.replace(tzinfo=pytz.UTC)
+                        
+                        # Конвертируем в белорусское время
+                        belarus_time = dt.astimezone(BELARUS_TZ)
+                        log['timestamp'] = belarus_time.strftime('%Y-%m-%d %H:%M:%S %z')
+                        
+                    except Exception as e:
+                        # Если ошибка конвертации - оставляем как есть
+                        logger.warning(f"Failed to convert timestamp for log {log.get('id')}: {e}")
             
             # Calculate pagination
             total_pages = (total + per_page - 1) // per_page
