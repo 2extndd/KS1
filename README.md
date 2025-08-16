@@ -1,163 +1,265 @@
-# KF Searcher
+# KF Searcher (KS1) v1.0 - Stable Release
 
-Система мониторинга Kufar.by с автоматическими уведомлениями в Telegram.
+🚀 **Professional Kufar.by monitoring system with Telegram notifications and web interface**
 
-## 🚀 Быстрый старт на Railway
+A powerful, production-ready search and notification system for Kufar.by marketplace. Built with Python, Flask, and Telegram Bot API. Features smart item monitoring, thread-based notifications, size extraction, and a responsive web dashboard.
 
-### 1. Установка Railway CLI
+## ✨ Features
+
+### 🔍 Smart Search & Monitoring
+- **Real-time monitoring** of multiple search queries
+- **Automatic item detection** with duplicate prevention
+- **Size extraction** from item descriptions (48 (M), XL, Large, etc.)
+- **Price formatting** with size display (75 BYN - 48 (M))
+- **Location tracking** and filtering
+
+### 📱 Telegram Integration
+- **Inline buttons** for direct item access
+- **Thread-based routing** to specific topics
+- **Rich media support** (images + text in single message)
+- **Smart notifications** only for new items
+- **Customizable message format**
+
+### 🌐 Web Dashboard
+- **Real-time metrics** (API requests, uptime, items count)
+- **Smart auto-refresh** (no page jumping, preserves scroll position)
+- **Responsive design** (5 items per row, optimized layout)
+- **Search management** (add/edit/remove queries)
+- **Item browsing** with filters and pagination
+- **Configuration panel** for system settings
+
+### 🗄️ Database & Storage
+- **PostgreSQL support** for production deployment
+- **SQLite fallback** for development
+- **Efficient indexing** for fast queries
+- **Logging system** with Belarus timezone
+- **Metrics tracking** (API calls, uptime, performance)
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Python 3.8+
+- PostgreSQL (for production) or SQLite (for development)
+- Telegram Bot Token
+
+### 1. Clone Repository
+```bash
+git clone https://github.com/yourusername/KufarSearcher.git
+cd KufarSearcher
+```
+
+### 2. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Environment Configuration
+```bash
+cp env.example .env
+# Edit .env with your settings
+```
+
+### 4. Run Application
+```bash
+# Web Interface
+python main.py web
+
+# Worker Process (in separate terminal)
+python main.py worker
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+```bash
+# Required
+TELEGRAM_BOT_TOKEN=your_bot_token_here
+TELEGRAM_CHAT_ID=your_chat_id_here
+DATABASE_URL=postgresql://user:pass@host:port/db
+
+# Optional
+SEARCH_INTERVAL=300          # Search interval in seconds
+MAX_ITEMS_PER_SEARCH=50      # Max items per search query
+LOG_LEVEL=INFO               # Logging level
+```
+
+### Telegram Bot Setup
+1. Create bot via [@BotFather](https://t.me/botfather)
+2. Get bot token
+3. Add bot to your chat/channel
+4. Get chat ID
+5. Configure thread IDs for topic-based routing
+
+## 📁 Project Structure
+
+```
+KF Searcher/
+├── main.py                      # 🚀 Main application entry point
+├── core.py                      # 🔍 Core search logic
+├── db.py                        # 🗄️ Database operations
+├── simple_telegram_worker.py    # 📱 Telegram bot worker
+├── metrics_storage.py           # 📊 Metrics and statistics
+├── shared_state.py              # 🔄 Shared application state
+├── configuration_values.py      # ⚙️ Configuration constants
+├── web_ui_plugin/              # 🌐 Flask web interface
+│   ├── app.py                  # Flask application
+│   ├── templates/              # HTML templates
+│   └── static/                 # CSS, JS, images
+├── pyKufarVN/                  # 🔌 Kufar API client
+├── Procfile                    # 🚂 Railway deployment config
+├── requirements.txt             # 📦 Python dependencies
+└── README.md                   # 📚 This documentation
+```
+
+## 🚂 Railway Deployment
+
+### 1. Install Railway CLI
 ```bash
 npm install -g @railway/cli
 ```
 
-### 2. Логин в Railway
+### 2. Login & Link Project
 ```bash
 railway login
-```
-
-### 3. Связывание с проектом
-```bash
 railway link
 ```
 
-### 4. Настройка переменных окружения
+### 3. Set Environment Variables
 ```bash
-railway variables set TELEGRAM_BOT_TOKEN=your_bot_token
+railway variables set TELEGRAM_BOT_TOKEN=your_token
 railway variables set TELEGRAM_CHAT_ID=your_chat_id
 railway variables set DATABASE_URL=postgresql://...
 ```
 
-### 5. Деплой
+### 4. Deploy
 ```bash
 railway deploy
 ```
 
-## 🔧 Переменные окружения
+## 🎯 Usage
 
-### Обязательные
-- `TELEGRAM_BOT_TOKEN` - токен бота от @BotFather
-- `TELEGRAM_CHAT_ID` - ID чата для уведомлений
-- `DATABASE_URL` - URL PostgreSQL базы данных (автоматически на Railway)
+### Adding Search Queries
+1. Access web dashboard at `/queries`
+2. Click "Add New Query"
+3. Enter search terms, chat ID, and thread ID
+4. Save and activate
 
-### Опциональные
-- `SEARCH_INTERVAL` - интервал поиска в секундах (по умолчанию: 300)
-- `MAX_ITEMS_PER_SEARCH` - максимальное количество элементов на поиск (по умолчанию: 50)
-- `LOG_LEVEL` - уровень логирования (по умолчанию: INFO)
+### Managing Items
+- **View all items**: `/items` page
+- **Filter by search**: Use search name filter
+- **Clear items**: Use "Clear All Items" button
+- **Force scan**: Trigger immediate search
 
-## 📁 Структура проекта
+### Telegram Notifications
+- **Automatic**: New items trigger notifications
+- **Thread routing**: Items sent to specific topics
+- **Rich format**: Title, price, size, location
+- **Direct access**: Inline "Open Kufar" button
 
-```
-KF Searcher/
-├── kufar_notifications.py    # Главный файл приложения
-├── db.py                     # Операции с базой данных
-├── core.py                   # Основная логика поиска
-├── simple_telegram_worker.py # Telegram бот
-├── web_ui_plugin/           # Веб-интерфейс
-├── Procfile                  # Конфигурация Railway
-└── requirements.txt          # Python зависимости
-```
+## 🔍 API Endpoints
 
-## 🚦 Процессы Railway
+### Web Interface
+- `GET /` - Dashboard
+- `GET /queries` - Search queries management
+- `GET /items` - Items browsing
+- `GET /config` - Configuration panel
+- `GET /logs` - System logs
 
-### Web процесс
-- **Команда**: `python kufar_notifications.py web`
-- **Назначение**: Веб-интерфейс Flask
-- **Порт**: Использует переменную `PORT`
+### API Endpoints
+- `GET /api/stats` - Application statistics
+- `GET /api/recent-items` - Recent items data
+- `POST /api/queries` - Add/edit queries
+- `DELETE /api/queries/<id>` - Remove queries
 
-### Worker процесс
-- **Команда**: `python kufar_notifications.py worker`
-- **Назначение**: Поиск и уведомления
-- **Функции**: Автоматический поиск, уведомления, обработка ошибок
+## 🧪 Testing
 
-## 🧪 Тестирование
-
-### Тест локальной базы данных
+### Local Development
 ```bash
-python3 test_db_connection.py
+# Test database connection
+python3 -c "from db import db; print('DB OK')"
+
+# Test web interface
+python3 main.py web
+
+# Test worker process
+python3 main.py worker
 ```
 
-### Тест Railway PostgreSQL
+### Production Testing
 ```bash
-python3 test_railway_postgres.py
+# Health check
+curl https://your-app.railway.app/
+
+# API stats
+curl https://your-app.railway.app/api/stats
 ```
 
-### Тест веб-интерфейса
+## 📊 Monitoring & Logs
+
+### Metrics Tracked
+- **API Requests**: Total calls to Kufar
+- **Items Found**: Total items discovered
+- **Uptime**: Application running time
+- **Search Queries**: Active monitoring count
+- **Last Found Item**: Most recent discovery
+
+### Logging
+- **Timezone**: Belarus (UTC+3)
+- **Levels**: INFO, WARNING, ERROR
+- **Storage**: Database + file logging
+- **Rotation**: Automatic log management
+
+## 🚨 Troubleshooting
+
+### Common Issues
+1. **Telegram bot not responding**: Check token and chat ID
+2. **Items not found**: Verify search queries and API access
+3. **Database errors**: Check connection string and permissions
+4. **Web interface issues**: Verify Flask app configuration
+
+### Debug Mode
 ```bash
-python3 kufar_notifications.py web
+# Enable debug logging
+export LOG_LEVEL=DEBUG
+python3 main.py web
 ```
 
-### Тест worker процесса
-```bash
-python3 kufar_notifications.py worker
-```
+## 🤝 Contributing
 
-## 📊 Мониторинг
+1. Fork the repository
+2. Create feature branch
+3. Make changes
+4. Test thoroughly
+5. Submit pull request
 
-### Health Check
-```
-GET /
-```
-Возвращает статус приложения и базовую статистику.
+## 📄 License
 
-### Статистика
-```
-GET /stats
-```
-Возвращает детальную статистику приложения.
+This project is licensed under the MIT License - see [LICENSE](LICENSE) file for details.
 
-### Логи
-```
-GET /logs
-```
-Возвращает недавние логи приложения.
+## 🆕 Changelog
 
-## 🔄 Авто-редиплой
+### v1.0.0 - Stable Release
+- ✅ **Smart partial refresh** - No more page jumping
+- ✅ **Inline Telegram buttons** - Direct item access
+- ✅ **Thread-based routing** - Topic-specific notifications
+- ✅ **Size extraction** - Automatic size detection
+- ✅ **Clean project structure** - Removed unnecessary files
+- ✅ **Unified entry point** - Single main.py file
+- ✅ **Production ready** - Railway deployment support
 
-Приложение автоматически перезапускается при критических ошибках:
+### Previous Versions
+- v0.9.x - Development and testing
+- v0.8.x - Core functionality
+- v0.7.x - Initial Telegram integration
 
-- **Порог ошибок**: Настраивается через `MAX_ERRORS_BEFORE_REDEPLOY`
-- **Коды ошибок**: 403, 404, 429, 500, 502, 503
-- **Триггер**: Автоматически при достижении порога
+## 📞 Support
 
-## 🐛 Устранение неполадок
+- **Issues**: [GitHub Issues](https://github.com/yourusername/KufarSearcher/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/yourusername/KufarSearcher/discussions)
+- **Documentation**: This README and inline code comments
 
-### Проблемы с базой данных
-1. Проверьте `DATABASE_URL` в Railway
-2. Убедитесь, что PostgreSQL сервис запущен
-3. Запустите `python3 test_railway_postgres.py`
+---
 
-### Бот не работает
-1. Проверьте `TELEGRAM_BOT_TOKEN`
-2. Убедитесь, что у бота есть права
-3. Проверьте логи Railway
+**Built with ❤️ for the Kufar.by community**
 
-### Логи не записываются
-1. Проверьте переменные окружения Railway
-2. Убедитесь, что таблицы созданы
-3. Проверьте логи запуска приложения
-
-### Проблемы с деплоем
-1. Убедитесь, что Railway CLI установлен
-2. Проверьте аутентификацию через `railway login`
-3. Убедитесь в правильности связывания проекта
-
-## 📝 Последние изменения
-
-- ✅ Исправлены ошибки SQL синтаксиса для PostgreSQL
-- ✅ Улучшена обработка ошибок и логирование
-- ✅ Оптимизировано для Railway
-- ✅ Исправлен Procfile и управление процессами
-- ✅ Улучшена инициализация базы данных
-- ✅ Добавлены инструменты тестирования
-
-## 🆘 Поддержка
-
-При возникновении проблем:
-
-1. Запустите `python3 test_railway_postgres.py` для диагностики
-2. Проверьте логи Railway через `railway logs`
-3. Убедитесь, что переменные окружения настроены правильно
-4. Протестируйте локально перед деплоем на Railway
-
-## 📄 Лицензия
-
-MIT License
+*Last updated: August 2025*

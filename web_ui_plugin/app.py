@@ -74,6 +74,16 @@ def format_price_with_size(item):
     else:
         return price_text
 
+def get_search_url_by_id(search_id):
+    """Get search URL by search ID for clickable tags"""
+    try:
+        if search_id:
+            search = db.get_search_query(search_id)
+            return search.get('url', '#') if search else '#'
+        return '#'
+    except:
+        return '#'
+
 def create_app():
     """Create Flask application"""
     app = Flask(__name__, 
@@ -85,7 +95,8 @@ def create_app():
     # Add custom template functions
     app.jinja_env.globals.update(
         extract_size_from_item_data=extract_size_from_item_data,
-        format_price_with_size=format_price_with_size
+        format_price_with_size=format_price_with_size,
+        get_search_url_by_id=get_search_url_by_id
     )
     
     # Dashboard route
@@ -391,10 +402,51 @@ def create_app():
     def api_stats():
         """Get current statistics"""
         try:
+            # Get basic stats
+            db_stats = db.get_items_stats()
+            searcher_status = searcher.get_searcher_status()
+            
+            # Calculate uptime
+            try:
+                import metrics_storage
+                total_api_requests = metrics_storage.metrics_storage.get_total_api_requests()
+                app_start_time = metrics_storage.metrics_storage.get_app_start_time()
+                total_items_found = metrics_storage.metrics_storage.get_total_items_found()
+                
+                if app_start_time:
+                    uptime = datetime.now() - app_start_time
+                    uptime_str = str(uptime).split('.')[0]  # Remove microseconds
+                else:
+                    uptime_str = "0:00:00"
+            except:
+                total_api_requests = 0
+                uptime_str = "0:00:00"
+                total_items_found = 0
+            
+            # Get last found item
+            last_item = db.get_last_found_item()
+            
             return jsonify({
-                'database': db.get_items_stats(),
-                'searcher': searcher.get_searcher_status(),
-                'timestamp': datetime.now().isoformat()
+                'success': True,
+                'stats': {
+                    'total_api_requests': total_api_requests,
+                    'uptime': uptime_str,
+                    'total_items': db_stats.get('total_items', 0),
+                    'active_queries': db_stats.get('active_searches', 0),
+                    'last_found_item': last_item
+                }
+            })
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
+    @app.route('/api/recent-items')
+    def api_get_recent_items():
+        """Get recent items for partial updates"""
+        try:
+            recent_items = get_recent_items(24)
+            return jsonify({
+                'success': True,
+                'items': recent_items[:30]  # Limit to 30 items
             })
         except Exception as e:
             return jsonify({'error': str(e)}), 500

@@ -112,9 +112,9 @@
                                     <div class="item-date mb-2" style="font-size: 10px; color: #999;">
                                         {{ item.created_at.strftime('%Y-%m-%d %H:%M:%S') if item.created_at else 'N/A' }}
                                     </div>
-                                    <div class="mb-2">
-                                        <span class="badge bg-primary" style="font-size: 9px;">{{ item.search_name or 'Unknown Query' }}</span>
-                                    </div>
+                                                            <div class="mb-2">
+                            <a href="{{ get_search_url_by_id(item.search_id) }}" target="_blank" class="badge bg-primary text-decoration-none" style="font-size: 9px;">{{ item.search_name or 'Unknown Query' }}</a>
+                        </div>
                                     <a href="{{ item.url }}" target="_blank" class="btn btn-primary btn-sm w-100" style="font-size: 11px; padding: 4px 8px;">
                                         View
                                     </a>
@@ -141,13 +141,104 @@
 
 {% block scripts %}
 <script>
-// Auto-refresh dashboard every 10 seconds (full page reload)
+// Auto-refresh dashboard every 10 seconds (partial updates only)
 setInterval(function() {
     // Only refresh if user is not actively working (no form inputs focused)
     if (document.visibilityState === 'visible' && !document.querySelector('input:focus, textarea:focus, select:focus')) {
-        location.reload();
+        updateDashboardMetrics();
+        updateRecentItems();
     }
 }, 10000); // 10 seconds
+
+// Function to update dashboard metrics without page reload
+function updateDashboardMetrics() {
+    fetch('/api/stats')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update total items count
+                const totalItemsEl = document.querySelector('.stats-card.total-items .stats-number');
+                if (totalItemsEl) {
+                    totalItemsEl.textContent = data.stats.total_items || 0;
+                }
+                
+                // Update active queries count
+                const activeQueriesEl = document.querySelector('.stats-card.active-queries .stats-number');
+                if (activeQueriesEl) {
+                    activeQueriesEl.textContent = data.stats.active_queries || 0;
+                }
+                
+                // Update API requests count
+                const apiRequestsEl = document.querySelector('.stats-card.api-requests .stats-number');
+                if (apiRequestsEl) {
+                    apiRequestsEl.textContent = data.stats.total_api_requests || 0;
+                }
+                
+                // Update uptime
+                const uptimeEl = document.querySelector('.stats-card.api-requests .stats-sublabel:last-child');
+                if (uptimeEl && data.stats.uptime) {
+                    uptimeEl.textContent = `Uptime: ${data.stats.uptime}`;
+                }
+                
+                // Update last found item
+                if (data.stats.last_found_item) {
+                    const lastItemTitleEl = document.querySelector('.stats-card.last-item .stats-sublabel:first-of-type');
+                    const lastItemDateEl = document.querySelector('.stats-card.last-item .stats-sublabel:nth-of-type(2)');
+                    
+                    if (lastItemTitleEl) {
+                        lastItemTitleEl.textContent = data.stats.last_found_item.title || 'No items yet';
+                    }
+                    if (lastItemDateEl) {
+                        lastItemDateEl.textContent = data.stats.last_found_item.created_at || 'Never';
+                    }
+                }
+            }
+        })
+        .catch(error => console.log('Error updating metrics:', error));
+}
+
+// Function to update recent items without page reload
+function updateRecentItems() {
+    fetch('/api/recent-items')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.items) {
+                const recentItemsContainer = document.querySelector('.recent-items-container');
+                if (recentItemsContainer) {
+                    // Update only the items, not the entire container
+                    // This prevents page jumping
+                    updateRecentItemsContent(recentItemsContainer, data.items);
+                }
+            }
+        })
+        .catch(error => console.log('Error updating recent items:', error));
+}
+
+// Helper function to update recent items content
+function updateRecentItemsContent(container, items) {
+    // Update items without changing scroll position
+    const itemsGrid = container.querySelector('.row');
+    if (itemsGrid) {
+        // Store current scroll position
+        const scrollPos = window.scrollY;
+        
+        // Update items (simplified update to prevent jumping)
+        // For now, just update timestamps and counts without full re-render
+        const itemElements = itemsGrid.querySelectorAll('.item-card');
+        items.forEach((item, index) => {
+            if (itemElements[index]) {
+                // Update only essential info to prevent jumping
+                const dateEl = itemElements[index].querySelector('.item-date');
+                if (dateEl && item.created_at) {
+                    dateEl.innerHTML = `<i class="bi bi-clock me-1"></i>${item.created_at}`;
+                }
+            }
+        });
+        
+        // Restore scroll position
+        window.scrollTo(0, scrollPos);
+    }
+}
 
 // Keep the old API stats update for backward compatibility
 setInterval(function() {

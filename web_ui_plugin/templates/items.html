@@ -85,8 +85,10 @@
                     </p>
                     
                     <!-- Search Query Name -->
-                    <p class="text-primary mb-2" style="font-size: 13px; font-weight: 500;">
-                        {{ item.search_name or 'Unknown' }}
+                    <p class="mb-2">
+                        <a href="{{ get_search_url_by_id(item.search_id) }}" target="_blank" class="badge bg-primary text-decoration-none" style="font-size: 13px; font-weight: 500;">
+                            {{ item.search_name or 'Unknown' }}
+                        </a>
                     </p>
                     
                     <div class="mt-auto">
@@ -196,12 +198,36 @@
 
 {% block scripts %}
 <script>
-// Auto-refresh items page every 10 seconds (full page reload)
+// Auto-refresh items page every 10 seconds (partial updates only)
 setInterval(function() {
     // Only refresh if user is not actively working (no form inputs focused)
     if (document.visibilityState === 'visible' && !document.querySelector('input:focus, textarea:focus, select:focus')) {
-        location.reload();
+        updateItemsMetrics();
     }
 }, 10000); // 10 seconds
+
+// Function to update items metrics without page reload
+function updateItemsMetrics() {
+    fetch('/api/stats')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update total items count in pagination
+                const totalItemsEl = document.querySelector('.text-muted small');
+                if (totalItemsEl && data.stats.total_items) {
+                    const currentText = totalItemsEl.textContent;
+                    const newText = currentText.replace(/of \d+ items/, `of ${data.stats.total_items} items`);
+                    totalItemsEl.textContent = newText;
+                }
+                
+                // Update API requests count if displayed
+                const apiRequestsEl = document.querySelector('[data-stat="api-requests"]');
+                if (apiRequestsEl) {
+                    apiRequestsEl.textContent = data.stats.total_api_requests || 0;
+                }
+            }
+        })
+        .catch(error => console.log('Error updating items metrics:', error));
+}
 </script>
 {% endblock %}
