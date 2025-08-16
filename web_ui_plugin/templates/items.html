@@ -40,7 +40,7 @@
                             <div class="carousel-inner">
                                 {% for image in item.images[:3] %}
                                 <div class="carousel-item {{ 'active' if loop.first }}">
-                                    <div style="aspect-ratio: 3/4; overflow: hidden; position: relative; max-height: 200px;">
+                                    <div style="aspect-ratio: 4/5; overflow: hidden; position: relative;">
                                         <img src="{{ image }}" class="d-block w-100 h-100" alt="Item image" 
                                              style="object-fit: cover; object-position: center;">
                                     </div>
@@ -58,7 +58,7 @@
                         </div>
                     {% else %}
                         <div class="bg-light d-flex align-items-center justify-content-center" 
-                             style="aspect-ratio: 3/4; max-height: 200px;">
+                             style="aspect-ratio: 4/5;">
                             <i class="fas fa-image fa-3x text-muted"></i>
                         </div>
                     {% endif %}
