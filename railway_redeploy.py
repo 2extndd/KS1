@@ -9,7 +9,7 @@ import time
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 
-from db import db
+from db import get_db
 from configuration_values import (
     RAILWAY_TOKEN,
     RAILWAY_PROJECT_ID, 
@@ -87,7 +87,7 @@ class RailwayRedeployer:
     def _get_recent_critical_errors(self, hours: int = 1) -> List[Dict[str, Any]]:
         """Get recent critical errors from database"""
         try:
-            recent_errors = db.get_recent_errors(hours)
+            recent_errors = get_db().get_recent_errors(hours)
             
             # Filter for critical error codes
             critical_errors = [
@@ -187,19 +187,19 @@ class RailwayRedeployer:
     def _clear_error_tracking(self):
         """Clear error tracking after successful redeploy"""
         try:
-            with db.get_connection() as conn:
+            with get_db().get_connection() as conn:
                 cursor = conn.cursor()
                 
                 # Delete recent error tracking entries
-                if db.is_postgres:
+                if get_db().is_postgres:
                     # PostgreSQL syntax
-                    db.execute_query(cursor, """
+                    get_db().execute_query(cursor, """
                         DELETE FROM error_tracking 
                         WHERE created_at >= NOW() - INTERVAL '2 hours'
                     """, ())
                 else:
                     # SQLite syntax
-                    db.execute_query(cursor, """
+                    get_db().execute_query(cursor, """
                         DELETE FROM error_tracking 
                         WHERE created_at >= datetime('now', '-2 hours')
                     """, ())

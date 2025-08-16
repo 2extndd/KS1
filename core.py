@@ -12,7 +12,7 @@ from typing import List, Dict, Optional, Any
 from urllib.parse import urlparse, parse_qs
 
 from pyKufarVN import Kufar, KufarException, KufarAPIException
-from db import db
+from db import get_db
 from configuration_values import (
     get_max_items_per_search,
     ERROR_CODES_FOR_REDEPLOY,
@@ -44,7 +44,7 @@ class KufarSearcher:
                 self._change_proxy_if_needed()
             else:
                 logger.info("Kufar client initialized successfully")
-            db.add_log_entry('INFO', 'Kufar client initialized successfully', 'KufarSearcher')
+            get_db().add_log_entry('INFO', 'Kufar client initialized successfully', 'KufarSearcher')
                 
         except Exception as e:
             logger.error(f"Failed to initialize Kufar client: {e}")
@@ -66,7 +66,7 @@ class KufarSearcher:
     def search_all_queries(self) -> Dict[str, Any]:
         """Search all active queries and return results summary - простая логика"""
         logger.info("🔍 Запуск цикла сканирования")
-        db.add_log_entry('INFO', 'Запуск цикла сканирования', 'core', 'Проверка готовности фильтров к обновлению')
+        get_db().add_log_entry('INFO', 'Запуск цикла сканирования', 'core', 'Проверка готовности фильтров к обновлению')
         
         results = {
             'total_searches': 0,
@@ -84,17 +84,17 @@ class KufarSearcher:
             interval_seconds = get_search_interval()
             
             # Получаем ВСЕ активные поиски для анализа
-            all_searches = db.get_active_searches()
+            all_searches = get_db().get_active_searches()
             results['total_searches'] = len(all_searches)
             
             if not all_searches:
                 logger.info("❌ Нет активных поисков в системе")
-                db.add_log_entry('INFO', 'Нет активных поисков в системе', 'core', 'Система простаивает')
+                get_db().add_log_entry('INFO', 'Нет активных поисков в системе', 'core', 'Система простаивает')
                 return results
             
             # Простая логика: определяем какие поиски готовы для сканирования
             ready_searches = []
-            now = db.get_belarus_time()
+            now = get_db().get_belarus_time()
             
             logger.info(f"📋 Анализируем {len(all_searches)} активных поисков (интервал: {interval_seconds}с)")
             
@@ -142,17 +142,17 @@ class KufarSearcher:
             
             if not ready_searches:
                 logger.info(f"⏱️ Нет поисков готовых для сканирования (интервал: {interval_seconds}с)")
-                db.add_log_entry('INFO', f'Все поиски ожидают интервала ({interval_seconds}с)', 'core', 'Следующий цикл через минуту')
+                get_db().add_log_entry('INFO', f'Все поиски ожидают интервала ({interval_seconds}с)', 'core', 'Следующий цикл через минуту')
                 return results
             
             logger.info(f"🚀 Начинаем сканирование {len(ready_searches)} готовых поисков")
-            db.add_log_entry('INFO', f'Сканируем {len(ready_searches)} готовых поисков', 'core', f'Обрабатываем {len(ready_searches)} из {len(all_searches)} поисков')
+            get_db().add_log_entry('INFO', f'Сканируем {len(ready_searches)} готовых поисков', 'core', f'Обрабатываем {len(ready_searches)} из {len(all_searches)} поисков')
             
             # Обрабатываем каждый готовый поиск
             for search in ready_searches:
                 try:
                     logger.info(f"Processing search: {search['name']} (ID: {search['id']})")
-                    db.add_log_entry('INFO', f"[DEBUG] Processing search: {search['name']}", 'core', f"Starting search for query ID {search['id']}")
+                    get_db().add_log_entry('INFO', f"[DEBUG] Processing search: {search['name']}", 'core', f"Starting search for query ID {search['id']}")
                     
                     # Search for items
                     items = self.search_query(search)
@@ -169,13 +169,13 @@ class KufarSearcher:
                         # Log in VS5 style with detailed statistics
                         if new_count > 0:
                             logger.info(f"[SEARCH] '{search['name']}': {total_items} total, {new_count} new, {duplicate_count} duplicates")
-                            db.add_log_entry('INFO', 
+                            get_db().add_log_entry('INFO', 
                                            f"Search completed: {search['name']}", 
                                            'core', 
                                            f"Query ID {search['id']}: {total_items} total items, {new_count} new items, {duplicate_count} duplicates")
                         else:
                             logger.info(f"[SEARCH] '{search['name']}': {total_items} items found, all duplicates")
-                            db.add_log_entry('INFO', 
+                            get_db().add_log_entry('INFO', 
                                            f"Search completed (all duplicates): {search['name']}", 
                                            'core', 
                                            f"Query ID {search['id']}: {total_items} items found, but all were duplicates")
@@ -188,10 +188,10 @@ class KufarSearcher:
                                 logger.debug(f"Telegram notification sent for item {item['kufar_id']}")
                             except Exception as e:
                                 logger.error(f"Failed to send telegram notification: {e}")
-                                db.add_log_entry('ERROR', f"Failed to send telegram notification: {str(e)}", 'core', f"Notification error for item {item['kufar_id']}")
+                                get_db().add_log_entry('ERROR', f"Failed to send telegram notification: {str(e)}", 'core', f"Notification error for item {item['kufar_id']}")
                     else:
                         logger.info(f"[SEARCH] '{search['name']}': No items found")
-                        db.add_log_entry('INFO', 
+                        get_db().add_log_entry('INFO', 
                                        f"Search completed (empty): {search['name']}", 
                                        'core', 
                                        f"Query ID {search['id']}: No items found on Kufar")
@@ -199,7 +199,7 @@ class KufarSearcher:
                     results['successful_searches'] += 1
                     
                     # Обновляем время последнего сканирования
-                    db.update_search_scan_time(search['id'])
+                    get_db().update_search_scan_time(search['id'])
                     logger.info(f"Обновлено время сканирования для поиска '{search['name']}'")
                     
                     # Add delay between searches
@@ -216,7 +216,7 @@ class KufarSearcher:
                     
                     # Log error to database
                     if isinstance(e, KufarAPIException) and e.status_code:
-                        db.log_error(e.status_code, str(e), search['id'])
+                        get_db().log_error(e.status_code, str(e), search['id'])
                         
                         # Check if should trigger redeploy
                         if e.status_code in ERROR_CODES_FOR_REDEPLOY:
@@ -232,12 +232,12 @@ class KufarSearcher:
             logger.info(f"   • Новых объявлений: {results['new_items']}")
             
             if results['ready_for_scan'] > 0:
-                db.add_log_entry('INFO', 
+                get_db().add_log_entry('INFO', 
                                f"Цикл завершен: {results['successful_searches']}/{results['ready_for_scan']} успешных, {results['new_items']} новых", 
                                'core', 
                                f"Статистика: {results}")
             else:
-                db.add_log_entry('INFO', 
+                get_db().add_log_entry('INFO', 
                                f"Ожидание: {results['skipped_searches']} поисков ждут интервала ({interval_seconds}с)", 
                                'core', 
                                'Все поиски в режиме ожидания')
@@ -276,7 +276,7 @@ class KufarSearcher:
             except Exception as e:
                 logger.error(f"Failed to increment API counter: {e}")
                 # Log this as it affects metrics accuracy
-                db.add_log_entry('ERROR', f'Failed to increment API counter: {e}', 'core', 'Metrics tracking error')
+                get_db().add_log_entry('ERROR', f'Failed to increment API counter: {e}', 'core', 'Metrics tracking error')
             
             return items
             
@@ -290,7 +290,7 @@ class KufarSearcher:
                 logger.info(f"📊 API request #{total_requests} failed with error {e.status_code} for '{search['name']}'")
                 
                 # Log the failed API request
-                db.add_log_entry('ERROR', f'Kufar API error {e.status_code}: {e}', 'core', f'Failed API request for search ID {search["id"]}')
+                get_db().add_log_entry('ERROR', f'Kufar API error {e.status_code}: {e}', 'core', f'Failed API request for search ID {search["id"]}')
                 
                 # Also increment in shared_state for compatibility
                 try:
@@ -317,7 +317,7 @@ class KufarSearcher:
                 logger.info(f"📊 API request #{total_requests} failed with unexpected error for '{search['name']}'")
                 
                 # Log the unexpected error
-                db.add_log_entry('ERROR', f'Unexpected search error: {e}', 'core', f'Unexpected error for search ID {search["id"]}')
+                get_db().add_log_entry('ERROR', f'Unexpected search error: {e}', 'core', f'Unexpected error for search ID {search["id"]}')
                 
                 # Also increment in shared_state for compatibility
                 try:
@@ -355,7 +355,7 @@ class KufarSearcher:
                     'thread_id': search.get('telegram_thread_id')
                 }
                 
-                item_id = db.add_item(item_data, search['id'])
+                item_id = get_db().add_item(item_data, search['id'])
                 
                 if item_id:  # New item was added
                     new_items.append({

@@ -6,7 +6,7 @@ Script to check database contents on Railway
 import os
 import sys
 import logging
-from db import db
+from db import get_db
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -21,7 +21,7 @@ def check_database():
         
         # Check active searches
         print("\n📋 АКТИВНЫЕ ПОИСКИ:")
-        searches = db.get_active_searches()
+        searches = get_db().get_active_searches()
         print(f"Всего активных поисков: {len(searches)}")
         
         for i, search in enumerate(searches, 1):
@@ -34,13 +34,13 @@ def check_database():
         # Check items
         print(f"\n📦 ТОВАРЫ В БАЗЕ:")
         try:
-            items_stats = db.get_items_stats()
+            items_stats = get_db().get_items_stats()
             print(f"Всего товаров: {items_stats.get('total_items', 0)}")
             
             # Get recent items
-            with db.get_connection() as conn:
+            with get_db().get_connection() as conn:
                 cursor = conn.cursor()
-                db.execute_query(cursor, """
+                get_db().execute_query(cursor, """
                     SELECT title, price, location, created_at, search_name
                     FROM items 
                     ORDER BY created_at DESC 
@@ -60,10 +60,10 @@ def check_database():
             
         # Check configuration
         print(f"\n⚙️ КОНФИГУРАЦИЯ:")
-        telegram_token = db.get_setting('TELEGRAM_BOT_TOKEN')
-        telegram_chat = db.get_setting('TELEGRAM_CHAT_ID')
-        max_items = db.get_setting('MAX_ITEMS_PER_SEARCH', '50')
-        search_interval = db.get_setting('SEARCH_INTERVAL', '300')
+        telegram_token = get_db().get_setting('TELEGRAM_BOT_TOKEN')
+        telegram_chat = get_db().get_setting('TELEGRAM_CHAT_ID')
+        max_items = get_db().get_setting('MAX_ITEMS_PER_SEARCH', '50')
+        search_interval = get_db().get_setting('SEARCH_INTERVAL', '300')
         
         print(f"Telegram Token: {'Настроен' if telegram_token else 'НЕ НАСТРОЕН'}")
         print(f"Telegram Chat ID: {'Настроен' if telegram_chat else 'НЕ НАСТРОЕН'}")
@@ -73,9 +73,9 @@ def check_database():
         # Check logs
         print(f"\n📝 ПОСЛЕДНИЕ ЛОГИ:")
         try:
-            with db.get_connection() as conn:
+            with get_db().get_connection() as conn:
                 cursor = conn.cursor()
-                db.execute_query(cursor, """
+                get_db().execute_query(cursor, """
                     SELECT timestamp, level, source, message
                     FROM log_entries 
                     ORDER BY timestamp DESC 

@@ -17,7 +17,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from db import db
+from db import get_db
 from core import searcher
 from simple_telegram_worker import send_notifications
 from railway_redeploy import redeployer
@@ -94,7 +94,7 @@ def create_app():
         """Main dashboard"""
         try:
             # Get statistics
-            db_stats = db.get_items_stats()
+            db_stats = get_db().get_items_stats()
             
             from datetime import datetime
             import datetime as dt
@@ -123,7 +123,7 @@ def create_app():
             uptime_str = str(dt.timedelta(seconds=int(uptime_seconds)))
             
             # Get last found item
-            last_item = db.get_last_found_item()
+            last_item = get_db().get_last_found_item()
             
             searcher_status = {
                 'total_api_requests': total_api_requests,
@@ -136,7 +136,7 @@ def create_app():
             recent_items = get_recent_items(24)
             
             # Get active searches
-            active_searches = db.get_active_searches()
+            active_searches = get_db().get_active_searches()
             
             return render_template('dashboard.html',
                                  db_stats=db_stats,
@@ -157,7 +157,7 @@ def create_app():
         """Items listing page"""
         try:
             page = int(request.args.get('page', 1))
-            per_page = int(request.args.get('per_page', 20))
+            per_page = int(request.args.get('per_page', 30))
             search_filter = request.args.get('search', '')
             
             items_data = get_items_paginated(page, per_page, search_filter)
@@ -175,7 +175,7 @@ def create_app():
     def searches():
         """Searches management page"""
         try:
-            searches = db.get_active_searches()
+            searches = get_db().get_active_searches()
             return render_template('searches.html', searches=searches)
         except Exception as e:
             flash(f'Error loading searches: {e}', 'error')
@@ -203,7 +203,7 @@ def create_app():
                     return render_template('add_search.html')
                 
                 # Add search
-                search_id = db.add_search(
+                search_id = get_db().add_search(
                     name=name,
                     url=url,
                     telegram_chat_id=telegram_chat_id,
@@ -231,13 +231,13 @@ def create_app():
                 'max_items_per_search': get_max_items_per_search(),
                 'search_interval': get_search_interval(),
                 'telegram_configured': bool(get_telegram_bot_token()),
-                'proxy_enabled': db.get_setting('PROXY_ENABLED', 'false').lower() == 'true',
+                'proxy_enabled': get_db().get_setting('PROXY_ENABLED', 'false').lower() == 'true',
                 'max_errors_before_redeploy': 5
             }
             
             # Get real status data
-            error_stats = db.get_error_statistics()
-            proxy_status = db.get_proxy_statistics()
+            error_stats = get_db().get_error_statistics()
+            proxy_status = get_db().get_proxy_statistics()
             railway_status = {
                 'status': 'active' if error_stats['total'] < 5 else 'warning',
                 'last_deploy': 'Never'
@@ -275,7 +275,7 @@ def create_app():
     def queries():
         """Queries page (like VS5)"""
         try:
-            queries = db.get_all_searches()  # Get all searches with stats
+            queries = get_db().get_all_searches()  # Get all searches with stats
             return render_template('queries.html', queries=queries)
         except Exception as e:
             flash(f'Error loading queries: {e}', 'error')
@@ -303,7 +303,7 @@ def create_app():
                 return jsonify({'error': f'Invalid URL: {url_info["error"]}'}), 400
             
             # Add search
-            search_id = db.add_search(
+            search_id = get_db().add_search(
                 name=name,
                 url=url,
                 telegram_chat_id=telegram_chat_id,
@@ -355,18 +355,18 @@ def create_app():
         """Run search manually"""
         try:
             print(f"🔍 Force Scan All triggered at {datetime.now()}")
-            db.add_log_entry('INFO', 'Force Scan All triggered manually', 'Web UI', 'User requested manual search')
+            get_db().add_log_entry('INFO', 'Force Scan All triggered manually', 'Web UI', 'User requested manual search')
             
             results = searcher.search_all_queries()
             
             print(f"🔍 Force Scan completed: {results}")
-            db.add_log_entry('INFO', f'Force Scan completed: {results}', 'Web UI', 'Manual search results')
+            get_db().add_log_entry('INFO', f'Force Scan completed: {results}', 'Web UI', 'Manual search results')
             
             return jsonify(results)
         except Exception as e:
             error_msg = f"Error in Force Scan: {e}"
             print(f"❌ {error_msg}")
-            db.add_log_entry('ERROR', error_msg, 'Web UI', 'Force scan error')
+            get_db().add_log_entry('ERROR', error_msg, 'Web UI', 'Force scan error')
             return jsonify({'error': str(e)}), 500
     
     @app.route('/api/notifications/send', methods=['POST'])
@@ -391,7 +391,7 @@ def create_app():
     def api_clear_items():
         """Clear all items"""
         try:
-            db.clear_all_items()
+            get_db().clear_all_items()
             return jsonify({'success': True, 'message': 'All items cleared successfully'})
             
         except Exception as e:
@@ -458,9 +458,9 @@ def create_app():
             
             # Save settings to database settings table
             for key, value in settings_to_save.items():
-                db.set_setting(key, value)
+                get_db().set_setting(key, value)
             
-            db.add_log_entry('INFO', f'Configuration updated: {len(settings_to_save)} settings changed', 'WebUI', 'Configuration save operation')
+            get_db().add_log_entry('INFO', f'Configuration updated: {len(settings_to_save)} settings changed', 'WebUI', 'Configuration save operation')
             
             return jsonify({'success': True, 'message': 'Configuration saved successfully'})
             
@@ -498,7 +498,7 @@ def create_app():
             results = search_core.search_all_queries()
             
             logger.info(f"Force scan completed: {results}")
-            db.add_log_entry('INFO', 'Force Scan All initiated via WebUI', 'WebUI', f'Manual scan triggered - found {results.get("new_items", 0)} new items')
+            get_db().add_log_entry('INFO', 'Force Scan All initiated via WebUI', 'WebUI', f'Manual scan triggered - found {results.get("new_items", 0)} new items')
             
             return jsonify({
                 'success': True, 
@@ -510,7 +510,7 @@ def create_app():
             logger.error(f"Error in force scan: {e}")
             import traceback
             traceback.print_exc()
-            db.add_log_entry('ERROR', f'Force Scan All failed: {str(e)}', 'WebUI', 'Manual scan error')
+            get_db().add_log_entry('ERROR', f'Force Scan All failed: {str(e)}', 'WebUI', 'Manual scan error')
             return jsonify({
                 'success': False,
                 'error': str(e)
@@ -522,7 +522,7 @@ def create_app():
         try:
             level = request.args.get('level')
             limit = int(request.args.get('limit', 100))
-            logs = db.get_logs(limit=limit, level=level)
+            logs = get_db().get_logs(limit=limit, level=level)
             return jsonify({'success': True, 'logs': logs})
         except Exception as e:
             return jsonify({'error': str(e)}), 500
@@ -531,8 +531,8 @@ def create_app():
     def api_clear_logs():
         """Clear all logs"""
         try:
-            db.clear_logs()
-            db.add_log_entry('INFO', 'System logs cleared by user', 'WebUI')
+            get_db().clear_logs()
+            get_db().add_log_entry('INFO', 'System logs cleared by user', 'WebUI')
             return jsonify({'success': True, 'message': 'Logs cleared successfully'})
         except Exception as e:
             return jsonify({'error': str(e)}), 500
@@ -557,9 +557,9 @@ def create_app():
                 'is_active': True
             }
             
-            search_id = db.add_search(**search_data)
+            search_id = get_db().add_search(**search_data)
             if search_id:
-                db.add_log_entry('INFO', f'New query added: {search_data["name"] or search_data["url"]}', 'WebUI')
+                get_db().add_log_entry('INFO', f'New query added: {search_data["name"] or search_data["url"]}', 'WebUI')
                 return jsonify({'success': True, 'id': search_id})
             else:
                 return jsonify({'error': 'Failed to add query'}), 500
@@ -571,7 +571,7 @@ def create_app():
     def api_get_query(query_id):
         """Get single query"""
         try:
-            query = db.get_search_query(query_id)
+            query = get_db().get_search_query(query_id)
             if query:
                 return jsonify({'success': True, 'query': query})
             else:
@@ -593,9 +593,9 @@ def create_app():
             if 'thread_id' in data:
                 update_data['telegram_thread_id'] = data['thread_id']
             
-            success = db.update_search_query(query_id, **update_data)
+            success = get_db().update_search_query(query_id, **update_data)
             if success:
-                db.add_log_entry('INFO', f'Query updated: ID {query_id}', 'WebUI')
+                get_db().add_log_entry('INFO', f'Query updated: ID {query_id}', 'WebUI')
                 return jsonify({'success': True})
             else:
                 return jsonify({'error': 'Failed to update query'}), 500
@@ -607,9 +607,9 @@ def create_app():
     def api_delete_query(query_id):
         """Delete query"""
         try:
-            success = db.delete_search_query(query_id)
+            success = get_db().delete_search_query(query_id)
             if success:
-                db.add_log_entry('INFO', f'Query deleted: ID {query_id}', 'WebUI')
+                get_db().add_log_entry('INFO', f'Query deleted: ID {query_id}', 'WebUI')
                 return jsonify({'success': True})
             else:
                 return jsonify({'error': 'Failed to delete query'}), 500
@@ -623,9 +623,9 @@ def create_app():
             data = request.get_json()
             thread_id = data.get('thread_id', '')
             
-            success = db.update_search_query(query_id, telegram_thread_id=thread_id)
+            success = get_db().update_search_query(query_id, telegram_thread_id=thread_id)
             if success:
-                db.add_log_entry('INFO', f'Query thread ID updated: ID {query_id}, Thread: {thread_id}', 'WebUI')
+                get_db().add_log_entry('INFO', f'Query thread ID updated: ID {query_id}, Thread: {thread_id}', 'WebUI')
                 return jsonify({'success': True})
             else:
                 return jsonify({'error': 'Failed to update thread ID'}), 500
@@ -636,9 +636,9 @@ def create_app():
     def api_delete_all_queries():
         """Delete all queries"""
         try:
-            success = db.delete_all_search_queries()
+            success = get_db().delete_all_search_queries()
             if success:
-                db.add_log_entry('WARNING', 'All queries deleted by user', 'WebUI')
+                get_db().add_log_entry('WARNING', 'All queries deleted by user', 'WebUI')
                 return jsonify({'success': True})
             else:
                 return jsonify({'error': 'Failed to delete all queries'}), 500
@@ -650,7 +650,7 @@ def create_app():
         """Get Railway system status"""
         try:
             # Get real error statistics from database
-            error_stats = db.get_error_statistics()
+            error_stats = get_db().get_error_statistics()
             
             return jsonify({
                 'success': True,
@@ -676,7 +676,7 @@ def create_app():
         """Get Proxy system status"""
         try:
             # Get real proxy statistics
-            proxy_stats = db.get_proxy_statistics()
+            proxy_stats = get_db().get_proxy_statistics()
             
             return jsonify({
                 'success': True,
@@ -725,10 +725,10 @@ def create_app():
             uptime_str = str(dt.timedelta(seconds=int(uptime_seconds)))
             
             # Get last found item
-            last_item = db.get_last_found_item()
+            last_item = get_db().get_last_found_item()
             
             # Get items count
-            db_stats = db.get_items_stats()
+            db_stats = get_db().get_items_stats()
             
             return jsonify({
                 'success': True,
@@ -767,7 +767,7 @@ def create_app():
         try:
             page = int(request.args.get('page', 1))
             search_filter = request.args.get('search', '')
-            per_page = 20
+            per_page = 30
             
             # Получаем пагинированные объявления
             result = get_items_paginated(page=page, per_page=per_page, search_filter=search_filter)
@@ -827,12 +827,12 @@ def create_app():
 def get_recent_items(hours: int = 24):
     """Get recent items from database"""
     try:
-        with db.get_connection() as conn:
+        with get_db().get_connection() as conn:
             cursor = conn.cursor()
             
-            if db.is_postgres:
+            if get_db().is_postgres:
                 # PostgreSQL syntax
-                db.execute_query(cursor, """
+                get_db().execute_query(cursor, """
                     SELECT i.*, s.name as search_name, s.url as search_url
                     FROM items i
                     LEFT JOIN searches s ON i.search_id = s.id
@@ -841,7 +841,7 @@ def get_recent_items(hours: int = 24):
                 """, (f"{hours} hours",))
             else:
                 # SQLite syntax
-                db.execute_query(cursor, """
+                get_db().execute_query(cursor, """
                     SELECT i.*, s.name as search_name, s.url as search_url
                     FROM items i
                     LEFT JOIN searches s ON i.search_id = s.id
@@ -883,7 +883,7 @@ def get_items_paginated(page: int = 1, per_page: int = 20, search_filter: str = 
             where_clause = "WHERE i.title ILIKE %s OR s.name ILIKE %s"
             params = [f'%{search_filter}%', f'%{search_filter}%']
         
-        with db.get_connection() as conn:
+        with get_db().get_connection() as conn:
             cursor = conn.cursor()
             
             # Get total count
@@ -892,7 +892,7 @@ def get_items_paginated(page: int = 1, per_page: int = 20, search_filter: str = 
                 LEFT JOIN searches s ON i.search_id = s.id
                 {where_clause}
             """
-            db.execute_query(cursor, count_query, params)
+            get_db().execute_query(cursor, count_query, params)
             total = cursor.fetchone()[0]
             
             # Get items
@@ -904,7 +904,7 @@ def get_items_paginated(page: int = 1, per_page: int = 20, search_filter: str = 
                 ORDER BY i.created_at DESC
                 LIMIT %s OFFSET %s
             """
-            db.execute_query(cursor, items_query, params + [per_page, offset])
+            get_db().execute_query(cursor, items_query, params + [per_page, offset])
             
             columns = [desc[0] for desc in cursor.description]
             items = [dict(zip(columns, row)) for row in cursor.fetchall()]
@@ -948,12 +948,12 @@ def get_logs_paginated(page: int = 1, per_page: int = 50, level_filter: str = ''
             where_clause = "WHERE level = %s"
             params = [level_filter]
         
-        with db.get_connection() as conn:
+        with get_db().get_connection() as conn:
             cursor = conn.cursor()
             
             # Get total count
             count_query = f"SELECT COUNT(*) FROM logs {where_clause}"
-            db.execute_query(cursor, count_query, params)
+            get_db().execute_query(cursor, count_query, params)
             total = cursor.fetchone()[0]
             
             # Get logs
@@ -962,7 +962,7 @@ def get_logs_paginated(page: int = 1, per_page: int = 50, level_filter: str = ''
                 ORDER BY timestamp DESC
                 LIMIT %s OFFSET %s
             """
-            db.execute_query(cursor, logs_query, params + [per_page, offset])
+            get_db().execute_query(cursor, logs_query, params + [per_page, offset])
             
             columns = [desc[0] for desc in cursor.description]
             logs = [dict(zip(columns, row)) for row in cursor.fetchall()]

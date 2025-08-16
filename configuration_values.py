@@ -15,7 +15,25 @@ KF_SEARCH_ENDPOINT = "/listings"
 KF_AD_ENDPOINT = "/item"
 
 # Database Configuration
-DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///kufar_searcher.db')
+# На Railway используется PostgreSQL, локально - SQLite
+if os.getenv('RAILWAY_ENVIRONMENT'):
+    # На Railway ждем PostgreSQL URL из переменной окружения
+    DATABASE_URL = os.getenv('DATABASE_URL')
+    if not DATABASE_URL:
+        # Если нет DATABASE_URL, пытаемся собрать из отдельных переменных Railway
+        db_host = os.getenv('PGHOST') or os.getenv('DATABASE_HOST')
+        db_port = os.getenv('PGPORT') or os.getenv('DATABASE_PORT', '5432')
+        db_name = os.getenv('PGDATABASE') or os.getenv('DATABASE_NAME')
+        db_user = os.getenv('PGUSER') or os.getenv('DATABASE_USER')
+        db_password = os.getenv('PGPASSWORD') or os.getenv('DATABASE_PASSWORD')
+        
+        if all([db_host, db_name, db_user, db_password]):
+            DATABASE_URL = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+        else:
+            raise ValueError("DATABASE_URL not found for Railway deployment. Please add PostgreSQL service to your Railway project.")
+else:
+    # Локальная разработка - используем SQLite
+    DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///kufar_searcher.db')
 
 # Telegram Configuration
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
@@ -39,8 +57,8 @@ ERROR_CODES_FOR_REDEPLOY = [403, 404, 429, 500, 502, 503]
 def get_search_interval():
     """Get search interval from database or environment"""
     try:
-        from db import db
-        value = db.get_setting('SEARCH_INTERVAL')
+        from db import get_db
+        value = get_db().get_setting('SEARCH_INTERVAL')
         return int(value) if value else int(os.getenv('SEARCH_INTERVAL', '300'))
     except:
         return int(os.getenv('SEARCH_INTERVAL', '300'))
@@ -48,8 +66,8 @@ def get_search_interval():
 def get_max_items_per_search():
     """Get max items per search from database or environment"""
     try:
-        from db import db
-        value = db.get_setting('MAX_ITEMS_PER_SEARCH')
+        from db import get_db
+        value = get_db().get_setting('MAX_ITEMS_PER_SEARCH')
         return int(value) if value else int(os.getenv('MAX_ITEMS_PER_SEARCH', '50'))
     except:
         return int(os.getenv('MAX_ITEMS_PER_SEARCH', '50'))
@@ -57,8 +75,8 @@ def get_max_items_per_search():
 def get_telegram_bot_token():
     """Get telegram bot token from database or environment"""
     try:
-        from db import db
-        value = db.get_setting('TELEGRAM_BOT_TOKEN')
+        from db import get_db
+        value = get_db().get_setting('TELEGRAM_BOT_TOKEN')
         return value if value else os.getenv('TELEGRAM_BOT_TOKEN')
     except:
         return os.getenv('TELEGRAM_BOT_TOKEN')
@@ -66,8 +84,8 @@ def get_telegram_bot_token():
 def get_telegram_chat_id():
     """Get telegram chat id from database or environment"""
     try:
-        from db import db
-        value = db.get_setting('TELEGRAM_CHAT_ID')
+        from db import get_db
+        value = get_db().get_setting('TELEGRAM_CHAT_ID')
         return value if value else os.getenv('TELEGRAM_CHAT_ID')
     except:
         return os.getenv('TELEGRAM_CHAT_ID')

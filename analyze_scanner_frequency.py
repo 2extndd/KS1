@@ -11,7 +11,7 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from configuration_values import get_search_interval
-from db import db
+from db import get_db
 
 def analyze_scanner_frequency():
     """Анализируем фактическую частоту сканирования"""
@@ -33,8 +33,8 @@ def analyze_scanner_frequency():
     
     # Получаем количество активных фильтров
     try:
-        db.init_database()
-        active_searches = db.get_active_searches()
+        get_db().init_database()
+        active_searches = get_db().get_active_searches()
         num_filters = len(active_searches)
         print(f"🎯 Количество активных фильтров: {num_filters}")
         

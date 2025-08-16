@@ -37,62 +37,24 @@ class DatabaseManager:
             self.database_url = self.database_url.replace('postgres://', 'postgresql://', 1)
             logger.info("Fixed PostgreSQL URL format")
         
-        # Force PostgreSQL mode for Railway
+        # Проверяем DATABASE_URL на Railway
         if os.getenv('RAILWAY_ENVIRONMENT'):
             self.is_postgres = True
-            logger.info("🚀 Railway environment detected - forcing PostgreSQL mode")
+            logger.info("🚀 Railway environment detected - using PostgreSQL")
             
-            # Try multiple ways to get DATABASE_URL
+            # Валидация PostgreSQL URL
             if not self.database_url:
-                # Method 1: Try direct environment variable
-                self.database_url = os.getenv('DATABASE_URL')
-                logger.info(f"Method 1 - DATABASE_URL from env: {'Set' if self.database_url else 'Not set'}")
-                
-                # Method 2: Try Railway-specific variables
-                if not self.database_url:
-                    self.database_url = os.getenv('RAILWAY_DATABASE_URL')
-                    logger.info(f"Method 2 - RAILWAY_DATABASE_URL: {'Set' if self.database_url else 'Not set'}")
-                
-                # Method 3: Try to construct from other Railway variables
-                if not self.database_url:
-                    db_host = os.getenv('RAILWAY_DATABASE_HOST')
-                    db_port = os.getenv('RAILWAY_DATABASE_PORT')
-                    db_name = os.getenv('RAILWAY_DATABASE_NAME')
-                    db_user = os.getenv('RAILWAY_DATABASE_USER')
-                    db_password = os.getenv('RAILWAY_DATABASE_PASSWORD')
-                    
-                    if all([db_host, db_port, db_name, db_user, db_password]):
-                        self.database_url = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
-                        logger.info("Method 3 - Constructed DATABASE_URL from individual variables")
-                    else:
-                        logger.info(f"Method 3 - Individual DB vars: host={bool(db_host)}, port={bool(db_port)}, name={bool(db_name)}, user={bool(db_user)}, pass={bool(db_password)}")
+                logger.error("🚨 DATABASE_URL not provided for Railway!")
+                logger.error("Please add PostgreSQL service to your Railway project.")
+                raise ValueError("DATABASE_URL not found for Railway. Please add PostgreSQL service.")
             
-            # Final check
-            if not self.database_url:
-                logger.error("🚨 CRITICAL ERROR: DATABASE_URL not found on Railway!")
-                logger.error("📋 Available environment variables:")
-                for key, value in os.environ.items():
-                    if 'DATABASE' in key.upper() or 'POSTGRES' in key.upper() or 'RAILWAY' in key.upper():
-                        logger.error(f"  {key}: {value[:50]}{'...' if len(value) > 50 else ''}")
-                
-                logger.error("📋 To fix this:")
-                logger.error("   1. Go to Railway Dashboard")
-                logger.error("   2. Add PostgreSQL service to your project")
-                logger.error("   3. Railway will automatically create DATABASE_URL")
-                logger.error("   4. Or manually set DATABASE_URL in Variables")
-                logger.error("   5. Redeploy your application")
-                logger.error("   6. Check that PostgreSQL service is running")
-                
-                raise ValueError("DATABASE_URL not found on Railway. Please add PostgreSQL service or set DATABASE_URL manually.")
-            
-            # Validate PostgreSQL URL format
             if not (self.database_url.startswith('postgresql://') or self.database_url.startswith('postgres://')):
                 logger.error(f"🚨 Invalid DATABASE_URL format: {self.database_url[:50]}...")
                 logger.error("Expected format: postgresql://user:password@host:port/database")
                 raise ValueError("Invalid DATABASE_URL format. Expected postgresql:// or postgres://")
             
-            logger.info("✅ DATABASE_URL found and validated for Railway")
-            logger.info(f"Using database: {self.database_url[:50]}..." if self.database_url else "No database URL")
+            logger.info("✅ PostgreSQL DATABASE_URL validated for Railway")
+            logger.info(f"Database: {self.database_url[:50]}...")
         
         # Don't initialize database immediately - let it be called explicitly
         # self.init_database()
@@ -1072,5 +1034,16 @@ class DatabaseManager:
             logger.error(f"Error getting recent logs: {e}")
             return []
 
-# Global database instance
-db = DatabaseManager()
+# Global database instance - создается при первом обращении
+db = None
+
+def get_db():
+    """Получить глобальный экземпляр базы данных"""
+    global db
+    if db is None:
+        db = DatabaseManager()
+    return db
+
+# Для обратной совместимости - создаем db при импорте только если не на Railway
+if not os.getenv('RAILWAY_ENVIRONMENT'):
+    db = DatabaseManager()

@@ -25,7 +25,7 @@ from configuration_values import (
 from core import searcher
 from simple_telegram_worker import send_notifications
 from railway_redeploy import redeployer
-from db import db
+from db import get_db
 
 # Create logger first
 logger = logging.getLogger(__name__)
@@ -59,19 +59,23 @@ if os.getenv('RAILWAY_ENVIRONMENT'):
     
     # Force database logging on Railway
     try:
-        # Force PostgreSQL mode on Railway
-        db.force_postgres_mode()
-        logger.info(f"Database info: {db.get_database_info()}")
+        # Инициализируем базу данных на Railway
+        db = get_db()
+        logger.info(f"Database info: {get_db().get_database_info()}")
         
         # Try to add log entry, but don't fail if database not ready
         try:
-            db.add_log_entry('INFO', 'Application started in Railway environment', 'System', 'Railway deployment successful')
+            get_db().add_log_entry('INFO', 'Application started in Railway environment', 'System', 'Railway deployment successful')
             logger.info("Railway environment detected - database logging enabled")
         except Exception as log_error:
             logger.warning(f"Database not ready for logging: {log_error}")
     except Exception as e:
         logger.error(f"Failed to setup Railway database: {e}")
-        logger.error(f"Database info: {db.get_database_info()}")
+        try:
+            db = get_db()
+            logger.error(f"Database info: {get_db().get_database_info()}")
+        except:
+            logger.error("Could not get database info")
 else:
     # Local environment - log to file and stdout
     formatter = BelarusFormatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -176,7 +180,7 @@ def get_system_metrics():
             uptime_minutes = 0
         
         # Get database stats
-        db_stats = db.get_items_stats()
+        db_stats = get_db().get_items_stats()
         
         # Get proxy status
         proxy_status = get_proxy_status()
@@ -290,7 +294,7 @@ def search_and_notify():
         
         # Log to database
         try:
-            db.add_log_entry('INFO', f"Search cycle completed: {search_results.get('new_items', 0)} new items found", 'Searcher', str(search_results))
+            get_db().add_log_entry('INFO', f"Search cycle completed: {search_results.get('new_items', 0)} new items found", 'Searcher', str(search_results))
         except Exception as log_error:
             logger.error(f"Failed to log search results to database: {log_error}")
         
@@ -319,7 +323,7 @@ def search_and_notify():
         
         # Log the error to database for redeploy tracking
         try:
-            db.log_error(500, f"Search cycle error: {e}")
+            get_db().log_error(500, f"Search cycle error: {e}")
         except Exception as log_error:
             logger.error(f"Failed to log error to database: {log_error}")
 
@@ -350,7 +354,7 @@ def setup_scheduler():
             
             # Примерный расчет нагрузки
             try:
-                searches = db.get_active_searches()
+                searches = get_db().get_active_searches()
                 if searches:
                     estimated_requests_per_hour = len(searches) * (3600 / interval_seconds)
                     logger.warning(f"⚠️  Примерная нагрузка: {estimated_requests_per_hour:.0f} запросов/час к Kufar.by")
@@ -387,7 +391,7 @@ def refresh_proxies():
         logger.error(f"Error refreshing proxies: {e}")
         # Log to database if possible
         try:
-            db.add_log_entry('ERROR', f'Proxy refresh error: {e}', 'System')
+            get_db().add_log_entry('ERROR', f'Proxy refresh error: {e}', 'System')
         except:
             pass
 
@@ -396,23 +400,23 @@ def cleanup_old_data():
     try:
         logger.info("Starting database cleanup...")
         
-        with db.get_connection() as conn:
+        with get_db().get_connection() as conn:
             cursor = conn.cursor()
             
             # Clean up old logs (keep last 7 days)
-            db.execute_query(cursor, """
+            get_db().execute_query(cursor, """
                 DELETE FROM logs 
                 WHERE created_at < NOW() - INTERVAL %s
             """, ('7 days',))
             
             # Clean up old error tracking (keep last 3 days)
-            db.execute_query(cursor, """
+            get_db().execute_query(cursor, """
                 DELETE FROM error_tracking 
                 WHERE created_at < NOW() - INTERVAL %s
             """, ('3 days',))
             
             # Clean up old items (keep last 30 days)
-            db.execute_query(cursor, """
+            get_db().execute_query(cursor, """
                 DELETE FROM items 
                 WHERE created_at < NOW() - INTERVAL %s
                 AND is_sent = TRUE
@@ -457,32 +461,36 @@ def main():
         db_initialized = False
         
         try:
-            # Force PostgreSQL mode for Railway
-            if os.getenv('RAILWAY_ENVIRONMENT'):
-                db.force_postgres_mode()
-                logger.info("✅ PostgreSQL mode enabled for Railway")
-            
             # Initialize database
-            db.init_database()
+            db = get_db()
+            logger.info("✅ Database instance created")
+            
+            # Initialize database tables
+            get_db().init_database()
             logger.info("✅ Database initialized successfully")
             db_initialized = True
             
             # Add log entry to database
             try:
-                db.add_log_entry('INFO', 'Database initialized successfully', 'System', 'Database tables created')
+                get_db().add_log_entry('INFO', 'Database initialized successfully', 'System', 'Database tables created')
             except Exception as log_error:
                 logger.warning(f"⚠️  Could not add log entry: {log_error}")
                 
         except Exception as e:
             logger.error(f"❌ Database initialization failed: {e}")
-            logger.error(f"Database info: {db.get_database_info()}")
+            try:
+                db = get_db()
+                logger.error(f"Database info: {get_db().get_database_info()}")
+            except:
+                logger.error("Could not get database info")
             
             # Don't fail completely - try to start anyway for Railway
             if os.getenv('RAILWAY_ENVIRONMENT'):
                 logger.warning("⚠️  Starting without database - will retry later")
                 try:
                     # Try simplified connection test
-                    with db.get_connection() as conn:
+                    db = get_db()
+                    with get_db().get_connection() as conn:
                         cursor = conn.cursor()
                         cursor.execute("SELECT 1")
                         logger.info("✅ Database connection test successful")
@@ -506,12 +514,12 @@ def main():
             logger.warning("Telegram bot token not configured - notifications will not work")
             if db_initialized:
                 try:
-                    db.add_log_entry('WARNING', 'Telegram bot token not configured', 'System', 'Notifications will not work')
+                    get_db().add_log_entry('WARNING', 'Telegram bot token not configured', 'System', 'Notifications will not work')
                 except: pass
         else:
             if db_initialized:
                 try:
-                    db.add_log_entry('INFO', 'Telegram bot token configured', 'System', 'Notifications enabled')
+                    get_db().add_log_entry('INFO', 'Telegram bot token configured', 'System', 'Notifications enabled')
                 except: pass
         
         # Setup scheduler
@@ -525,7 +533,7 @@ def main():
             logger.info(f"Starting web server on {WEB_UI_HOST}:{WEB_UI_PORT}")
             if db_initialized:
                 try:
-                    db.add_log_entry('INFO', f'Starting web server on {WEB_UI_HOST}:{WEB_UI_PORT}', 'System', 'Web server mode')
+                    get_db().add_log_entry('INFO', f'Starting web server on {WEB_UI_HOST}:{WEB_UI_PORT}', 'System', 'Web server mode')
                 except: pass
             
             # Import and setup web UI

@@ -11,7 +11,7 @@ from telegram import Bot, InputMediaPhoto, InlineKeyboardButton, InlineKeyboardM
 from telegram.error import TelegramError, RetryAfter, TimedOut
 from telegram.constants import ParseMode
 
-from db import db
+from db import get_db
 from configuration_values import get_telegram_bot_token, get_telegram_chat_id
 
 logger = logging.getLogger(__name__)
@@ -101,7 +101,7 @@ class TelegramWorker:
             
             if success:
                 # Mark item as sent
-                db.mark_item_sent(item['id'])
+                get_db().mark_item_sent(item['id'])
                 logger.info(f"Sent notification for item {item['kufar_id']}")
             
             return success
@@ -373,7 +373,7 @@ class TelegramWorker:
         
         try:
             # Get unsent items
-            unsent_items = db.get_unsent_items()
+            unsent_items = get_db().get_unsent_items()
             results['total_items'] = len(unsent_items)
             
             if not unsent_items:
