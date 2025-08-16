@@ -197,3 +197,15 @@
     </div>
 {% endif %}
 {% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-refresh items page every 10 seconds (full page reload)
+setInterval(function() {
+    // Only refresh if user is not actively working (no form inputs focused)
+    if (document.visibilityState === 'visible' && !document.querySelector('input:focus, textarea:focus, select:focus')) {
+        location.reload();
+    }
+}, 10000); // 10 seconds
+</script>
+{% endblock %}

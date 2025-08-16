@@ -145,7 +145,15 @@
 
 {% block scripts %}
 <script>
-// Auto-refresh dashboard every 5 minutes (less aggressive)
+// Auto-refresh dashboard every 10 seconds (full page reload)
+setInterval(function() {
+    // Only refresh if user is not actively working (no form inputs focused)
+    if (document.visibilityState === 'visible' && !document.querySelector('input:focus, textarea:focus, select:focus')) {
+        location.reload();
+    }
+}, 10000); // 10 seconds
+
+// Keep the old API stats update for backward compatibility
 setInterval(function() {
     // Only refresh if user is not actively working
     if (document.visibilityState === 'visible' && !document.querySelector(':focus')) {

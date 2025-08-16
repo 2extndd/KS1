@@ -56,7 +56,7 @@ class TelegramWorker:
             
             if images:
                 # Send with images first, then text with button
-                success = await self._send_with_images(
+                await self._send_with_images(
                     chat_id=chat_id,
                     thread_id=thread_id,
                     message=message,
@@ -64,14 +64,16 @@ class TelegramWorker:
                     reply_markup=None  # No keyboard for media group
                 )
                 
-                # Then send the message with button
-                if success and keyboard:
-                    await self._send_text_message(
+                # Always send the button message (regardless of media success)
+                if keyboard:
+                    success = await self._send_text_message(
                         chat_id=chat_id,
                         thread_id=thread_id,
                         message=" ",  # Minimal text with button
                         reply_markup=keyboard
                     )
+                else:
+                    success = True  # Images sent successfully
             else:
                 # Send text only with button
                 success = await self._send_text_message(
