@@ -84,10 +84,21 @@
                         {% endif %}
                     </p>
                     
-                    <!-- Search Query Name -->
-                    <p class="text-primary mb-2" style="font-size: 13px; font-weight: 500;">
-                        {{ item.search_name or 'Unknown' }}
-                    </p>
+                    <!-- Search Query Name (Clickable Tag) -->
+                    <div class="mb-2">
+                        {% if item.search_url %}
+                            <a href="{{ item.search_url }}" target="_blank" 
+                               class="badge bg-primary text-decoration-none" 
+                               style="font-size: 11px; font-weight: 500;" 
+                               title="Открыть фильтр поиска на Kufar.by">
+                                {{ item.search_name or 'Unknown' }}
+                            </a>
+                        {% else %}
+                            <span class="badge bg-secondary" style="font-size: 11px; font-weight: 500;">
+                                {{ item.search_name or 'Unknown' }}
+                            </span>
+                        {% endif %}
+                    </div>
                     
                     <div class="mt-auto">
                         <!-- Date/Time -->
@@ -196,12 +207,98 @@
 
 {% block scripts %}
 <script>
-// Auto-refresh items page every 10 seconds (full page reload)
-setInterval(function() {
-    // Only refresh if user is not actively working (no form inputs focused)
-    if (document.visibilityState === 'visible' && !document.querySelector('input:focus, textarea:focus, select:focus')) {
-        location.reload();
+// AJAX автообновление страницы Items без перезагрузки
+let lastItemCount = 0;
+
+function updateItemsPage() {
+    // Проверяем, что пользователь не взаимодействует с формами
+    if (document.visibilityState !== 'visible' || document.querySelector('input:focus, textarea:focus, select:focus')) {
+        return;
     }
-}, 10000); // 10 seconds
+    
+    console.log('🔄 Проверка новых объявлений...');
+    
+    // Получаем текущие параметры страницы
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentPage = urlParams.get('page') || 1;
+    const searchFilter = urlParams.get('search') || '';
+    
+    // Запрашиваем обновленные данные
+    fetch(`/api/items?page=${currentPage}&search=${encodeURIComponent(searchFilter)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error('❌ Ошибка получения объявлений:', data.error);
+                return;
+            }
+            
+            // Проверяем, изменилось ли количество объявлений
+            if (data.items && data.items.length !== lastItemCount) {
+                console.log(`📦 Количество объявлений изменилось: ${lastItemCount} → ${data.items.length}`);
+                lastItemCount = data.items.length;
+                
+                // Обновляем счетчик в пагинации если он есть
+                updatePaginationInfo(data.pagination);
+                
+                // Если на первой странице и есть новые объявления - показываем уведомление
+                if (currentPage == 1 && data.new_items_available) {
+                    showNewItemsNotification();
+                }
+            }
+            
+            console.log('✅ Проверка объявлений завершена');
+        })
+        .catch(error => {
+            console.error('❌ Ошибка AJAX запроса:', error);
+        });
+}
+
+function updatePaginationInfo(pagination) {
+    if (pagination) {
+        // Обновляем информацию о пагинации если она есть
+        const paginationInfo = document.querySelector('.text-center.text-muted small');
+        if (paginationInfo && pagination.total) {
+            const start = ((pagination.page - 1) * pagination.per_page + 1);
+            const end = Math.min(pagination.page * pagination.per_page, pagination.total);
+            paginationInfo.innerHTML = `Showing ${start} - ${end} of ${pagination.total} items`;
+        }
+    }
+}
+
+function showNewItemsNotification() {
+    // Показываем ненавязчивое уведомление о новых объявлениях
+    const notification = document.createElement('div');
+    notification.className = 'alert alert-info alert-dismissible fade show position-fixed';
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 1050; max-width: 300px;';
+    notification.innerHTML = `
+        <i class="fas fa-info-circle me-2"></i>
+        Появились новые объявления!
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Автоматически убираем через 5 секунд
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 5000);
+}
+
+// Инициализируем счетчик объявлений
+document.addEventListener('DOMContentLoaded', function() {
+    const itemsGrid = document.querySelector('.row .col-lg-2');
+    if (itemsGrid) {
+        lastItemCount = document.querySelectorAll('.row .col-lg-2').length;
+        console.log(`📊 Начальное количество объявлений: ${lastItemCount}`);
+    }
+});
+
+// Запускаем автообновление каждые 15 секунд (чуть реже чем дашборд)
+setInterval(updateItemsPage, 15000);
+
+// Первое обновление через 3 секунды после загрузки страницы
+setTimeout(updateItemsPage, 3000);
 </script>
 {% endblock %}

@@ -765,6 +765,46 @@ def create_app():
             
         except Exception as e:
             return jsonify({'error': str(e)}), 500
+    
+    @app.route('/api/recent-items', methods=['GET'])
+    def api_get_recent_items():
+        """API endpoint for getting recent items"""
+        try:
+            items = get_recent_items(hours=24)
+            
+            return jsonify({
+                'success': True,
+                'items': items[:30],  # Ограничиваем до 30 последних
+                'count': len(items),
+                'timestamp': datetime.now().isoformat()
+            })
+            
+        except Exception as e:
+            logger.error(f"Error getting recent items: {e}")
+            return jsonify({'error': str(e)}), 500
+    
+    @app.route('/api/items', methods=['GET'])
+    def api_get_items():
+        """API endpoint for getting paginated items"""
+        try:
+            page = int(request.args.get('page', 1))
+            search_filter = request.args.get('search', '')
+            per_page = 20
+            
+            # Получаем пагинированные объявления
+            result = get_items_paginated(page=page, per_page=per_page, search_filter=search_filter)
+            
+            return jsonify({
+                'success': True,
+                'items': result['items'],
+                'pagination': result['pagination'],
+                'new_items_available': False,  # Можно добавить логику проверки новых объявлений
+                'timestamp': datetime.now().isoformat()
+            })
+            
+        except Exception as e:
+            logger.error(f"Error getting items: {e}")
+            return jsonify({'error': str(e)}), 500
 
     return app
 
@@ -777,7 +817,7 @@ def get_recent_items(hours: int = 24):
             if db.is_postgres:
                 # PostgreSQL syntax
                 db.execute_query(cursor, """
-                    SELECT i.*, s.name as search_name
+                    SELECT i.*, s.name as search_name, s.url as search_url
                     FROM items i
                     LEFT JOIN searches s ON i.search_id = s.id
                     WHERE i.created_at >= NOW() - INTERVAL %s
@@ -786,7 +826,7 @@ def get_recent_items(hours: int = 24):
             else:
                 # SQLite syntax
                 db.execute_query(cursor, """
-                    SELECT i.*, s.name as search_name
+                    SELECT i.*, s.name as search_name, s.url as search_url
                     FROM items i
                     LEFT JOIN searches s ON i.search_id = s.id
                     WHERE i.created_at >= datetime('now', '-' || %s || ' hours')
@@ -841,7 +881,7 @@ def get_items_paginated(page: int = 1, per_page: int = 20, search_filter: str = 
             
             # Get items
             items_query = f"""
-                SELECT i.*, s.name as search_name
+                SELECT i.*, s.name as search_name, s.url as search_url
                 FROM items i
                 LEFT JOIN searches s ON i.search_id = s.id
                 {where_clause}

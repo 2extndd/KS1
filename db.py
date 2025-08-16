@@ -14,7 +14,8 @@ import logging
 from configuration_values import DATABASE_URL
 
 # Часовой пояс Беларуси (UTC+3)
-BELARUS_TZ = timezone(timedelta(hours=3))
+import pytz
+BELARUS_TZ = pytz.timezone('Europe/Minsk')
 
 logger = logging.getLogger(__name__)
 
@@ -96,6 +97,10 @@ class DatabaseManager:
         # Don't initialize database immediately - let it be called explicitly
         # self.init_database()
     
+    def get_belarus_time(self):
+        """Получить текущее время в белорусском часовом поясе"""
+        return datetime.now(BELARUS_TZ)
+    
     def force_postgres_mode(self):
         """Force PostgreSQL mode (useful for Railway)"""
         self.is_postgres = True
@@ -156,10 +161,21 @@ class DatabaseManager:
                         telegram_chat_id VARCHAR(100),
                         telegram_thread_id VARCHAR(100),
                         is_active BOOLEAN DEFAULT TRUE,
+                        last_scan_time TIMESTAMP,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """, ())
+                
+                # Add last_scan_time column if it doesn't exist (migration)
+                try:
+                    self.execute_query(cursor, """
+                        ALTER TABLE searches ADD COLUMN last_scan_time TIMESTAMP
+                    """, ())
+                    logger.info("Добавлено поле last_scan_time в таблицу searches")
+                except Exception as e:
+                    # Column might already exist, ignore error
+                    pass
                 
                 # Create items table (found ads from Kufar)
                 self.execute_query(cursor, """
@@ -362,7 +378,7 @@ class DatabaseManager:
                 
                 for key, value in kwargs.items():
                     if key in ['name', 'url', 'region', 'category', 'min_price', 'max_price', 
-                              'keywords', 'telegram_chat_id', 'telegram_thread_id', 'is_active']:
+                              'keywords', 'telegram_chat_id', 'telegram_thread_id', 'is_active', 'last_scan_time']:
                         set_clauses.append(f"{key} = %s")
                         values.append(value)
                 
@@ -390,6 +406,81 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Error updating search query: {e}")
             return False
+    
+    def update_search_scan_time(self, search_id: int) -> bool:
+        """Обновить время последнего сканирования поиска (VS5-style)"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Используем белорусское время
+                belarus_time = self.get_belarus_time()
+                
+                if self.is_postgres:
+                    # PostgreSQL - используем параметр времени
+                    self.execute_query(cursor, """
+                        UPDATE searches 
+                        SET last_scan_time = %s, updated_at = %s
+                        WHERE id = %s
+                    """, (belarus_time, belarus_time, search_id))
+                else:
+                    # SQLite - используем CURRENT_TIMESTAMP
+                    self.execute_query(cursor, """
+                        UPDATE searches 
+                        SET last_scan_time = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = %s
+                    """, (search_id,))
+                
+                conn.commit()
+                
+                if cursor.rowcount > 0:
+                    logger.debug(f"✅ Обновлено время сканирования для поиска {search_id}: {belarus_time.strftime('%H:%M:%S')}")
+                    return True
+                else:
+                    logger.warning(f"⚠️ Поиск {search_id} не найден для обновления времени")
+                    return False
+                
+        except Exception as e:
+            logger.error(f"❌ Ошибка обновления времени сканирования для поиска {search_id}: {e}")
+            return False
+    
+    def get_searches_ready_for_scan(self, interval_seconds: int) -> List[Dict[str, Any]]:
+        """Получить поиски, готовые для сканирования"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                if self.is_postgres:
+                    # PostgreSQL синтаксис
+                    self.execute_query(cursor, """
+                        SELECT s.*, 
+                               EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - COALESCE(s.last_scan_time, s.created_at))) as seconds_since_scan
+                        FROM searches s
+                        WHERE s.is_active = TRUE 
+                        AND (s.last_scan_time IS NULL OR 
+                             CURRENT_TIMESTAMP - s.last_scan_time >= INTERVAL '%s seconds')
+                        ORDER BY COALESCE(s.last_scan_time, s.created_at) ASC
+                    """, (interval_seconds,))
+                else:
+                    # SQLite синтаксис
+                    self.execute_query(cursor, """
+                        SELECT s.*,
+                               (julianday('now') - julianday(COALESCE(s.last_scan_time, s.created_at))) * 86400 as seconds_since_scan
+                        FROM searches s
+                        WHERE s.is_active = 1
+                        AND (s.last_scan_time IS NULL OR 
+                             (julianday('now') - julianday(s.last_scan_time)) * 86400 >= ?)
+                        ORDER BY COALESCE(s.last_scan_time, s.created_at) ASC
+                    """, (interval_seconds,))
+                
+                columns = [desc[0] for desc in cursor.description]
+                searches = [dict(zip(columns, row)) for row in cursor.fetchall()]
+                
+                return searches
+                
+        except Exception as e:
+            logger.error(f"Ошибка получения поисков для сканирования: {e}")
+            return []
     
     def delete_all_search_queries(self) -> bool:
         """Delete all search queries"""

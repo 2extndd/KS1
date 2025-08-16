@@ -6,6 +6,8 @@ Based on VS5 core module, adapted for Kufar.by
 import logging
 import time
 import random
+import pytz
+from datetime import datetime
 from typing import List, Dict, Optional, Any
 from urllib.parse import urlparse, parse_qs
 
@@ -62,32 +64,90 @@ class KufarSearcher:
                 logger.error(f"Failed to change proxy: {e}")
     
     def search_all_queries(self) -> Dict[str, Any]:
-        """Search all active queries and return results summary"""
-        logger.info("Starting search for all active queries")
-        db.add_log_entry('INFO', 'Starting Force Scan All - searching all active queries', 'core', 'Automated search cycle initiated')
+        """Search all active queries and return results summary - простая логика"""
+        logger.info("🔍 Запуск цикла сканирования")
+        db.add_log_entry('INFO', 'Запуск цикла сканирования', 'core', 'Проверка готовности фильтров к обновлению')
         
         results = {
             'total_searches': 0,
+            'ready_for_scan': 0,
             'successful_searches': 0,
             'failed_searches': 0,
             'new_items': 0,
+            'skipped_searches': 0,
             'errors': []
         }
         
         try:
-            # Get all active searches from database
-            searches = db.get_active_searches()
-            results['total_searches'] = len(searches)
+            # Получаем настройку интервала сканирования
+            from configuration_values import get_search_interval
+            interval_seconds = get_search_interval()
             
-            if not searches:
-                logger.info("No active searches found")
-                db.add_log_entry('INFO', 'No active searches found', 'core', 'No queries configured for monitoring')
+            # Получаем ВСЕ активные поиски для анализа
+            all_searches = db.get_active_searches()
+            results['total_searches'] = len(all_searches)
+            
+            if not all_searches:
+                logger.info("❌ Нет активных поисков в системе")
+                db.add_log_entry('INFO', 'Нет активных поисков в системе', 'core', 'Система простаивает')
                 return results
             
-            db.add_log_entry('INFO', f'Found {len(searches)} active searches to process', 'core', f'Processing {len(searches)} search queries')
+            # Простая логика: определяем какие поиски готовы для сканирования
+            ready_searches = []
+            now = db.get_belarus_time()
             
-            # Process each search
-            for search in searches:
+            logger.info(f"📋 Анализируем {len(all_searches)} активных поисков (интервал: {interval_seconds}с)")
+            
+            for search in all_searches:
+                last_scan = search.get('last_scan_time')
+                if not last_scan:
+                    # Никогда не сканировался - готов к сканированию
+                    ready_searches.append(search)
+                    logger.info(f"✅ '{search['name']}': никогда не сканировался, добавляем в очередь")
+                else:
+                    # Преобразуем время в правильный формат если нужно
+                    if isinstance(last_scan, str):
+                        try:
+                            # Парсим строку времени
+                            last_scan = datetime.fromisoformat(last_scan.replace('Z', '+00:00'))
+                            # Конвертируем в белорусский часовой пояс
+                            if last_scan.tzinfo is None:
+                                last_scan = last_scan.replace(tzinfo=pytz.UTC)
+                            last_scan = last_scan.astimezone(db.BELARUS_TZ)
+                        except:
+                            logger.warning(f"Не удалось распарсить время для '{search['name']}', считаем готовым")
+                            ready_searches.append(search)
+                            continue
+                    elif hasattr(last_scan, 'tzinfo') and last_scan.tzinfo is None:
+                        # Добавляем часовой пояс если его нет
+                        last_scan = last_scan.replace(tzinfo=db.BELARUS_TZ)
+                    
+                    # Проверяем прошел ли интервал
+                    time_since_scan = (now - last_scan).total_seconds()
+                    if time_since_scan >= interval_seconds:
+                        ready_searches.append(search)
+                        minutes_ago = int(time_since_scan // 60)
+                        seconds_ago = int(time_since_scan % 60)
+                        logger.info(f"✅ '{search['name']}': последнее сканирование {minutes_ago}м {seconds_ago}с назад (интервал: {interval_seconds}с)")
+                    else:
+                        remaining = interval_seconds - time_since_scan
+                        remaining_minutes = int(remaining // 60)
+                        remaining_seconds = int(remaining % 60)
+                        logger.debug(f"⏱️ '{search['name']}': ожидание еще {remaining_minutes}м {remaining_seconds}с")
+                        results['skipped_searches'] += 1
+            
+            results['ready_for_scan'] = len(ready_searches)
+            
+            if not ready_searches:
+                logger.info(f"⏱️ Нет поисков готовых для сканирования (интервал: {interval_seconds}с)")
+                db.add_log_entry('INFO', f'Все поиски ожидают интервала ({interval_seconds}с)', 'core', 'Следующий цикл через минуту')
+                return results
+            
+            logger.info(f"🚀 Начинаем сканирование {len(ready_searches)} готовых поисков")
+            db.add_log_entry('INFO', f'Сканируем {len(ready_searches)} готовых поисков', 'core', f'Обрабатываем {len(ready_searches)} из {len(all_searches)} поисков')
+            
+            # Обрабатываем каждый готовый поиск
+            for search in ready_searches:
                 try:
                     logger.info(f"Processing search: {search['name']} (ID: {search['id']})")
                     db.add_log_entry('INFO', f"[DEBUG] Processing search: {search['name']}", 'core', f"Starting search for query ID {search['id']}")
@@ -136,6 +196,10 @@ class KufarSearcher:
                     
                     results['successful_searches'] += 1
                     
+                    # Обновляем время последнего сканирования
+                    db.update_search_scan_time(search['id'])
+                    logger.info(f"Обновлено время сканирования для поиска '{search['name']}'")
+                    
                     # Add delay between searches
                     time.sleep(random.uniform(2, 5))
                     
@@ -156,8 +220,26 @@ class KufarSearcher:
                         if e.status_code in ERROR_CODES_FOR_REDEPLOY:
                             self.error_count += 1
             
-            logger.info(f"Search completed. Results: {results}")
-            db.add_log_entry('INFO', f"Force Scan All completed: {results['successful_searches']}/{results['total_searches']} successful, {results['new_items']} new items", 'core', f"Scan results: {results}")
+            # Подробная статистика завершения
+            logger.info(f"🏁 Цикл сканирования завершен:")
+            logger.info(f"   • Всего поисков: {results['total_searches']}")
+            logger.info(f"   • Готовых к сканированию: {results['ready_for_scan']}")
+            logger.info(f"   • Успешных: {results['successful_searches']}")
+            logger.info(f"   • Неудачных: {results['failed_searches']}")
+            logger.info(f"   • Пропущенных: {results['skipped_searches']}")
+            logger.info(f"   • Новых объявлений: {results['new_items']}")
+            
+            if results['ready_for_scan'] > 0:
+                db.add_log_entry('INFO', 
+                               f"Цикл завершен: {results['successful_searches']}/{results['ready_for_scan']} успешных, {results['new_items']} новых", 
+                               'core', 
+                               f"Статистика: {results}")
+            else:
+                db.add_log_entry('INFO', 
+                               f"Ожидание: {results['skipped_searches']} поисков ждут интервала ({interval_seconds}с)", 
+                               'core', 
+                               'Все поиски в режиме ожидания')
+            
             return results
             
         except Exception as e:

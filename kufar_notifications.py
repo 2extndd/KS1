@@ -30,15 +30,31 @@ from db import db
 # Create logger first
 logger = logging.getLogger(__name__)
 
+# Настройка белорусского часового пояса для логов
+import pytz
+from datetime import datetime
+
+# Белорусский часовой пояс (UTC+3)
+BELARUS_TZ = pytz.timezone('Europe/Minsk')
+
+class BelarusFormatter(logging.Formatter):
+    """Кастомный форматер для отображения времени в белорусском часовом поясе"""
+    def formatTime(self, record, datefmt=None):
+        dt = datetime.fromtimestamp(record.created, BELARUS_TZ)
+        if datefmt:
+            return dt.strftime(datefmt)
+        return dt.strftime('%Y-%m-%d %H:%M:%S %Z')
+
 # Configure logging for Railway environment
 if os.getenv('RAILWAY_ENVIRONMENT'):
     # Railway environment - log to stdout and database
+    formatter = BelarusFormatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(formatter)
+    
     logging.basicConfig(
         level=getattr(logging, LOG_LEVEL.upper()),
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.StreamHandler(sys.stdout)
-        ]
+        handlers=[handler]
     )
     
     # Force database logging on Railway
@@ -54,13 +70,17 @@ if os.getenv('RAILWAY_ENVIRONMENT'):
         logger.error(f"Database info: {db.get_database_info()}")
 else:
     # Local environment - log to file and stdout
+    formatter = BelarusFormatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    
+    file_handler = logging.FileHandler(LOG_FILE)
+    file_handler.setFormatter(formatter)
+    
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(formatter)
+    
     logging.basicConfig(
         level=getattr(logging, LOG_LEVEL.upper()),
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(LOG_FILE),
-            logging.StreamHandler(sys.stdout)
-        ]
+        handlers=[file_handler, console_handler]
     )
 
 # Flask app for web UI and health checks
@@ -278,11 +298,18 @@ def search_and_notify():
             logger.error(f"Failed to log error to database: {log_error}")
 
 def setup_scheduler():
-    """Setup scheduled tasks"""
+    """Setup scheduled tasks - простая логика без адаптивности"""
     try:
-        # Schedule main search task
-        interval_minutes = get_search_interval() // 60
-        schedule.every(interval_minutes).minutes.do(search_and_notify)
+        interval_seconds = get_search_interval()
+        
+        # Простая логика: проверяем готовность каждую минуту
+        # Каждый фильтр сканируется строго через Query Refresh Delay секунд
+        schedule.every(1).minutes.do(search_and_notify)
+        
+        logger.info(f"✅ Планировщик настроен:")
+        logger.info(f"   • Query Refresh Delay: {interval_seconds} секунд")
+        logger.info(f"   • Проверка готовности: каждую минуту")
+        logger.info(f"   • Каждый фильтр сканируется строго через {interval_seconds} секунд после последнего сканирования")
         
         # Schedule proxy refresh (every 2 hours)
         schedule.every(2).hours.do(refresh_proxies)
@@ -290,10 +317,11 @@ def setup_scheduler():
         # Schedule database cleanup (daily at 3 AM)
         schedule.every().day.at("03:00").do(cleanup_old_data)
         
-        logger.info(f"Scheduler configured: search every {interval_minutes} minutes")
+        logger.info(f"   • Обновление прокси: каждые 2 часа")
+        logger.info(f"   • Очистка БД: ежедневно в 03:00")
         
     except Exception as e:
-        logger.error(f"Error setting up scheduler: {e}")
+        logger.error(f"Ошибка настройки планировщика: {e}")
         raise
 
 def refresh_proxies():
