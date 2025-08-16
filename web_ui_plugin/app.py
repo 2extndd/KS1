@@ -387,18 +387,6 @@ def create_app():
         except Exception as e:
             return jsonify({'error': str(e)}), 500
     
-    @app.route('/api/stats')
-    def api_stats():
-        """Get current statistics"""
-        try:
-            return jsonify({
-                'database': db.get_items_stats(),
-                'searcher': searcher.get_searcher_status(),
-                'timestamp': datetime.now().isoformat()
-            })
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
-    
     @app.route('/api/items/clear', methods=['POST'])
     def api_clear_items():
         """Clear all items"""
