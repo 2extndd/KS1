@@ -60,28 +60,44 @@ class TelegramWorker:
             else:
                 logger.warning("❌ No URL found for item - button will not be created")
             
-            # Prepare images
+            # SIMPLIFIED APPROACH - ALWAYS USE send_photo WITH BUTTON
             images = item.get('images', [])
             
-            if images:
-                # Send single photo with caption and button (no media group)
-                logger.info(f"📷 Sending single photo with caption and button to chat {chat_id}")
-                success = await self._send_single_photo_with_button(
-                    chat_id=chat_id,
-                    thread_id=thread_id,
-                    message=message,
-                    photo_url=images[0],  # Use first image only
-                    reply_markup=keyboard
-                )
-            else:
-                # Send text only with button
-                logger.info(f"📝 Sending text-only message with keyboard to chat {chat_id}")
-                success = await self._send_text_message(
-                    chat_id=chat_id,
-                    thread_id=thread_id,
-                    message=message,
-                    reply_markup=keyboard
-                )
+            # Always send as photo, even if no image (use placeholder)
+            photo_url = images[0] if images else "https://via.placeholder.com/300x300/cccccc/666666?text=No+Image"
+            
+            logger.info(f"📷 SIMPLIFIED: Sending photo with button to chat {chat_id}")
+            logger.info(f"🔍 DEBUG: keyboard exists={keyboard is not None}")
+            logger.info(f"🔍 DEBUG: photo_url={photo_url}")
+            logger.info(f"🔍 DEBUG: message={message[:100]}...")
+            
+            # Use bot.send_photo directly with all parameters
+            try:
+                kwargs = {
+                    'chat_id': chat_id,
+                    'photo': photo_url,
+                    'caption': message,
+                    'parse_mode': ParseMode.HTML
+                }
+                
+                if thread_id:
+                    kwargs['message_thread_id'] = int(thread_id)
+                    logger.info(f"🎯 Adding thread_id: {thread_id}")
+                
+                if keyboard:
+                    kwargs['reply_markup'] = keyboard
+                    logger.info(f"🔧 Adding keyboard: {keyboard}")
+                else:
+                    logger.warning("❌ No keyboard - button will be missing!")
+                
+                logger.info(f"📤 DIRECT send_photo call with: {list(kwargs.keys())}")
+                await self.bot.send_photo(**kwargs)
+                logger.info("✅ DIRECT send_photo SUCCESS!")
+                success = True
+                
+            except Exception as e:
+                logger.error(f"❌ DIRECT send_photo FAILED: {e}")
+                success = False
             
             if success:
                 # Mark item as sent
@@ -264,7 +280,8 @@ class TelegramWorker:
     
     async def _send_with_images(self, chat_id: str, thread_id: str = None, 
                                message: str = "", images: List[str] = None, reply_markup=None) -> bool:
-        """Send message with images as media group"""
+        """Send message with images as media group - DEPRECATED! Should not be called!"""
+        logger.error("🚨 DEPRECATED _send_with_images called! This should not happen!")
         if not images:
             return await self._send_text_message(chat_id, thread_id, message, reply_markup)
         
