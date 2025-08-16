@@ -549,16 +549,6 @@ def create_app():
         except Exception as e:
             return jsonify({'error': str(e)}), 500
     
-    @app.route('/api/logs/recent', methods=['GET'])
-    def api_get_recent_logs():
-        """Get recent logs"""
-        try:
-            minutes = int(request.args.get('minutes', 5))
-            logs = db.get_recent_logs(minutes=minutes)
-            return jsonify({'success': True, 'logs': logs})
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
-    
     # Queries API endpoints
     @app.route('/api/queries/add', methods=['POST'])
     def api_add_query():
