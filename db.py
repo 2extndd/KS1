@@ -124,6 +124,12 @@ class DatabaseManager:
                 
                 conn = psycopg2.connect(self.database_url)
                 conn.autocommit = False
+                
+                # Проверяем состояние транзакции и восстанавливаем если нужно
+                if conn.get_transaction_status() == psycopg2.extensions.TRANSACTION_STATUS_INERROR:
+                    logger.warning("🔄 Обнаружена прерванная транзакция PostgreSQL, выполняем rollback")
+                    conn.rollback()
+                
                 return conn
             except Exception as e:
                 logger.error(f"Failed to connect to PostgreSQL: {e}")
@@ -135,7 +141,19 @@ class DatabaseManager:
     def execute_query(self, cursor, query, values):
         """Execute query with proper placeholder handling for both PostgreSQL and SQLite"""
         if self.is_postgres:
-            cursor.execute(query, values)
+            try:
+                cursor.execute(query, values)
+            except psycopg2.Error as e:
+                logger.error(f"❌ PostgreSQL error: {e}")
+                logger.error(f"Query: {query}")
+                logger.error(f"Values: {values}")
+                
+                # Попытка восстановления соединения
+                if cursor.connection.get_transaction_status() == psycopg2.extensions.TRANSACTION_STATUS_INERROR:
+                    logger.warning("🔄 Выполняем rollback для восстановления транзакции")
+                    cursor.connection.rollback()
+                
+                raise
         else:
             # Convert %s placeholders to ? for SQLite
             sqlite_query = query.replace('%s', '?')
@@ -175,7 +193,8 @@ class DatabaseManager:
                     logger.info("Добавлено поле last_scan_time в таблицу searches")
                 except Exception as e:
                     # Column might already exist, ignore error
-                    pass
+                    if "already exists" not in str(e).lower() and "duplicate column" not in str(e).lower():
+                        logger.debug(f"Migration note: {e}")
                 
                 # Create items table (found ads from Kufar)
                 self.execute_query(cursor, """
@@ -234,10 +253,22 @@ class DatabaseManager:
                 """, ())
                 
                 conn.commit()
-                logger.info("Database initialized successfully")
+                logger.info("✅ PostgreSQL база данных инициализирована успешно")
                 
         except Exception as e:
-            logger.error(f"Error initializing database: {e}")
+            logger.error(f"❌ КРИТИЧЕСКАЯ ОШИБКА инициализации PostgreSQL: {e}")
+            logger.error("🔧 Попытка восстановления подключения...")
+            
+            # Попытка повторной инициализации
+            try:
+                import time
+                time.sleep(2)
+                with self.get_connection() as conn:
+                    conn.rollback()  # Сброс любых повисших транзакций
+                    logger.info("♻️  Транзакции сброшены, повторная попытка инициализации...")
+            except Exception as recovery_error:
+                logger.error(f"❌ Ошибка восстановления: {recovery_error}")
+            
             raise
     
     def add_search(self, name: str, url: str, **kwargs) -> int:
