@@ -26,49 +26,8 @@ try:
     application = create_app()
     logger.info("Flask application created successfully")
     
-    # Запускаем планировщик в фоновом потоке для production
-    railway_env = os.getenv('RAILWAY_ENVIRONMENT')
-    port_env = os.getenv('PORT')  # Railway всегда устанавливает PORT
-    is_production = railway_env or port_env
-    
-    if is_production:
-        logger.info(f"🔄 Starting background scheduler for production (Railway: {bool(railway_env)}, PORT: {port_env})...")
-        import threading
-        import time
-        import schedule
-        
-        def background_scheduler():
-            """Запускаем планировщик в фоновом потоке"""
-            try:
-                logger.info("📋 Setting up background scheduler...")
-                
-                # Настраиваем планировщик
-                from kufar_notifications import setup_scheduler, search_and_notify
-                setup_scheduler()
-                
-                # Запускаем первое сканирование через 30 секунд после старта
-                logger.info("⏰ Waiting 30 seconds before first scan...")
-                time.sleep(30)
-                logger.info("🚀 Running initial background search...")
-                search_and_notify()
-                
-                # Основной цикл планировщика
-                logger.info("🔄 Starting scheduler loop...")
-                while True:
-                    schedule.run_pending()
-                    time.sleep(60)  # Проверяем каждую минуту
-                    
-            except Exception as e:
-                logger.error(f"❌ Background scheduler error: {e}")
-                import traceback
-                traceback.print_exc()
-        
-        # Запускаем планировщик в daemon потоке
-        scheduler_thread = threading.Thread(target=background_scheduler, daemon=True)
-        scheduler_thread.start()
-        logger.info("✅ Background scheduler thread started successfully")
-    else:
-        logger.info("🏠 Local development mode - no background scheduler")
+    # Примечание: Планировщик запускается отдельно через worker процесс
+    logger.info("🔗 Scheduler runs separately via worker process")
     
     # Alias for gunicorn
     app = application
