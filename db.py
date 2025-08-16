@@ -39,22 +39,19 @@ class DatabaseManager:
         
         # Проверяем DATABASE_URL на Railway
         if os.getenv('RAILWAY_ENVIRONMENT'):
-            self.is_postgres = True
-            logger.info("🚀 Railway environment detected - using PostgreSQL")
+            logger.info("🚀 Railway environment detected")
             
-            # Валидация PostgreSQL URL
-            if not self.database_url:
-                logger.error("🚨 DATABASE_URL not provided for Railway!")
-                logger.error("Please add PostgreSQL service to your Railway project.")
-                raise ValueError("DATABASE_URL not found for Railway. Please add PostgreSQL service.")
-            
-            if not (self.database_url.startswith('postgresql://') or self.database_url.startswith('postgres://')):
-                logger.error(f"🚨 Invalid DATABASE_URL format: {self.database_url[:50]}...")
-                logger.error("Expected format: postgresql://user:password@host:port/database")
-                raise ValueError("Invalid DATABASE_URL format. Expected postgresql:// or postgres://")
-            
-            logger.info("✅ PostgreSQL DATABASE_URL validated for Railway")
-            logger.info(f"Database: {self.database_url[:50]}...")
+            # Проверяем есть ли PostgreSQL URL
+            if self.database_url and (self.database_url.startswith('postgresql://') or self.database_url.startswith('postgres://')):
+                self.is_postgres = True
+                logger.info("✅ PostgreSQL DATABASE_URL found and validated for Railway")
+                logger.info(f"Database: {self.database_url[:50]}...")
+            else:
+                # PostgreSQL недоступен - используем in-memory SQLite как временное решение
+                logger.warning("⚠️ PostgreSQL not available on Railway, using in-memory SQLite as fallback")
+                logger.warning("⚠️ Data will be lost on restart - please check Railway PostgreSQL service")
+                self.is_postgres = False
+                self.database_url = 'sqlite:///:memory:'  # In-memory SQLite для Railway
         
         # Don't initialize database immediately - let it be called explicitly
         # self.init_database()

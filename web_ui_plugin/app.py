@@ -956,12 +956,19 @@ def get_logs_paginated(page: int = 1, per_page: int = 50, level_filter: str = ''
             get_db().execute_query(cursor, count_query, params)
             total = cursor.fetchone()[0]
             
-            # Get logs
-            logs_query = f"""
-                SELECT * FROM logs {where_clause}
-                ORDER BY timestamp DESC
-                LIMIT %s OFFSET %s
-            """
+            # Get logs with proper timestamp sorting
+            if get_db().is_postgres:
+                logs_query = f"""
+                    SELECT * FROM logs {where_clause}
+                    ORDER BY timestamp DESC, id DESC
+                    LIMIT %s OFFSET %s
+                """
+            else:
+                logs_query = f"""
+                    SELECT * FROM logs {where_clause}
+                    ORDER BY datetime(timestamp) DESC, id DESC
+                    LIMIT %s OFFSET %s
+                """
             get_db().execute_query(cursor, logs_query, params + [per_page, offset])
             
             columns = [desc[0] for desc in cursor.description]
