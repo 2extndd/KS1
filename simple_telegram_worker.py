@@ -110,6 +110,40 @@ class TelegramWorker:
             logger.error(f"Failed to send notification for item {item['id']}: {e}")
             return False
     
+    def extract_size_from_item(self, item: Dict[str, Any]) -> str:
+        """Extract size information from item data"""
+        size = ""
+        description = item.get('description', '')
+        raw_data = item.get('raw_data', {})
+        
+        # Try to extract size from various sources
+        if isinstance(raw_data, dict):
+            size = raw_data.get('size', '') or raw_data.get('параметры', {}).get('размер', '')
+        
+        # If no size found, try to extract from description
+        if not size and description:
+            import re
+            # Look for size patterns like "48 (M)", "M", "Large", etc.
+            size_patterns = [
+                r'размер\s+(\d+\s*\([XSMLXL]+\))',  # размер 48 (M)
+                r'размер\s+([XSMLXL]{1,3})\b',      # размер M, XL, XXL
+                r'размер\s+(\d{2,3})\b',            # размер 48
+                r'в\s+размере\s+([XSMLXL]{1,3})\b', # в размере XXL
+                r'в\s+размере\s+(\d{2,3})\b',       # в размере 48
+                r'size\s+([XSMLXL]{1,3})\b',        # size XL
+                r'\b(\d+\s*\([XSMLXL]+\))',         # 48 (M)
+                r'\b([XSMLXL]{1,3})\b',             # M, XL, XXL (standalone)
+                r'\b(\d{2,3})\s*размер',            # 48 размер
+                r'\b(large|medium|small)\b',        # Large, Medium, Small
+            ]
+            for pattern in size_patterns:
+                match = re.search(pattern, description, re.IGNORECASE)
+                if match:
+                    size = match.group(1)
+                    break
+        
+        return size.strip() if size else ""
+
     def _format_item_message(self, item: Dict[str, Any]) -> str:
         """Format item data into Telegram message"""
         try:
@@ -121,36 +155,8 @@ class TelegramWorker:
             url = item.get('url', '')
             search_name = item.get('search_name', '')
             
-            # Extract size from description or raw_data if available
-            size = ""
-            description = item.get('description', '')
-            raw_data = item.get('raw_data', {})
-            
-            # Try to extract size from various sources
-            if isinstance(raw_data, dict):
-                size = raw_data.get('size', '') or raw_data.get('параметры', {}).get('размер', '')
-            
-            # If no size found, try to extract from description
-            if not size and description:
-                import re
-                # Look for size patterns like "48 (M)", "M", "Large", etc.
-                size_patterns = [
-                    r'размер\s+(\d+\s*\([XSMLXL]+\))',  # размер 48 (M)
-                    r'размер\s+([XSMLXL]{1,3})\b',      # размер M, XL, XXL
-                    r'размер\s+(\d{2,3})\b',            # размер 48
-                    r'в\s+размере\s+([XSMLXL]{1,3})\b', # в размере XXL
-                    r'в\s+размере\s+(\d{2,3})\b',       # в размере 48
-                    r'size\s+([XSMLXL]{1,3})\b',        # size XL
-                    r'\b(\d+\s*\([XSMLXL]+\))',         # 48 (M)
-                    r'\b([XSMLXL]{1,3})\b',             # M, XL, XXL (standalone)
-                    r'\b(\d{2,3})\s*размер',            # 48 размер
-                    r'\b(large|medium|small)\b',        # Large, Medium, Small
-                ]
-                for pattern in size_patterns:
-                    match = re.search(pattern, description, re.IGNORECASE)
-                    if match:
-                        size = match.group(1)
-                        break
+            # Extract size using helper function
+            size = self.extract_size_from_item(item)
             
             # Format price
             if price > 0:

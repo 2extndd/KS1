@@ -23,6 +23,57 @@ from simple_telegram_worker import send_notifications
 from railway_redeploy import redeployer
 from configuration_values import SECRET_KEY
 
+def extract_size_from_item_data(item):
+    """Extract size information from item data for WebUI"""
+    size = ""
+    description = item.get('description', '')
+    raw_data = item.get('raw_data', {})
+    
+    # Try to extract size from various sources
+    if isinstance(raw_data, dict):
+        size = raw_data.get('size', '') or raw_data.get('параметры', {}).get('размер', '')
+    
+    # If no size found, try to extract from description
+    if not size and description:
+        import re
+        # Look for size patterns like "48 (M)", "M", "Large", etc.
+        size_patterns = [
+            r'размер\s+(\d+\s*\([XSMLXL]+\))',  # размер 48 (M)
+            r'размер\s+([XSMLXL]{1,3})\b',      # размер M, XL, XXL
+            r'размер\s+(\d{2,3})\b',            # размер 48
+            r'в\s+размере\s+([XSMLXL]{1,3})\b', # в размере XXL
+            r'в\s+размере\s+(\d{2,3})\b',       # в размере 48
+            r'size\s+([XSMLXL]{1,3})\b',        # size XL
+            r'\b(\d+\s*\([XSMLXL]+\))',         # 48 (M)
+            r'\b([XSMLXL]{1,3})\b',             # M, XL, XXL (standalone)
+            r'\b(\d{2,3})\s*размер',            # 48 размер
+            r'\b(large|medium|small)\b',        # Large, Medium, Small
+        ]
+        for pattern in size_patterns:
+            match = re.search(pattern, description, re.IGNORECASE)
+            if match:
+                size = match.group(1)
+                break
+    
+    return size.strip() if size else ""
+
+def format_price_with_size(item):
+    """Format price with size in format '75 BYN - 48 (M)'"""
+    price = item.get('price', 0)
+    currency = item.get('currency', 'BYN')
+    
+    # Format price
+    price_text = f"{price:,} {currency}".replace(',', ' ') if price > 0 else "Цена не указана"
+    
+    # Extract size
+    size = extract_size_from_item_data(item)
+    
+    # Combine price and size
+    if size:
+        return f"{price_text} - {size}"
+    else:
+        return price_text
+
 def create_app():
     """Create Flask application"""
     app = Flask(__name__, 
@@ -30,6 +81,12 @@ def create_app():
                 static_folder='static')
     
     app.secret_key = SECRET_KEY
+    
+    # Add custom template functions
+    app.jinja_env.globals.update(
+        extract_size_from_item_data=extract_size_from_item_data,
+        format_price_with_size=format_price_with_size
+    )
     
     # Dashboard route
     @app.route('/')

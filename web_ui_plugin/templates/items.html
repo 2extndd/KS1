@@ -70,13 +70,9 @@
                         {{ item.title[:60] }}{% if item.title|length > 60 %}...{% endif %}
                     </h6>
                     
-                    <!-- Price -->
+                    <!-- Price with Size -->
                     <div class="mb-2">
-                        {% if item.price > 0 %}
-                            <span class="fw-bold text-dark" style="font-size: 16px;">{{ "{:,}".format(item.price).replace(',', ' ') }} {{ item.currency }}</span>
-                        {% else %}
-                            <span class="text-muted" style="font-size: 16px;">Цена не указана</span>
-                        {% endif %}
+                        <span class="fw-bold text-dark" style="font-size: 16px;">{{ format_price_with_size(item) }}</span>
                     </div>
                     
                     <!-- Location -->
