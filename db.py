@@ -588,25 +588,46 @@ class DatabaseManager:
                 cursor = conn.cursor()
                 
                 # Get error counts by type
-                self.execute_query(cursor, """
-                    SELECT error_code, COUNT(*) 
-                    FROM error_logs 
-                    WHERE created_at > NOW() - INTERVAL '24 hours'
-                    GROUP BY error_code
-                """)
+                if self.is_postgres:
+                    self.execute_query(cursor, """
+                        SELECT error_code, COUNT(*) 
+                        FROM error_tracking 
+                        WHERE created_at > NOW() - INTERVAL '24 hours'
+                        GROUP BY error_code
+                    """, ())
+                else:
+                    self.execute_query(cursor, """
+                        SELECT error_code, COUNT(*) 
+                        FROM error_tracking 
+                        WHERE created_at > datetime('now', '-24 hours')
+                        GROUP BY error_code
+                    """, ())
                 
                 error_counts = dict(cursor.fetchall())
                 
                 # Get first and last error times
-                self.execute_query(cursor, """
-                    SELECT MIN(created_at), MAX(created_at), COUNT(*)
-                    FROM error_logs 
-                    WHERE created_at > NOW() - INTERVAL '24 hours'
-                """)
+                if self.is_postgres:
+                    self.execute_query(cursor, """
+                        SELECT MIN(created_at), MAX(created_at), COUNT(*)
+                        FROM error_tracking 
+                        WHERE created_at > NOW() - INTERVAL '24 hours'
+                    """, ())
+                else:
+                    self.execute_query(cursor, """
+                        SELECT MIN(created_at), MAX(created_at), COUNT(*)
+                        FROM error_tracking 
+                        WHERE created_at > datetime('now', '-24 hours')
+                    """, ())
                 
                 result = cursor.fetchone()
-                first_error = result[0].strftime('%d.%m.%Y, %H:%M:%S') if result[0] else 'None'
-                last_error = result[1].strftime('%d.%m.%Y, %H:%M:%S') if result[1] else 'None'
+                try:
+                    first_error = result[0].strftime('%d.%m.%Y, %H:%M:%S') if result[0] else 'None'
+                except:
+                    first_error = str(result[0]) if result[0] else 'None'
+                try:
+                    last_error = result[1].strftime('%d.%m.%Y, %H:%M:%S') if result[1] else 'None'
+                except:
+                    last_error = str(result[1]) if result[1] else 'None'
                 total_errors = result[2] or 0
                 
                 return {
@@ -855,8 +876,13 @@ class DatabaseManager:
                 
                 logs = []
                 for row in cursor.fetchall():
+                    try:
+                        timestamp = row[0].strftime('%Y-%m-%d %H:%M:%S') if row[0] else ''
+                    except:
+                        timestamp = str(row[0]) if row[0] else ''
+                    
                     logs.append({
-                        'timestamp': row[0].strftime('%Y-%m-%d %H:%M:%S') if row[0] else '',
+                        'timestamp': timestamp,
                         'level': row[1],
                         'message': row[2],
                         'source': row[3],
