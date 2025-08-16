@@ -84,7 +84,7 @@ def create_app():
             return render_template('dashboard.html',
                                  db_stats=db_stats,
                                  searcher_status=searcher_status,
-                                 recent_items=recent_items[:10],  # Show last 10
+                                 recent_items=recent_items[:30],  # Show last 30
                                  active_searches=active_searches[:5])  # Show first 5
         except Exception as e:
             flash(f'Error loading dashboard: {e}', 'error')

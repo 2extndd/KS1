@@ -85,45 +85,43 @@
             <div class="card-body">
                 {% if recent_items %}
                     <div class="row">
-                        {% for item in recent_items[:4] %}
-                        <div class="col-lg-3 col-md-6 mb-4">
+                        {% for item in recent_items[:30] %}
+                        <div class="col-lg-2 col-md-4 col-sm-6 mb-4">
                             <div class="item-card">
                                 <a href="{{ item.url }}" target="_blank" class="text-decoration-none">
                                     {% if item.images %}
-                                        <div style="aspect-ratio: 4/5; overflow: hidden; position: relative;">
+                                        <div style="aspect-ratio: 3/4; overflow: hidden; position: relative; max-height: 180px;">
                                             <img src="{{ item.images[0] }}" alt="{{ item.title }}" 
                                                  class="w-100 h-100" style="object-fit: cover; object-position: center;">
                                         </div>
                                     {% else %}
                                         <div class="bg-light d-flex align-items-center justify-content-center" 
-                                             style="aspect-ratio: 4/5;">
+                                             style="aspect-ratio: 3/4; max-height: 180px;">
                                             <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
                                         </div>
                                     {% endif %}
                                 </a>
-                                <div class="item-card-body">
-                                    <h6 class="item-title">{{ item.title[:50] }}{% if item.title|length > 50 %}...{% endif %}</h6>
-                                    <div class="item-price">
+                                <div class="item-card-body p-2">
+                                    <h6 class="item-title mb-1" style="font-size: 12px; line-height: 1.2;">{{ item.title[:40] }}{% if item.title|length > 40 %}...{% endif %}</h6>
+                                    <div class="item-price mb-1" style="font-size: 13px; font-weight: bold;">
                                         {% if item.price > 0 %}
                                             {{ "{:,}".format(item.price).replace(',', ' ') }} {{ item.currency or 'BYN' }}
                                         {% else %}
                                             Цена не указана
                                         {% endif %}
                                     </div>
-                                    <div class="item-location">
-                                        <i class="bi bi-geo-alt me-1"></i>{{ item.location or 'Местоположение не указано' }}
+                                    <div class="item-location mb-1" style="font-size: 11px; color: #666;">
+                                        {{ item.location or 'Местоположение не указано' }}
                                     </div>
-                                    <div class="item-date">
-                                        <i class="bi bi-clock me-1"></i>{{ item.created_at.strftime('%Y-%m-%d %H:%M:%S') if item.created_at else 'N/A' }}
+                                    <div class="item-date mb-2" style="font-size: 10px; color: #999;">
+                                        {{ item.created_at.strftime('%Y-%m-%d %H:%M:%S') if item.created_at else 'N/A' }}
                                     </div>
-                                    <div class="mt-3">
-                                        <span class="badge bg-primary">{{ item.search_name or 'Unknown Query' }}</span>
+                                    <div class="mb-2">
+                                        <span class="badge bg-primary" style="font-size: 9px;">{{ item.search_name or 'Unknown Query' }}</span>
                                     </div>
-                                    <div class="mt-3">
-                                        <a href="{{ item.url }}" target="_blank" class="btn btn-primary btn-sm w-100">
-                                            <i class="bi bi-eye me-1"></i>View
-                                        </a>
-                                    </div>
+                                    <a href="{{ item.url }}" target="_blank" class="btn btn-primary btn-sm w-100" style="font-size: 11px; padding: 4px 8px;">
+                                        View
+                                    </a>
                                 </div>
                             </div>
                         </div>
