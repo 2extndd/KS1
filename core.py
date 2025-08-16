@@ -268,7 +268,7 @@ class KufarSearcher:
                     'url': item.url,
                     'raw_data': item.raw_data,
                     'search_name': search.get('name', 'Unknown'),
-                    'thread_id': search.get('thread_id')
+                    'thread_id': search.get('telegram_thread_id')
                 }
                 
                 item_id = db.add_item(item_data, search['id'])
@@ -282,7 +282,7 @@ class KufarSearcher:
                         'currency': item.currency,
                         'url': item.url,
                         'search_name': search['name'],
-                        'thread_id': search.get('thread_id'),
+                        'thread_id': search.get('telegram_thread_id'),
                         'images': item.images,
                         'location': item.location,
                         'description': item.description

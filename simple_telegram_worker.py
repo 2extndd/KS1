@@ -36,6 +36,11 @@ class TelegramWorker:
             chat_id = get_telegram_chat_id()
             thread_id = item.get('telegram_thread_id') or item.get('thread_id')
             
+            # Debug thread_id routing
+            search_name = item.get('search_name', 'Unknown')
+            logger.info(f"🎯 Routing item '{search_name}' - Chat: {chat_id}, Thread: {thread_id}")
+            logger.info(f"🔍 Available item keys: {list(item.keys())}")
+            
             if not chat_id:
                 logger.warning(f"No telegram chat_id configured for notifications")
                 return False
@@ -187,6 +192,9 @@ class TelegramWorker:
                 
                 if thread_id:
                     kwargs['message_thread_id'] = int(thread_id)
+                    logger.info(f"🎯 Setting message_thread_id to: {thread_id}")
+                else:
+                    logger.info(f"🎯 No thread_id provided - sending to main chat")
                 
                 if reply_markup:
                     kwargs['reply_markup'] = reply_markup
@@ -250,7 +258,11 @@ class TelegramWorker:
                 
                 if thread_id:
                     kwargs['message_thread_id'] = int(thread_id)
+                    logger.info(f"🎯 Setting media group message_thread_id to: {thread_id}")
+                else:
+                    logger.info(f"🎯 No thread_id for media group - sending to main chat")
                 
+                logger.info(f"📤 Sending media group with kwargs: {list(kwargs.keys())}")
                 await self.bot.send_media_group(**kwargs)
                 return True
                 
