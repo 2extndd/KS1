@@ -184,11 +184,33 @@ def get_system_metrics():
         # Get Railway redeploy status
         railway_status = get_railway_status()
         
+        # Получаем актуальные метрики из metrics_storage
+        try:
+            import metrics_storage
+            actual_api_requests = metrics_storage.metrics_storage.get_total_api_requests()
+            actual_items_found = metrics_storage.metrics_storage.get_total_items_found()
+            actual_app_start = metrics_storage.metrics_storage.get_app_start_time()
+            
+            # Пересчитываем uptime на основе актуального времени старта
+            if actual_app_start:
+                uptime = current_time - actual_app_start
+                uptime_str = str(uptime).split('.')[0]  # Убираем микросекунды
+                uptime_minutes = int(uptime.total_seconds() / 60)
+            else:
+                uptime_str = "0:00:00"
+                uptime_minutes = 0
+                
+        except Exception as e:
+            logger.warning(f"Could not get metrics from storage: {e}")
+            actual_api_requests = total_api_requests
+            actual_items_found = total_items_found
+            uptime_str = f"{uptime_minutes}m"
+        
         return {
             'uptime_minutes': uptime_minutes,
-            'uptime_formatted': f"{uptime_minutes}m",
-            'total_api_requests': total_api_requests,
-            'total_items_found': total_items_found,
+            'uptime_formatted': uptime_str,
+            'total_api_requests': actual_api_requests,
+            'total_items_found': actual_items_found,
             'last_search_time': last_search_time.isoformat() if last_search_time else None,
             'database': db_stats,
             'proxy_system': proxy_status,
