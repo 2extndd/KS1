@@ -183,33 +183,38 @@ function updateDashboardData() {
 }
 
 function updateStatsCards(data) {
+    console.log('📊 Обновляем статистические карточки:', data);
+    
     // Обновляем API requests
-    const apiRequestsEl = document.querySelector('.api-requests .stats-number');
+    const apiRequestsEl = document.querySelector('.stats-card.api-requests .stats-number');
     if (apiRequestsEl && data.total_api_requests !== undefined) {
+        const oldValue = apiRequestsEl.textContent;
         apiRequestsEl.textContent = data.total_api_requests;
+        console.log(`🔄 API Requests: ${oldValue} → ${data.total_api_requests}`);
     }
     
-    // Обновляем uptime
-    const uptimeEl = document.querySelector('.api-requests .stats-sublabel');
-    if (uptimeEl && data.uptime_formatted) {
-        const lines = uptimeEl.innerHTML.split('<br>');
-        if (lines.length > 1) {
-            lines[1] = `Uptime: ${data.uptime_formatted}`;
-            uptimeEl.innerHTML = lines.join('<br>');
-        }
+    // Обновляем uptime в последнем sublabel элементе карточки API requests
+    const uptimeElements = document.querySelectorAll('.stats-card.api-requests .stats-sublabel');
+    if (uptimeElements.length > 1 && data.uptime_formatted) {
+        const uptimeEl = uptimeElements[uptimeElements.length - 1]; // Последний sublabel
+        const oldUptime = uptimeEl.textContent;
+        uptimeEl.textContent = `Uptime: ${data.uptime_formatted}`;
+        console.log(`⏱️  Uptime: ${oldUptime} → Uptime: ${data.uptime_formatted}`);
     }
     
-    // Обновляем общую статистику если доступна
-    if (data.database) {
-        const totalItemsEl = document.querySelector('.total-items .stats-number');
-        if (totalItemsEl && data.database.total_items !== undefined) {
-            totalItemsEl.textContent = data.database.total_items;
-        }
-        
-        const activeQueriesEl = document.querySelector('.active-queries .stats-number');
-        if (activeQueriesEl && data.database.active_searches !== undefined) {
-            activeQueriesEl.textContent = data.database.active_searches;
-        }
+    // Обновляем общую статистику
+    const totalItemsEl = document.querySelector('.stats-card.total-items .stats-number');
+    if (totalItemsEl && data.database && data.database.total_items !== undefined) {
+        const oldValue = totalItemsEl.textContent;
+        totalItemsEl.textContent = data.database.total_items;
+        console.log(`📦 Total Items: ${oldValue} → ${data.database.total_items}`);
+    }
+    
+    const activeQueriesEl = document.querySelector('.stats-card.active-queries .stats-number');
+    if (activeQueriesEl && data.database && data.database.active_searches !== undefined) {
+        const oldValue = activeQueriesEl.textContent;
+        activeQueriesEl.textContent = data.database.active_searches;
+        console.log(`🔍 Active Queries: ${oldValue} → ${data.database.active_searches}`);
     }
 }
 

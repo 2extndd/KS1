@@ -744,13 +744,13 @@ def create_app():
             
             return jsonify({
                 'success': True,
-                'stats': {
-                    'total_api_requests': total_api_requests,
-                    'uptime': uptime_str,
-                    'total_items': db_stats.get('total_items', 0),
-                    'active_queries': db_stats.get('active_searches', 0),
-                    'last_found_item': last_item
-                }
+                'total_api_requests': total_api_requests,
+                'uptime_formatted': uptime_str,
+                'total_items': db_stats.get('total_items', 0),
+                'active_queries': db_stats.get('active_searches', 0),
+                'last_found_item': last_item,
+                'database': db_stats,
+                'timestamp': datetime.now().isoformat()
             })
             
         except Exception as e:
