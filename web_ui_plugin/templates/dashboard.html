@@ -248,14 +248,72 @@ function updateRecentItems() {
         .then(response => response.json())
         .then(data => {
             if (data.items && data.items.length > 0) {
-                // Обновляем только если есть новые объявления
-                // Пока не реализуем полное обновление, чтобы не ломать верстку
-                console.log(`📦 Получено ${data.items.length} последних объявлений`);
+                console.log(`📦 Получено ${data.items.length} последних объявлений для обновления`);
+                
+                // Находим контейнер с объявлениями
+                const itemsContainer = document.querySelector('.recent-items-grid');
+                if (!itemsContainer) {
+                    console.log('❌ Контейнер .recent-items-grid не найден');
+                    return;
+                }
+                
+                // Обновляем только первые несколько объявлений, чтобы не ломать скролл
+                const maxUpdateItems = Math.min(5, data.items.length);
+                
+                for (let i = 0; i < maxUpdateItems; i++) {
+                    const item = data.items[i];
+                    const existingCards = itemsContainer.querySelectorAll('.item-card');
+                    
+                    if (i < existingCards.length) {
+                        // Обновляем существующую карточку
+                        const card = existingCards[i];
+                        updateItemCard(card, item);
+                    }
+                }
+                
+                console.log(`✅ Обновлено ${maxUpdateItems} карточек объявлений`);
+            } else {
+                console.log('📦 Нет новых объявлений для обновления');
             }
         })
         .catch(error => {
             console.error('❌ Ошибка загрузки объявлений:', error);
         });
+}
+
+function updateItemCard(cardElement, itemData) {
+    // Обновляем данные в карточке объявления
+    try {
+        // Обновляем заголовок
+        const titleEl = cardElement.querySelector('.item-title');
+        if (titleEl) titleEl.textContent = itemData.title || 'No title';
+        
+        // Обновляем цену
+        const priceEl = cardElement.querySelector('.item-price');
+        if (priceEl) priceEl.textContent = `${itemData.price || 0} ${itemData.currency || 'BYN'}`;
+        
+        // Обновляем локацию
+        const locationEl = cardElement.querySelector('.item-location');
+        if (locationEl) locationEl.textContent = itemData.location || 'Местоположение не указано';
+        
+        // Обновляем время
+        const timeEl = cardElement.querySelector('.item-time');
+        if (timeEl && itemData.created_at) {
+            const date = new Date(itemData.created_at);
+            timeEl.textContent = date.toLocaleString();
+        }
+        
+        // Обновляем ссылку
+        const linkEl = cardElement.querySelector('.item-link');
+        if (linkEl && itemData.url) {
+            linkEl.href = itemData.url;
+        }
+        
+        console.log(`🔄 Обновлена карточка: ${itemData.title?.substring(0, 30)}...`);
+        
+    } catch (error) {
+        console.error('❌ Ошибка обновления карточки:', error);
+    }
 }
 
 // Запускаем автообновление каждые 10 секунд

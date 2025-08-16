@@ -265,7 +265,7 @@ class KufarSearcher:
             try:
                 import metrics_storage
                 total_requests = metrics_storage.metrics_storage.increment_api_requests()
-                logger.debug(f"API request #{total_requests} completed for search query")
+                logger.info(f"📊 API request #{total_requests} completed for search query '{search['name']}'")
                 
                 # Also increment in shared_state for compatibility
                 try:
@@ -287,7 +287,7 @@ class KufarSearcher:
             try:
                 import metrics_storage
                 total_requests = metrics_storage.metrics_storage.increment_api_requests()
-                logger.debug(f"API request #{total_requests} failed with error {e.status_code}")
+                logger.info(f"📊 API request #{total_requests} failed with error {e.status_code} for '{search['name']}'")
                 
                 # Log the failed API request
                 db.add_log_entry('ERROR', f'Kufar API error {e.status_code}: {e}', 'core', f'Failed API request for search ID {search["id"]}')
@@ -314,7 +314,7 @@ class KufarSearcher:
             try:
                 import metrics_storage
                 total_requests = metrics_storage.metrics_storage.increment_api_requests()
-                logger.debug(f"API request #{total_requests} failed with unexpected error")
+                logger.info(f"📊 API request #{total_requests} failed with unexpected error for '{search['name']}'")
                 
                 # Log the unexpected error
                 db.add_log_entry('ERROR', f'Unexpected search error: {e}', 'core', f'Unexpected error for search ID {search["id"]}')
