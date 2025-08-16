@@ -543,7 +543,8 @@ def create_app():
                     """
                 
                 get_db().execute_query(cursor, query, [recent_time.isoformat()])
-                recent_scheduler_logs = cursor.fetchone()[0]
+                result = cursor.fetchone()
+                recent_scheduler_logs = result[0] if result else 0
                 
                 # Ищем логи поиска за последние 10 минут
                 search_time = datetime.now() - timedelta(minutes=10)
@@ -561,7 +562,8 @@ def create_app():
                     """
                 
                 get_db().execute_query(cursor, search_query, [search_time.isoformat()])
-                recent_search_logs = cursor.fetchone()[0]
+                result = cursor.fetchone()
+                recent_search_logs = result[0] if result else 0
                 
                 # Определяем статус
                 if recent_scheduler_logs > 0:
