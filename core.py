@@ -113,14 +113,16 @@ class KufarSearcher:
                             # Конвертируем в белорусский часовой пояс
                             if last_scan.tzinfo is None:
                                 last_scan = last_scan.replace(tzinfo=pytz.UTC)
-                            last_scan = last_scan.astimezone(db.BELARUS_TZ)
+                            from db import BELARUS_TZ
+                            last_scan = last_scan.astimezone(BELARUS_TZ)
                         except:
                             logger.warning(f"Не удалось распарсить время для '{search['name']}', считаем готовым")
                             ready_searches.append(search)
                             continue
                     elif hasattr(last_scan, 'tzinfo') and last_scan.tzinfo is None:
                         # Добавляем часовой пояс если его нет
-                        last_scan = last_scan.replace(tzinfo=db.BELARUS_TZ)
+                        from db import BELARUS_TZ
+                        last_scan = last_scan.replace(tzinfo=BELARUS_TZ)
                     
                     # Проверяем прошел ли интервал
                     time_since_scan = (now - last_scan).total_seconds()
