@@ -232,18 +232,21 @@ function updateItemsPage() {
                 return;
             }
             
-            // Проверяем, изменилось ли количество объявлений
-            if (data.items && data.items.length !== lastItemCount) {
-                console.log(`📦 Количество объявлений изменилось: ${lastItemCount} → ${data.items.length}`);
-                lastItemCount = data.items.length;
+            // ПОЛНОЕ ОБНОВЛЕНИЕ - всегда обновляем контент если есть новые данные
+            if (data.items && data.items.length > 0) {
+                console.log(`📦 Обновляем содержимое страницы: ${data.items.length} объявлений`);
                 
-                // Обновляем счетчик в пагинации если он есть
+                // Обновляем контент страницы
+                updateItemsContent(data.items);
+                
+                // Обновляем счетчик в пагинации
                 updatePaginationInfo(data.pagination);
                 
-                // Если на первой странице и есть новые объявления - показываем уведомление
-                if (currentPage == 1 && data.new_items_available) {
-                    showNewItemsNotification();
-                }
+                lastItemCount = data.items.length;
+                
+                console.log('✅ Содержимое страницы обновлено');
+            } else {
+                console.log('📦 Нет объявлений для отображения');
             }
             
             console.log('✅ Проверка объявлений завершена');
@@ -251,6 +254,87 @@ function updateItemsPage() {
         .catch(error => {
             console.error('❌ Ошибка AJAX запроса:', error);
         });
+}
+
+function updateItemsContent(items) {
+    // Находим контейнер с товарами - ищем .row который содержит .col-lg-2
+    let itemsContainer = null;
+    const rows = document.querySelectorAll('.row');
+    for (let row of rows) {
+        if (row.querySelector('.col-lg-2')) {
+            itemsContainer = row;
+            break;
+        }
+    }
+    
+    if (!itemsContainer) {
+        console.log('❌ Контейнер товаров не найден');
+        return;
+    }
+    
+    // Полностью заменяем контент
+    itemsContainer.innerHTML = '';
+    
+    items.forEach(item => {
+        const itemHTML = createItemCardHTMLForItemsPage(item);
+        itemsContainer.insertAdjacentHTML('beforeend', itemHTML);
+    });
+    
+    console.log(`✅ Создано ${items.length} карточек товаров`);
+}
+
+function createItemCardHTMLForItemsPage(item) {
+    const imageHTML = item.images && item.images.length > 0 
+        ? `<div style="aspect-ratio: 3/4; overflow: hidden; border-radius: 8px;">
+               <img src="${escapeHtml(item.images[0])}" alt="${escapeHtml(item.title)}" class="w-100 h-100" style="object-fit: cover; object-position: center;">
+           </div>`
+        : `<div class="bg-light d-flex align-items-center justify-content-center" style="aspect-ratio: 3/4; border-radius: 8px;">
+               <i class="bi bi-image text-muted" style="font-size: 2rem;"></i>
+           </div>`;
+    
+    const title = item.title && item.title.length > 50 ? item.title.substring(0, 50) + '...' : (item.title || 'No title');
+    const price = item.price || 'N/A';
+    const location = item.location || 'Местоположение не указано';
+    const search_name = item.search_name || '';
+    const created_at = item.created_at ? new Date(item.created_at).toLocaleString() : '';
+    
+    return `
+        <div class="col-lg-2 col-md-3 col-sm-4 col-6 mb-4">
+            <div class="card h-100 item-card">
+                <a href="${escapeHtml(item.url)}" target="_blank" class="text-decoration-none">
+                    ${imageHTML}
+                </a>
+                <div class="card-body d-flex flex-column p-3">
+                    <h6 class="card-title mb-2" style="font-size: 14px; line-height: 1.3; color: #333;">${escapeHtml(title)}</h6>
+                    <div class="text-success fw-bold mb-2" style="font-size: 16px;">${escapeHtml(price)}</div>
+                    <div class="text-muted mb-1" style="font-size: 12px;">
+                        <i class="fas fa-map-marker-alt me-1"></i>${escapeHtml(location)}
+                    </div>
+                    <div class="text-primary mb-2" style="font-size: 12px;">
+                        <i class="fas fa-search me-1"></i>${escapeHtml(search_name)}
+                    </div>
+                    <div class="mt-auto">
+                        <div class="mb-2">
+                            <small class="text-muted" style="font-size: 11px;">${created_at}</small>
+                        </div>
+                        <a href="${escapeHtml(item.url)}" target="_blank" class="btn btn-primary w-100" style="font-size: 13px; padding: 8px;">View</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.toString().replace(/[&<>"']/g, function(m) { return map[m]; });
 }
 
 function updatePaginationInfo(pagination) {

@@ -251,28 +251,25 @@ function updateRecentItems() {
             if (data.items && data.items.length > 0) {
                 console.log(`📦 Получено ${data.items.length} последних объявлений для обновления`);
                 
-                // Находим контейнер с объявлениями
-                const itemsContainer = document.querySelector('.recent-items-grid');
-                if (!itemsContainer) {
-                    console.log('❌ Контейнер .recent-items-grid не найден');
+                // Находим правильный контейнер с объявлениями Recent Items
+                const recentItemsHeader = Array.from(document.querySelectorAll('h5')).find(h => h.textContent.includes('Recent Items'));
+                if (!recentItemsHeader) {
+                    console.log('❌ Заголовок Recent Items не найден');
                     return;
                 }
                 
-                // Обновляем только первые несколько объявлений, чтобы не ломать скролл
-                const maxUpdateItems = Math.min(5, data.items.length);
-                
-                for (let i = 0; i < maxUpdateItems; i++) {
-                    const item = data.items[i];
-                    const existingCards = itemsContainer.querySelectorAll('.item-card');
-                    
-                    if (i < existingCards.length) {
-                        // Обновляем существующую карточку
-                        const card = existingCards[i];
-                        updateItemCard(card, item);
-                    }
+                const itemsContainer = recentItemsHeader.closest('.card').querySelector('.card-body .row');
+                if (!itemsContainer) {
+                    console.log('❌ Контейнер .row не найден в Recent Items секции');
+                    return;
                 }
                 
-                console.log(`✅ Обновлено ${maxUpdateItems} карточек объявлений`);
+                console.log('✅ Найден контейнер Recent Items');
+                
+                // ПОЛНОЕ ОБНОВЛЕНИЕ - заменяем весь контент новыми данными
+                updateRecentItemsContainer(itemsContainer, data.items);
+                
+                console.log(`✅ Recent Items полностью обновлены: ${data.items.length} элементов`);
             } else {
                 console.log('📦 Нет новых объявлений для обновления');
             }
@@ -315,6 +312,67 @@ function updateItemCard(cardElement, itemData) {
     } catch (error) {
         console.error('❌ Ошибка обновления карточки:', error);
     }
+}
+
+function updateRecentItemsContainer(container, items) {
+    // Полностью заменяем содержимое контейнера новыми данными
+    const maxItems = 30; // Показываем максимум 30 товаров
+    container.innerHTML = '';
+    
+    items.slice(0, maxItems).forEach(item => {
+        const itemHTML = createItemCardHTML(item);
+        container.insertAdjacentHTML('beforeend', itemHTML);
+    });
+    
+    console.log(`✅ Создано ${Math.min(maxItems, items.length)} новых карточек`);
+}
+
+function createItemCardHTML(item) {
+    const imageHTML = item.images && item.images.length > 0 
+        ? `<div style="aspect-ratio: 4/5; overflow: hidden; position: relative;">
+               <img src="${escapeHtml(item.images[0])}" alt="${escapeHtml(item.title)}" class="w-100 h-100" style="object-fit: cover; object-position: center;">
+           </div>`
+        : `<div class="bg-light d-flex align-items-center justify-content-center" style="aspect-ratio: 4/5;">
+               <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
+           </div>`;
+    
+    const title = item.title && item.title.length > 40 ? item.title.substring(0, 40) + '...' : (item.title || 'No title');
+    const price = item.price || 'N/A';
+    const location = item.location || 'Местоположение не указано';
+    const search_name = item.search_name || '';
+    const created_at = item.created_at ? new Date(item.created_at).toLocaleString() : '';
+    
+    return `
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-4">
+            <div class="item-card">
+                <a href="${escapeHtml(item.url)}" target="_blank" class="text-decoration-none">
+                    ${imageHTML}
+                </a>
+                <div class="item-card-body p-2">
+                    <h6 class="item-title mb-1" style="font-size: 12px; line-height: 1.2;">${escapeHtml(title)}</h6>
+                    <div class="text-success fw-bold mb-1" style="font-size: 12px;">${escapeHtml(price)}</div>
+                    <div class="text-muted mb-1" style="font-size: 10px;">${escapeHtml(location)}</div>
+                    <div class="text-muted mb-1" style="font-size: 10px;">${created_at}</div>
+                    <div class="text-primary" style="font-size: 10px;">${escapeHtml(search_name)}</div>
+                    <div class="mt-2">
+                        <a href="${escapeHtml(item.url)}" target="_blank" class="btn btn-primary btn-sm" style="font-size: 10px;">View</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.toString().replace(/[&<>"']/g, function(m) { return map[m]; });
 }
 
 // Запускаем автообновление каждые 10 секунд
