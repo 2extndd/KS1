@@ -273,11 +273,14 @@ class KufarScraper:
                         title_candidates = parent.find_all(text=True)
                         for candidate in title_candidates:
                             candidate = candidate.strip()
-                            if len(candidate) > 10 and 'р.' not in candidate:
+                            if len(candidate) > 10 and 'р.' not in candidate and not re.match(r'^\d+', candidate):
                                 title = candidate
                                 break
                     
-                    if not title:
+                    # Clean title from price prefixes
+                    title = self._clean_title(title)
+                    
+                    if not title or len(title) < 3:
                         title = f"Item {index + 1}"
                     
                     # Extract size information from the container text
@@ -286,6 +289,9 @@ class KufarScraper:
                     # Try to extract location
                     location = self._extract_location_from_container_text(price_text)
                     
+                    # Extract images from the container
+                    images = self._extract_images_from_container(parent)
+                    
                     ad_data = {
                         'ad_id': ad_id,
                         'title': title,
@@ -293,7 +299,7 @@ class KufarScraper:
                         'currency': 'BYN',
                         'description': title,
                         'url': url,
-                        'images': [],
+                        'images': images,
                         'location': location,
                         'size': size
                     }
@@ -384,6 +390,70 @@ class KufarScraper:
                 return city
         
         return ''
+    
+    def _clean_title(self, title: str) -> str:
+        """Clean title from price and other junk"""
+        if not title:
+            return ""
+        
+        import re
+        
+        # Remove price prefixes like "170 р." or "650 р.от 54,17 р. в месяц"
+        title = re.sub(r'^(\d+)\s*р\..*?(?=\s*[А-Яа-яA-Za-z])', '', title)
+        
+        # Remove other common prefixes
+        title = re.sub(r'^(от\s+\d+[.,]?\d*\s*р\.\s*в\s*месяц)', '', title)
+        title = re.sub(r'^(Договорная)', '', title)
+        title = re.sub(r'^(Бесплатно)', '', title)
+        
+        # Clean up whitespace
+        title = title.strip()
+        
+        # Remove leading digits and symbols if they exist
+        title = re.sub(r'^[\d\s\.,\-:]+', '', title)
+        
+        return title.strip()
+    
+    def _extract_images_from_container(self, parent) -> List[str]:
+        """Extract image URLs from ad container"""
+        images = []
+        
+        try:
+            # Look for img tags
+            img_tags = parent.find_all('img', src=True)
+            
+            for img in img_tags:
+                src = img.get('src')
+                if src:
+                    # Convert relative URLs to absolute
+                    if src.startswith('//'):
+                        src = 'https:' + src
+                    elif src.startswith('/'):
+                        src = 'https://www.kufar.by' + src
+                    elif not src.startswith('http'):
+                        continue  # Skip invalid URLs
+                    
+                    # Filter out icons, logos, and other non-product images
+                    if not any(skip in src.lower() for skip in ['icon', 'logo', 'avatar', 'placeholder']):
+                        images.append(src)
+            
+            # Also look for background images in style attributes
+            elements_with_style = parent.find_all(attrs={'style': True})
+            for element in elements_with_style:
+                style = element.get('style', '')
+                bg_match = re.search(r'background-image:\s*url\(["\']?([^"\')\s]+)["\']?\)', style)
+                if bg_match:
+                    bg_url = bg_match.group(1)
+                    if bg_url.startswith('//'):
+                        bg_url = 'https:' + bg_url
+                    elif bg_url.startswith('/'):
+                        bg_url = 'https://www.kufar.by' + bg_url
+                    images.append(bg_url)
+        
+        except Exception as e:
+            logger.debug(f"Error extracting images: {e}")
+        
+        return images[:3]  # Limit to first 3 images
     
     def _extract_ad_from_element(self, element) -> Optional[Dict[str, Any]]:
         """Extract ad data from HTML element"""
