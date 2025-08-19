@@ -266,28 +266,17 @@ class KufarScraper:
                     # Found price, this might be the ad container
                     price = int(price_match.group(1))
                     
-                    # Extract title - from link text or nearby elements
-                    title = link.get_text(strip=True)
-                    if not title or len(title) < 3:
-                        # Try to find title in parent
-                        title_candidates = parent.find_all(text=True)
-                        for candidate in title_candidates:
-                            candidate = candidate.strip()
-                            if len(candidate) > 10 and 'р.' not in candidate and not re.match(r'^\d+', candidate):
-                                title = candidate
-                                break
-                    
-                    # Clean title from price prefixes
-                    title = self._clean_title(title)
+                    # Extract title more intelligently
+                    title = self._extract_title_from_container(link, parent)
                     
                     if not title or len(title) < 3:
                         title = f"Item {index + 1}"
                     
-                    # Extract size information from the container text
-                    size = self._extract_size_from_container_text(price_text)
+                    # Extract size information more intelligently
+                    size = self._extract_size_from_container_smart(parent)
                     
-                    # Try to extract location
-                    location = self._extract_location_from_container_text(price_text)
+                    # Try to extract location more intelligently  
+                    location = self._extract_location_from_container_smart(parent)
                     
                     # Extract images from the container
                     images = self._extract_images_from_container(parent)
@@ -352,6 +341,100 @@ class KufarScraper:
         
         return ''
     
+    def _extract_size_from_container_smart(self, parent) -> str:
+        """Extract size more intelligently from container"""
+        import re
+        
+        # Method 1: Look for size in specific elements
+        size_selectors = [
+            '[class*="size"]', '[class*="Size"]',
+            '[class*="param"]', '[class*="Param"]',
+            '[class*="spec"]', '[class*="Spec"]'
+        ]
+        
+        for selector in size_selectors:
+            size_elem = parent.select_one(selector)
+            if size_elem:
+                size_text = size_elem.get_text(strip=True)
+                size = self._extract_size_from_container_text(size_text)
+                if size:
+                    return size
+        
+        # Method 2: Look for isolated size patterns in text nodes
+        for text_elem in parent.find_all(text=True):
+            text = text_elem.strip()
+            # Look for sizes that are separate from other text
+            if len(text) < 20:  # Size info is usually short
+                size = self._extract_size_from_container_text(text)
+                if size and self._is_likely_standalone_size(text):
+                    return size
+        
+        # Method 3: Fallback to old method
+        full_text = parent.get_text()
+        return self._extract_size_from_container_text(full_text)
+    
+    def _is_likely_standalone_size(self, text: str) -> bool:
+        """Check if text looks like standalone size info"""
+        import re
+        
+        # Should not contain prices, locations, or long descriptions
+        if any(word in text.lower() for word in ['р.', 'byn', 'usd', 'минск', 'гомель', 'брест']):
+            return False
+        
+        # Should be mostly numbers, letters, and size-related symbols
+        clean_text = re.sub(r'[\d\s\(\)XSMLXL\-,.]', '', text)
+        return len(clean_text) < 3  # Very few other characters
+    
+    def _extract_location_from_container_smart(self, parent) -> str:
+        """Extract location more intelligently from container"""
+        import re
+        
+        belarus_cities = ['Минск', 'Гомель', 'Брест', 'Витебск', 'Гродно', 'Могилёв']
+        
+        # Method 1: Look for location in specific elements
+        location_selectors = [
+            '[class*="location"]', '[class*="Location"]',
+            '[class*="address"]', '[class*="Address"]',
+            '[class*="place"]', '[class*="Place"]',
+            '[class*="region"]', '[class*="Region"]'
+        ]
+        
+        for selector in location_selectors:
+            location_elem = parent.select_one(selector)
+            if location_elem:
+                location_text = location_elem.get_text(strip=True)
+                for city in belarus_cities:
+                    if city in location_text:
+                        return self._clean_location_text(location_text)
+        
+        # Method 2: Look for cities in isolated text nodes
+        for text_elem in parent.find_all(text=True):
+            text = text_elem.strip()
+            # Check if this text contains a city and looks like location info
+            for city in belarus_cities:
+                if city in text and len(text) < 50:  # Location info is usually short
+                    # Make sure it's not part of a title or description
+                    if not any(noise in text.lower() for noise in ['купить', 'продать', 'цена', 'р.']):
+                        return self._clean_location_text(text)
+        
+        # Method 3: Fallback to old method
+        full_text = parent.get_text()
+        return self._extract_location_from_container_text(full_text)
+    
+    def _clean_location_text(self, location_text: str) -> str:
+        """Clean location text more thoroughly"""
+        import re
+        
+        if not location_text:
+            return ""
+        
+        # Remove time stamps, prices, etc.
+        location_text = re.sub(r'\d{1,2}:\d{2}', '', location_text)  # Remove time
+        location_text = re.sub(r'\d+\s*(р\.|BYN|USD)', '', location_text)  # Remove prices
+        location_text = re.sub(r'(от\s+)?\d+[.,]?\d*\s*р\.\s*(в\s*месяц)?', '', location_text)  # Remove detailed prices
+        
+        return location_text.strip()
+    
     def _is_valid_size_quick(self, size: str) -> bool:
         """Quick validation for clothing sizes"""
         import re
@@ -413,6 +496,55 @@ class KufarScraper:
         title = re.sub(r'^[\d\s\.,\-:]+', '', title)
         
         return title.strip()
+    
+    def _extract_title_from_container(self, link, parent) -> str:
+        """Extract clean title from link and container"""
+        import re
+        
+        # Method 1: Try link text first
+        title = link.get_text(strip=True)
+        if title and len(title) > 5 and not re.match(r'^\d+', title):
+            return self._clean_title(title)
+        
+        # Method 2: Look for title in specific elements within parent
+        title_selectors = [
+            'h1', 'h2', 'h3', 'h4', 'h5', 'h6',  # Headings
+            '[class*="title"]', '[class*="Title"]',  # Title classes
+            '[class*="name"]', '[class*="Name"]',    # Name classes
+            '[class*="subject"]', '[class*="Subject"]'  # Subject classes
+        ]
+        
+        for selector in title_selectors:
+            title_elem = parent.select_one(selector)
+            if title_elem:
+                title = title_elem.get_text(strip=True)
+                if title and len(title) > 5:
+                    return self._clean_title(title)
+        
+        # Method 3: Look for the longest text that doesn't contain price or location
+        text_candidates = []
+        for text_elem in parent.find_all(text=True):
+            text = text_elem.strip()
+            if (len(text) > 10 and 
+                'р.' not in text and 
+                'BYN' not in text and
+                'USD' not in text and
+                not re.match(r'^\d+[.,]?\d*$', text) and  # Not just numbers
+                not any(city in text for city in ['Минск', 'Гомель', 'Брест', 'Витебск', 'Гродно', 'Могилёв']) and
+                not re.search(r'\d{4}-\d{2}-\d{2}', text) and  # Not dates
+                not re.search(r'\d{1,2}:\d{2}', text)):  # Not times
+                text_candidates.append(text)
+        
+        # Sort by length and take the longest reasonable one
+        text_candidates.sort(key=len, reverse=True)
+        for candidate in text_candidates[:3]:  # Check top 3
+            cleaned = self._clean_title(candidate)
+            if len(cleaned) > 5:
+                return cleaned
+        
+        # Method 4: Fall back to link text, cleaned
+        title = link.get_text(strip=True)
+        return self._clean_title(title) if title else ""
     
     def _extract_images_from_container(self, parent) -> List[str]:
         """Extract image URLs from ad container"""
