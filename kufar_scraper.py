@@ -342,36 +342,70 @@ class KufarScraper:
         return ''
     
     def _extract_size_from_container_smart(self, parent) -> str:
-        """Extract size more intelligently from container"""
+        """Extract size from REAL Kufar structure - sizes appear after price"""
         import re
         
-        # Method 1: Look for size in specific elements
-        size_selectors = [
-            '[class*="size"]', '[class*="Size"]',
-            '[class*="param"]', '[class*="Param"]',
-            '[class*="spec"]', '[class*="Spec"]'
+        # Method 1: Look for size patterns after price in real Kufar structure
+        # Real Kufar shows sizes like: "15 р. Рубашка белая школьная, размер L 50 (L)"
+        full_text = parent.get_text()
+        
+        # Look for sizes in typical Kufar format: after "р." and before badges
+        kufar_size_patterns = [
+            # Pattern: "15 р.от X р. в месяцТекст товара 48 (M), 50 (L)badge"
+            r'р\.(?:от\s+[\d,]+\s*р\.\s*в\s*месяц)?[^0-9]+?(\d{2,3}\s*\([XSMLXL]+\)(?:\s*,\s*\d{2,3}\s*\([XSMLXL]+\))*)',
+            
+            # Pattern: "р. название товара размер 50 (L)"
+            r'р\.[^0-9]+?размер\s+([XSMLXL]|\d{2,3}(?:\s*\([XSMLXL]+\))?)',
+            
+            # Pattern: just after price without other numbers in between 
+            r'р\.[^0-9]*?(\d{2,3}\s*\([XSMLXL]+\))',
+            
+            # Pattern: standalone sizes in the middle of text
+            r'\b(\d{2,3}\s*\([XSMLXL]+\))(?:\s*,\s*(\d{2,3}\s*\([XSMLXL]+\)))*',
+            
+            # Pattern: sizes after clothing items mention
+            r'(?:рубашка|футболка|куртка|брюки|джинсы|костюм|свитер)[^0-9]*?(\d{2,3}(?:\s*\([XSMLXL]+\))?)',
         ]
         
-        for selector in size_selectors:
-            size_elem = parent.select_one(selector)
-            if size_elem:
-                size_text = size_elem.get_text(strip=True)
-                size = self._extract_size_from_container_text(size_text)
-                if size:
-                    return size
+        for pattern in kufar_size_patterns:
+            matches = re.findall(pattern, full_text, re.IGNORECASE)
+            if matches:
+                for match in matches:
+                    if isinstance(match, tuple):
+                        # Take first non-empty element from tuple
+                        size_candidate = next((m for m in match if m), '')
+                    else:
+                        size_candidate = match
+                    
+                    if size_candidate and self._is_valid_size_quick(size_candidate):
+                        logger.debug(f"📏 Found size with pattern: {size_candidate}")
+                        return size_candidate.strip()
         
-        # Method 2: Look for isolated size patterns in text nodes
-        for text_elem in parent.find_all(text=True):
-            text = text_elem.strip()
-            # Look for sizes that are separate from other text
-            if len(text) < 20:  # Size info is usually short
-                size = self._extract_size_from_container_text(text)
-                if size and self._is_likely_standalone_size(text):
-                    return size
+        # Method 2: Look for sizes in smaller text elements (might be separate spans)
+        small_elements = parent.find_all(['span', 'div', 'small'], string=re.compile(r'\d{2,3}\s*\([XSMLXL]+\)'))
+        for elem in small_elements:
+            text = elem.get_text(strip=True)
+            size = self._extract_size_from_container_text(text)
+            if size and self._is_valid_size_quick(size):
+                logger.debug(f"📏 Found size in small element: {size}")
+                return size
         
-        # Method 3: Fallback to old method
-        full_text = parent.get_text()
-        return self._extract_size_from_container_text(full_text)
+        # Method 3: Look for common size text patterns
+        size_text_patterns = [
+            r'размер\s+([XSMLXL]|\d{2,3})',
+            r'р-р\s+(\d{2,3})',
+            r'\b([XSMLXL]{1,3})\b(?!\s*размер)',  # Standalone size letters
+        ]
+        
+        for pattern in size_text_patterns:
+            match = re.search(pattern, full_text, re.IGNORECASE)
+            if match:
+                size_candidate = match.group(1)
+                if self._is_valid_size_quick(size_candidate):
+                    logger.debug(f"📏 Found size with text pattern: {size_candidate}")
+                    return size_candidate
+        
+        return ""
     
     def _is_likely_standalone_size(self, text: str) -> bool:
         """Check if text looks like standalone size info"""

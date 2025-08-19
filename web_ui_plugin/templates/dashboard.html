@@ -336,7 +336,7 @@ function createItemCardHTML(item) {
            </div>`;
     
     const title = item.title && item.title.length > 40 ? item.title.substring(0, 40) + '...' : (item.title || 'No title');
-    const price = item.price || 'N/A';
+    const price = formatPriceForCard(item.price, item.currency);
     const location = item.location || 'Местоположение не указано';
     const search_name = item.search_name || '';
     const created_at = item.created_at ? new Date(item.created_at).toLocaleString() : '';
@@ -372,6 +372,14 @@ function escapeHtml(text) {
         "'": '&#039;'
     };
     return text.toString().replace(/[&<>"']/g, function(m) { return map[m]; });
+}
+
+function formatPriceForCard(price, currency = 'BYN') {
+    if (!price || price === 0) return 'Цена не указана';
+    
+    // Format number with thousand separators
+    const formattedPrice = new Intl.NumberFormat('ru-RU').format(price);
+    return `${formattedPrice} ${currency}`;
 }
 
 // Запускаем автообновление каждые 10 секунд
