@@ -274,6 +274,7 @@ class KufarScraper:
                     
                     # Extract size information more intelligently
                     size = self._extract_size_from_container_smart(parent)
+                    logger.info(f"🔍 SIZE DEBUG: Extracted size for '{title}': '{size}' from container")
                     
                     # Try to extract location more intelligently  
                     location = self._extract_location_from_container_smart(parent)
@@ -293,6 +294,7 @@ class KufarScraper:
                         'size': size
                     }
                     
+                    logger.info(f"📄 SIZE DEBUG: Final ad_data for '{title}': size='{size}'")
                     logger.debug(f"📄 Extracted ad: {title} - {price} р. - {size}")
                     return ad_data
                 

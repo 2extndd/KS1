@@ -347,11 +347,13 @@ class KufarSearcher:
                 
                 # Extract size from item if available
                 size_info = getattr(item, 'size', '')
+                logger.info(f"🔍 SIZE DEBUG: Item '{item.title}' has size attribute: '{size_info}'")
                 
                 # Prepare raw_data with size information
                 raw_data = item.raw_data.copy() if item.raw_data else {}
                 if size_info:
                     raw_data['size'] = size_info
+                    logger.info(f"🔍 SIZE DEBUG: Added size '{size_info}' to raw_data for '{item.title}'")
                 
                 item_data = {
                     'kufar_id': item.id,

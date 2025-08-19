@@ -30,9 +30,13 @@ def extract_size_from_item_data(item):
     raw_data = item.get('raw_data', {})
     title = item.get('title', '')
     
+    logger.info(f"🔍 SIZE DEBUG EXTRACT: Extracting size for item '{title}'. raw_data: {raw_data}")
+    
     # Try to extract size from various sources
     if isinstance(raw_data, dict):
         size = raw_data.get('size', '') or raw_data.get('параметры', {}).get('размер', '')
+        if size:
+            logger.info(f"🔍 SIZE DEBUG EXTRACT: Found size in raw_data: '{size}'")
     
     # If no size found, try to extract from description and title
     if not size:
@@ -44,9 +48,12 @@ def extract_size_from_item_data(item):
                 
             size = _extract_size_with_validation_webui(text)
             if size:
+                logger.info(f"🔍 SIZE DEBUG EXTRACT: Extracted size from text '{text[:50]}...': '{size}'")
                 break
     
-    return size.strip() if size else ""
+    final_size = size.strip() if size else ""
+    logger.info(f"🔍 SIZE DEBUG EXTRACT: Final size for '{title}': '{final_size}'")
+    return final_size
 
 def _extract_size_with_validation_webui(text: str) -> str:
     """Extract size with validation to avoid false positives (WebUI version)"""
@@ -161,11 +168,14 @@ def format_price_with_size(item):
     
     # Extract size
     size = extract_size_from_item_data(item)
+    logger.info(f"🔍 SIZE DEBUG WEB UI: Item '{item.get('title', 'Unknown')}' extracted size: '{size}'")
     
     # Combine price and size
     if size:
+        logger.info(f"🔍 SIZE DEBUG WEB UI: Displaying size '{size}' for item '{item.get('title', 'Unknown')}'")
         return f"{price_text}<br/><small class='text-muted'>{size}</small>"
     else:
+        logger.info(f"🔍 SIZE DEBUG WEB UI: No size to display for item '{item.get('title', 'Unknown')}'")
         return price_text
 
 def create_app():

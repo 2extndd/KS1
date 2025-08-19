@@ -84,6 +84,7 @@ class Item:
             
             # Size information
             self.size = self._extract_size()
+            logger.info(f"🔍 SIZE DEBUG: Item '{self.title}' extracted size: '{self.size}'")
             
         except Exception as e:
             logger.error(f"Error parsing item data: {e}")
