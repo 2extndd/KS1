@@ -24,38 +24,132 @@ from railway_redeploy import redeployer
 from configuration_values import SECRET_KEY
 
 def extract_size_from_item_data(item):
-    """Extract size information from item data for WebUI"""
+    """Extract size information from item data for WebUI with improved validation"""
     size = ""
     description = item.get('description', '')
     raw_data = item.get('raw_data', {})
+    title = item.get('title', '')
     
     # Try to extract size from various sources
     if isinstance(raw_data, dict):
         size = raw_data.get('size', '') or raw_data.get('параметры', {}).get('размер', '')
     
-    # If no size found, try to extract from description
-    if not size and description:
-        import re
-        # Look for size patterns like "48 (M)", "M", "Large", etc.
-        size_patterns = [
-            r'размер\s+(\d+\s*\([XSMLXL]+\))',  # размер 48 (M)
-            r'размер\s+([XSMLXL]{1,3})\b',      # размер M, XL, XXL
-            r'размер\s+(\d{2,3})\b',            # размер 48
-            r'в\s+размере\s+([XSMLXL]{1,3})\b', # в размере XXL
-            r'в\s+размере\s+(\d{2,3})\b',       # в размере 48
-            r'size\s+([XSMLXL]{1,3})\b',        # size XL
-            r'\b(\d+\s*\([XSMLXL]+\))',         # 48 (M)
-            r'\b([XSMLXL]{1,3})\b',             # M, XL, XXL (standalone)
-            r'\b(\d{2,3})\s*размер',            # 48 размер
-            r'\b(large|medium|small)\b',        # Large, Medium, Small
-        ]
-        for pattern in size_patterns:
-            match = re.search(pattern, description, re.IGNORECASE)
-            if match:
-                size = match.group(1)
+    # If no size found, try to extract from description and title
+    if not size:
+        texts_to_check = [title, description]
+        
+        for text in texts_to_check:
+            if not text:
+                continue
+                
+            size = _extract_size_with_validation_webui(text)
+            if size:
                 break
     
     return size.strip() if size else ""
+
+def _extract_size_with_validation_webui(text: str) -> str:
+    """Extract size with validation to avoid false positives (WebUI version)"""
+    if not text:
+        return ""
+    
+    import re
+    
+    # More precise size patterns with context
+    size_patterns = [
+        # Explicit size mentions
+        r'размер[:.\s]+(\d+[-–]\d+\s*\([XSMLXL]+\))',  # размер: 52-54 (XXL)
+        r'размер[:.\s]+(\d+\s*\([XSMLXL]+\))',         # размер: 48 (M)
+        r'размер[:.\s]+([XSMLXL]{1,3})\b',             # размер: M, XL, XXL
+        r'размер[:.\s]+(\d{2,3})\b',                   # размер: 48
+        r'р-р[:.\s]+(\d+[-–]\d+)',                     # р-р: 48-50
+        r'р-р[:.\s]+(\d{2,3})',                        # р-р: 48
+        r'в\s+размере\s+([XSMLXL]{1,3})\b',           # в размере XXL
+        r'в\s+размере\s+(\d{2,3})\b',                 # в размере 48
+        r'size[:.\s]+([XSMLXL]{1,3})\b',              # size: XL
+        
+        # Size in parentheses after clothing items
+        r'(?:куртка|рубашка|платье|джинсы|брюки|футболка|свитер|костюм|пальто|блузка|юбка|шорты|толстовка|худи|кофта|свитшот)\s+.*?(\d+[-–]\d+\s*\([XSMLXL]+\))',
+        r'(?:куртка|рубашка|платье|джинсы|брюки|футболка|свитер|костюм|пальто|блузка|юбка|шорты|толстовка|худи|кофта|свитшот)\s+.*?(\d+\s*\([XSMLXL]+\))',
+        r'(?:куртка|рубашка|платье|джинсы|брюки|футболка|свитер|костюм|пальто|блузка|юбка|шорты|толстовка|худи|кофта|свитшот)\s+.*?\b([XSMLXL]{1,3})\b',
+    ]
+    
+    for pattern in size_patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            potential_size = match.group(1).strip()
+            
+            # Validate the extracted size
+            if _is_valid_clothing_size_webui(potential_size, text):
+                return potential_size
+    
+    return ""
+
+def _is_valid_clothing_size_webui(size: str, context: str) -> bool:
+    """Validate if the extracted text is actually a clothing size (WebUI version)"""
+    if not size:
+        return False
+    
+    import re
+    
+    # List of words that indicate this is likely clothing
+    clothing_indicators = [
+        'куртка', 'рубашка', 'платье', 'джинсы', 'брюки', 'футболка', 'свитер', 
+        'костюм', 'пальто', 'блузка', 'юбка', 'шорты', 'толстовка', 'худи', 
+        'кофта', 'майка', 'рубашка', 'жакет', 'жилет', 'комбинезон', 'халат',
+        'одежда', 'размер', 'р-р', 'size', 'свитшот'
+    ]
+    
+    # Check if context contains clothing-related words
+    has_clothing_context = any(word in context.lower() for word in clothing_indicators)
+    
+    # List of things that are definitely NOT clothing sizes
+    false_positives = [
+        # Years
+        r'^(19|20)\d{2}$',  # 1990, 2020 etc
+        # Large numbers that are likely prices or IDs
+        r'^\d{4,}$',  # 1000, 10000 etc
+        r'^[5-9]\d{2}$',  # 500+, likely IDs not sizes
+        # Phone numbers parts
+        r'^\d{2,3}$' if not has_clothing_context else None,  # 25, 375 etc without clothing context
+        # Common non-size words
+        r'^(the|and|для|или|от|до|за|на|в|с|по)$',
+    ]
+    
+    # Check against false positives
+    for fp_pattern in false_positives:
+        if fp_pattern and re.match(fp_pattern, size, re.IGNORECASE):
+            return False
+    
+    # Valid size patterns
+    valid_patterns = [
+        r'^[XSMLXL]{1,4}$',  # XS, S, M, L, XL, XXL, XXXL
+        r'^\d{2,3}$',        # 42, 48, 52 etc (if has clothing context)
+        r'^\d{2,3}[-–]\d{2,3}$',  # 48-50, 52-54
+        r'^\d{2,3}\s*\([XSMLXL]+\)$',  # 48 (M), 52 (L)
+        r'^\d{2,3}[-–]\d{2,3}\s*\([XSMLXL]+\)$',  # 52-54 (XL)
+        r'^(large|medium|small|extra)$',  # English size words
+    ]
+    
+    # Check if size matches valid patterns
+    for pattern in valid_patterns:
+        if re.match(pattern, size, re.IGNORECASE):
+            # For numeric sizes, require clothing context AND reasonable range
+            if re.match(r'^\d', size):
+                if has_clothing_context:
+                    # Additional check for reasonable clothing sizes
+                    numeric_part = re.findall(r'\d+', size)
+                    if numeric_part:
+                        num = int(numeric_part[0])
+                        # Reasonable clothing size range (european sizes mostly 36-70)
+                        if 30 <= num <= 70:
+                            return True
+                return False
+            else:
+                # Letter sizes are usually valid
+                return True
+    
+    return False
 
 def format_price_with_size(item):
     """Format price with size in format '75 BYN - 48 (M)'"""

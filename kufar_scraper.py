@@ -250,13 +250,15 @@ class KufarScraper:
                         ad_data['images'] = [src]
                         break
             
-            # Extract location
+            # Extract location with improved patterns
             location_selectors = [
                 '[data-testid*="location"]', 
                 '.location', 
                 '[class*="Location"]',
                 '[class*="region"]',
                 '[class*="address"]',
+                '[class*="place"]',
+                '[class*="geo"]',
                 # Look for common location patterns
                 'span:contains("Минск")',
                 'span:contains("Гомель")', 
@@ -265,19 +267,33 @@ class KufarScraper:
                 'span:contains("Гродно")',
                 'span:contains("Могилёв")',
                 'div:contains("область")',
-                'span[class*="text-muted"]:contains(",")'
+                'span[class*="text-muted"]',
+                # Additional patterns
+                '*[class*="meta"]',
+                '*[class*="info"]',
             ]
+            
+            # Try multiple approaches for location
             for selector in location_selectors:
                 try:
                     location_elem = element.select_one(selector)
                     if location_elem:
                         location_text = location_elem.get_text(strip=True)
-                        # Filter out non-location text
-                        if any(city in location_text for city in ['Минск', 'Гомель', 'Брест', 'Витебск', 'Гродно', 'Могилёв']) or 'область' in location_text:
-                            ad_data['location'] = location_text
+                        
+                        # Clean and validate location
+                        clean_location = self._clean_location_text(location_text)
+                        if clean_location:
+                            ad_data['location'] = clean_location
                             break
                 except:
                     continue
+            
+            # If no location found, try to extract from all text
+            if not ad_data.get('location'):
+                element_text = element.get_text()
+                extracted_location = self._extract_location_from_text(element_text)
+                if extracted_location:
+                    ad_data['location'] = extracted_location
             
             # Extract size information from title and description
             ad_data['size'] = self._extract_size_from_text(ad_data.get('title', ''))
@@ -297,31 +313,168 @@ class KufarScraper:
         return None
     
     def _extract_size_from_text(self, text: str) -> str:
-        """Extract size information from text using regex patterns"""
+        """Extract size information from text using improved regex patterns with validation"""
         if not text:
             return ""
         
-        # Look for size patterns like "48 (M)", "M", "Large", etc.
+        import re
+        
+        # More precise size patterns with context
         size_patterns = [
-            r'размер\s+(\d+\s*\([XSMLXL]+\))',  # размер 48 (M)
-            r'размер\s+([XSMLXL]{1,3})\b',      # размер M, XL, XXL
-            r'размер\s+(\d{2,3})\b',            # размер 48
-            r'в\s+размере\s+([XSMLXL]{1,3})\b', # в размере XXL
-            r'в\s+размере\s+(\d{2,3})\b',       # в размере 48
-            r'size\s+([XSMLXL]{1,3})\b',        # size XL
-            r'\b(\d+\s*\([XSMLXL]+\))',         # 48 (M)
-            r'\b([XSMLXL]{1,3})\b',             # M, XL, XXL (standalone)
-            r'\b(\d{2,3})\s*размер',            # 48 размер
-            r'\b(large|medium|small)\b',        # Large, Medium, Small
-            r'р-р\s+(\d{2,3})',                # р-р 48
-            r'р\.\s*(\d{2,3})',                 # р. 48
-            r'(\d{2,3})-(\d{2,3})',             # 48-50
+            # Explicit size mentions
+            r'размер[:.\s]+(\d+[-–]\d+\s*\([XSMLXL]+\))',  # размер: 52-54 (XXL)
+            r'размер[:.\s]+(\d+\s*\([XSMLXL]+\))',         # размер: 48 (M)
+            r'размер[:.\s]+([XSMLXL]{1,3})\b',             # размер: M, XL, XXL
+            r'размер[:.\s]+(\d{2,3})\b',                   # размер: 48
+            r'р-р[:.\s]+(\d+[-–]\d+)',                     # р-р: 48-50
+            r'р-р[:.\s]+(\d{2,3})',                        # р-р: 48
+            r'в\s+размере\s+([XSMLXL]{1,3})\b',           # в размере XXL
+            r'в\s+размере\s+(\d{2,3})\b',                 # в размере 48
+            r'size[:.\s]+([XSMLXL]{1,3})\b',              # size: XL
+            
+            # Size in parentheses after clothing items
+            r'(?:куртка|рубашка|платье|джинсы|брюки|футболка|свитер|костюм|пальто|блузка|юбка|шорты|толстовка|худи|кофта|свитшот)\s+.*?(\d+[-–]\d+\s*\([XSMLXL]+\))',
+            r'(?:куртка|рубашка|платье|джинсы|брюки|футболка|свитер|костюм|пальто|блузка|юбка|шорты|толстовка|худи|кофта|свитшот)\s+.*?(\d+\s*\([XSMLXL]+\))',
+            r'(?:куртка|рубашка|платье|джинсы|брюки|футболка|свитер|костюм|пальто|блузка|юбка|шорты|толстовка|худи|кофта|свитшот)\s+.*?\b([XSMLXL]{1,3})\b',
         ]
         
         for pattern in size_patterns:
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
-                return match.group(1).strip()
+                potential_size = match.group(1).strip()
+                
+                # Validate the extracted size
+                if self._is_valid_clothing_size_scraper(potential_size, text):
+                    return potential_size
+        
+        return ""
+    
+    def _is_valid_clothing_size_scraper(self, size: str, context: str) -> bool:
+        """Validate if the extracted text is actually a clothing size (Scraper version)"""
+        if not size:
+            return False
+        
+        import re
+        
+        # List of words that indicate this is likely clothing
+        clothing_indicators = [
+            'куртка', 'рубашка', 'платье', 'джинсы', 'брюки', 'футболка', 'свитер', 
+            'костюм', 'пальто', 'блузка', 'юбка', 'шорты', 'толстовка', 'худи', 
+            'кофта', 'майка', 'рубашка', 'жакет', 'жилет', 'комбинезон', 'халат',
+            'одежда', 'размер', 'р-р', 'size', 'свитшот'
+        ]
+        
+        # Check if context contains clothing-related words
+        has_clothing_context = any(word in context.lower() for word in clothing_indicators)
+        
+        # List of things that are definitely NOT clothing sizes
+        false_positives = [
+            # Years
+            r'^(19|20)\d{2}$',  # 1990, 2020 etc
+            # Large numbers that are likely prices or IDs
+            r'^\d{4,}$',  # 1000, 10000 etc
+            r'^[5-9]\d{2}$',  # 500+, likely IDs not sizes (like 648)
+            # Phone numbers parts
+            r'^\d{2,3}$' if not has_clothing_context else None,  # 25, 375 etc without clothing context
+            # Common non-size words
+            r'^(the|and|для|или|от|до|за|на|в|с|по)$',
+        ]
+        
+        # Check against false positives
+        for fp_pattern in false_positives:
+            if fp_pattern and re.match(fp_pattern, size, re.IGNORECASE):
+                return False
+        
+        # Valid size patterns
+        valid_patterns = [
+            r'^[XSMLXL]{1,4}$',  # XS, S, M, L, XL, XXL, XXXL
+            r'^\d{2,3}$',        # 42, 48, 52 etc (if has clothing context)
+            r'^\d{2,3}[-–]\d{2,3}$',  # 48-50, 52-54
+            r'^\d{2,3}\s*\([XSMLXL]+\)$',  # 48 (M), 52 (L)
+            r'^\d{2,3}[-–]\d{2,3}\s*\([XSMLXL]+\)$',  # 52-54 (XL)
+            r'^(large|medium|small|extra)$',  # English size words
+        ]
+        
+        # Check if size matches valid patterns
+        for pattern in valid_patterns:
+            if re.match(pattern, size, re.IGNORECASE):
+                # For numeric sizes, require clothing context AND reasonable range
+                if re.match(r'^\d', size):
+                    if has_clothing_context:
+                        # Additional check for reasonable clothing sizes
+                        numeric_part = re.findall(r'\d+', size)
+                        if numeric_part:
+                            num = int(numeric_part[0])
+                            # Reasonable clothing size range (european sizes mostly 36-70)
+                            if 30 <= num <= 70:
+                                return True
+                    return False
+                else:
+                    # Letter sizes are usually valid
+                    return True
+        
+        return False
+    
+    def _clean_location_text(self, location_text: str) -> str:
+        """Clean and validate location text"""
+        if not location_text:
+            return ""
+        
+        # Remove extra whitespace
+        location_text = location_text.strip()
+        
+        # Known Belarus cities and regions
+        belarus_locations = [
+            'Минск', 'Гомель', 'Брест', 'Витебск', 'Гродно', 'Могилёв',
+            'Минская область', 'Гомельская область', 'Брестская область',
+            'Витебская область', 'Гродненская область', 'Могилёвская область',
+            'область', 'район', 'Беларусь', 'Belarus'
+        ]
+        
+        # Check if text contains location indicators
+        if any(loc in location_text for loc in belarus_locations):
+            # Clean up common non-location prefixes/suffixes
+            # Remove time stamps, prices, etc.
+            import re
+            
+            # Remove obvious non-location patterns
+            clean_text = re.sub(r'\d{1,2}:\d{2}', '', location_text)  # Remove time
+            clean_text = re.sub(r'\d+\s*(р\.|BYN|USD)', '', clean_text)  # Remove prices
+            clean_text = re.sub(r'вчера|сегодня|назад', '', clean_text, flags=re.IGNORECASE)  # Remove time words
+            
+            clean_text = clean_text.strip()
+            
+            # If still contains location indicators and is reasonable length
+            if any(loc in clean_text for loc in belarus_locations) and 3 <= len(clean_text) <= 50:
+                return clean_text
+        
+        return ""
+    
+    def _extract_location_from_text(self, text: str) -> str:
+        """Extract location from full element text"""
+        if not text:
+            return ""
+        
+        import re
+        
+        # Look for Belarus location patterns
+        location_patterns = [
+            r'(Минск(?:\s*,\s*[^,\n]{2,20})?)',
+            r'(Гомель(?:\s*,\s*[^,\n]{2,20})?)',
+            r'(Брест(?:\s*,\s*[^,\n]{2,20})?)',
+            r'(Витебск(?:\s*,\s*[^,\n]{2,20})?)',
+            r'(Гродно(?:\s*,\s*[^,\n]{2,20})?)',
+            r'(Могилёв(?:\s*,\s*[^,\n]{2,20})?)',
+            r'([А-Я][а-я]+(?:ская|ская)?\s+область)',
+            r'([А-Я][а-я]+\s+район)',
+        ]
+        
+        for pattern in location_patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                location = match.group(1).strip()
+                if 3 <= len(location) <= 50:  # Reasonable length
+                    return location
         
         return ""
     
