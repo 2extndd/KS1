@@ -1102,6 +1102,10 @@ class KufarScraper:
     def _normalize_ad_data(self, raw_data: Dict) -> Dict[str, Any]:
         """Normalize ad data to consistent format"""
         # For scraped data, the structure is different from API data
+        
+        # Extract size information
+        size_info = raw_data.get('size', '')
+        
         normalized = {
             'ad_id': str(raw_data.get('ad_id', '')),
             'subject': raw_data.get('title', ''),  # Use 'title' from scraped data
@@ -1115,7 +1119,16 @@ class KufarScraper:
             'refresh_time': None,
             'category': {},
             'url': raw_data.get('url', ''),  # Add URL to raw data
-            'size': raw_data.get('size', ''),  # Add size information
+            
+            # Store size in the parameters structure where Item class expects it
+            'parameters': {
+                'size': size_info
+            } if size_info else {},
+            
+            # Also store as direct field for compatibility
+            'size': size_info,
         }
+        
+        logger.info(f"🔍 SIZE DEBUG NORMALIZE: Size '{size_info}' stored in normalized data for '{raw_data.get('title', 'Unknown')}'")
         
         return normalized
