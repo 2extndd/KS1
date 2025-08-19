@@ -36,39 +36,93 @@ class KufarScraper:
             })
     
     def search_ads(self, search_url: str, max_items: int = 50) -> List[Dict[str, Any]]:
-        """Search for ads using Kufar URL"""
+        """Search for ads using Kufar URL with pagination support"""
         try:
-            # Make request to search page
-            response = self.session.get(search_url, timeout=30)
-            response.raise_for_status()
-            
-            # Parse HTML
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # Look for initial state data
             ads_data = []
+            page = 1
             
-            # Method 1: Extract from script tags
-            script_tags = soup.find_all('script')
-            for script in script_tags:
-                if script.string and 'window.__INITIAL_STATE__' in script.string:
-                    # Extract JSON data
-                    match = re.search(r'window\.__INITIAL_STATE__\s*=\s*({.*?});', script.string, re.DOTALL)
-                    if match:
-                        try:
-                            initial_state = json.loads(match.group(1))
-                            ads_data = self._extract_ads_from_state(initial_state)
+            while len(ads_data) < max_items:
+                # Construct URL with page parameter - try different pagination formats
+                if '?' in search_url:
+                    # Try different pagination parameter formats that Kufar might use
+                    page_url = f"{search_url}&cursor[p]={page}&size=30"  # Also request more items per page
+                else:
+                    page_url = f"{search_url}?cursor[p]={page}&size=30"
+                
+                logger.info(f"🔍 Scraping page {page}: {page_url}")
+                
+                # Make request to search page
+                response = self.session.get(page_url, timeout=30)
+                response.raise_for_status()
+                
+                # Parse HTML
+                soup = BeautifulSoup(response.text, 'html.parser')
+                
+                # Look for initial state data
+                page_ads = []
+                
+                # Method 1: Extract from script tags
+                script_tags = soup.find_all('script')
+                for script in script_tags:
+                    if script.string and 'window.__INITIAL_STATE__' in script.string:
+                        # Extract JSON data
+                        match = re.search(r'window\.__INITIAL_STATE__\s*=\s*({.*?});', script.string, re.DOTALL)
+                        if match:
+                            try:
+                                initial_state = json.loads(match.group(1))
+                                page_ads = self._extract_ads_from_state(initial_state)
+                                break
+                            except json.JSONDecodeError as e:
+                                logger.error(f"Error parsing initial state: {e}")
+                
+                # Method 2: Extract from ad cards in HTML
+                if not page_ads:
+                    page_ads = self._extract_ads_from_html(soup)
+                
+                # If no ads found on this page, stop pagination
+                if not page_ads:
+                    logger.info(f"🛑 No more ads found on page {page}, stopping pagination")
+                    break
+                
+                # Add new ads (avoid duplicates)
+                new_ads_count = 0
+                for ad in page_ads:
+                    ad_id = ad.get('ad_id') or ad.get('url', '')
+                    if ad_id and not any(existing.get('ad_id') == ad_id or existing.get('url') == ad_id for existing in ads_data):
+                        ads_data.append(ad)
+                        new_ads_count += 1
+                        
+                        # Stop if we've reached max_items
+                        if len(ads_data) >= max_items:
                             break
-                        except json.JSONDecodeError as e:
-                            logger.error(f"Error parsing initial state: {e}")
+                
+                logger.info(f"📦 Page {page}: found {len(page_ads)} ads, {new_ads_count} new, total: {len(ads_data)}")
+                
+                # If no new ads were added, probably reached the end
+                if new_ads_count == 0:
+                    logger.info(f"🛑 No new ads on page {page}, stopping pagination")
+                    break
+                
+                # If we got fewer ads than expected, probably reached the end
+                if len(page_ads) < 10:  # Usually pages have 20+ ads
+                    logger.info(f"🛑 Page {page} has only {len(page_ads)} ads, probably last page")
+                    break
+                
+                page += 1
+                
+                # Safety limit to prevent infinite loops
+                if page > 5:  # Don't go beyond 5 pages
+                    logger.info(f"🛑 Reached page limit {page}, stopping")
+                    break
+                
+                # Small delay between requests to be respectful
+                import time
+                time.sleep(0.5)
             
-            # Method 2: Extract from ad cards in HTML
-            if not ads_data:
-                ads_data = self._extract_ads_from_html(soup)
-            
-            # Limit results
-            logger.info(f"🔧 KufarScraper: max_items={max_items}, found={len(ads_data)}, returning={len(ads_data[:max_items])}")
-            return ads_data[:max_items]
+            # Limit results to requested amount
+            final_result = ads_data[:max_items]
+            logger.info(f"🔧 KufarScraper final: max_items={max_items}, found={len(ads_data)}, returning={len(final_result)}")
+            return final_result
             
         except Exception as e:
             logger.error(f"Error scraping Kufar: {e}")
@@ -116,21 +170,36 @@ class KufarScraper:
         ads = []
         
         try:
-            # Updated selectors for modern Kufar
+            # Comprehensive selectors for modern Kufar
             ad_selectors = [
-                # New Kufar selectors
+                # New Kufar selectors (most likely)
                 '[data-testid*="listing"]',
-                '[data-testid*="ad"]',
+                '[data-testid*="ad"]', 
+                '[data-testid*="item"]',
+                '[data-testid*="card"]',
+                # Class-based selectors
                 '[class*="listing"]',
                 '[class*="CardComponent"]',
                 '[class*="Card__root"]',
+                '[class*="AdCard"]',
+                '[class*="ListingCard"]',
+                '[class*="ItemCard"]',
+                # Generic article/section selectors
                 'article',
+                'section[class*="ad"]',
+                'section[class*="listing"]',
+                'section[class*="item"]',
+                # Div with specific patterns
+                'div[class*="card"]:has(a[href*="/item/"])',
+                'div:has(a[href*="/item/"])',
+                'a[href*="/item/"]',  # Direct links to items
                 # Legacy selectors
                 '.listing-card',
-                '.ad-card',
+                '.ad-card', 
                 '.item-card',
-                '[class*="AdCard"]',
-                '[class*="ListingCard"]'
+                # More generic selectors as fallback
+                '*[class*="Card"]:has(img)',
+                '*[class*="listing"]:has(img)',
             ]
             
             for selector in ad_selectors:
@@ -295,13 +364,25 @@ class KufarScraper:
                 if extracted_location:
                     ad_data['location'] = extracted_location
             
-            # Extract size information from title and description
-            ad_data['size'] = self._extract_size_from_text(ad_data.get('title', ''))
+            # Extract size information with priority order:
+            # 1. From characteristics block (most reliable)
+            # 2. From title and description (fallback)
             
-            # If no size in title, try to extract from element text content
-            if not ad_data['size']:
-                element_text = element.get_text()
-                ad_data['size'] = self._extract_size_from_text(element_text)
+            # Try to extract from characteristics first
+            characteristics_size = self._extract_size_from_characteristics(element)
+            if characteristics_size:
+                ad_data['size'] = characteristics_size
+                logger.debug(f"📏 Size extracted from characteristics: {characteristics_size}")
+            else:
+                # Fallback to text-based extraction
+                ad_data['size'] = self._extract_size_from_text(ad_data.get('title', ''))
+                if ad_data['size']:
+                    logger.debug(f"📏 Size extracted from text: {ad_data['size']}")
+                
+                # If no size in title, try to extract from element text content
+                if not ad_data['size']:
+                    element_text = element.get_text()
+                    ad_data['size'] = self._extract_size_from_text(element_text)
             
             # Only return if we have at least title and URL
             if ad_data.get('title') and ad_data.get('url'):
@@ -348,6 +429,143 @@ class KufarScraper:
                     return potential_size
         
         return ""
+    
+    def _extract_size_from_characteristics(self, element) -> str:
+        """Extract size from Kufar characteristics block"""
+        try:
+            # Look for characteristics/specifications sections
+            characteristics_selectors = [
+                '.characteristics',
+                '.specifications', 
+                '.specs',
+                '[class*="characteristic"]',
+                '[class*="specification"]',
+                '[class*="param"]',
+                '[class*="attr"]',
+                'dl',  # Definition list commonly used for characteristics
+                '.list-unstyled',  # Bootstrap unstyled list often used
+                '*:contains("Характеристики")',
+                '*:contains("Параметры")',
+                '*:contains("Размер")',
+            ]
+            
+            for selector in characteristics_selectors:
+                try:
+                    characteristics_elem = element.select_one(selector)
+                    if characteristics_elem:
+                        size = self._parse_size_from_characteristics_text(characteristics_elem.get_text())
+                        if size:
+                            return size
+                except:
+                    continue
+            
+            # Alternative approach: look for any element containing size information
+            # that looks like it's from a characteristics block
+            all_text_elements = element.find_all(text=True)
+            for text_elem in all_text_elements:
+                text = str(text_elem).strip()
+                if 'размер' in text.lower() and ('___' in text or ':' in text):
+                    # This looks like a characteristics line
+                    size = self._parse_size_from_characteristics_text(text)
+                    if size:
+                        return size
+            
+            return ""
+            
+        except Exception as e:
+            logger.debug(f"Error extracting size from characteristics: {e}")
+            return ""
+    
+    def _parse_size_from_characteristics_text(self, text: str) -> str:
+        """Parse size from characteristics text like 'Размер _________ 48 (M), 50 (L)'"""
+        if not text:
+            return ""
+        
+        import re
+        
+        # Patterns for characteristics format
+        characteristics_patterns = [
+            # "Размер _________ 48 (M), 50 (L)" or similar
+            r'размер\s*[_\s\.\-:]*\s*([^,\n]+(?:,\s*[^,\n]+)*)',
+            # "Размер обуви__________39, 39,5"
+            r'размер\s+обуви\s*[_\s\.\-:]*\s*([^,\n]+(?:,\s*[^,\n]+)*)',
+            # More generic pattern for size lines
+            r'размер[^:]*:\s*([^\n]+)',
+            r'размер[^_]*[_\s\.\-]+([^\n]+)',
+            # Pattern for lines that look like "Size: 48 (M), 50 (L)"
+            r'size\s*[_\s\.\-:]*\s*([^,\n]+(?:,\s*[^,\n]+)*)',
+        ]
+        
+        for pattern in characteristics_patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                size_text = match.group(1).strip()
+                
+                # Clean up the extracted size text
+                cleaned_size = self._clean_characteristics_size(size_text)
+                if cleaned_size:
+                    return cleaned_size
+        
+        return ""
+    
+    def _clean_characteristics_size(self, size_text: str) -> str:
+        """Clean and validate size extracted from characteristics"""
+        if not size_text:
+            return ""
+        
+        import re
+        
+        # Remove trailing punctuation and whitespace
+        size_text = size_text.strip(' \t\n\r.,;')
+        
+        # If it contains multiple sizes separated by commas, take the first valid one
+        # Example: "48 (M), 50 (L)" -> "48 (M)"
+        size_parts = [part.strip() for part in size_text.split(',')]
+        
+        for part in size_parts:
+            # Clean each part
+            part = part.strip(' \t\n\r.,;')
+            
+            # Check if this part looks like a valid size
+            if self._is_valid_characteristics_size(part):
+                return part
+        
+        # If no individual part is valid, return the whole thing if it's reasonable
+        if len(size_text) <= 50 and self._is_valid_characteristics_size(size_text):
+            return size_text
+        
+        return ""
+    
+    def _is_valid_characteristics_size(self, size: str) -> bool:
+        """Check if extracted characteristics size is valid"""
+        if not size or len(size) > 50:
+            return False
+        
+        import re
+        
+        # Valid size patterns for characteristics
+        valid_patterns = [
+            r'^\d{1,3}$',  # 48, 52
+            r'^\d{1,3}\s*\([XSMLXL]+\)$',  # 48 (M)
+            r'^\d{1,3}[-–]\d{1,3}$',  # 48-50
+            r'^\d{1,3}[-–]\d{1,3}\s*\([XSMLXL]+\)$',  # 48-50 (M)
+            r'^[XSMLXL]{1,4}$',  # XL, XXL
+            r'^\d{1,3}[.,]\d$',  # 39.5, 39,5 (for shoes)
+            r'^\d{1,3}[.,]\d{1,2}$',  # 39.5, 39,5 (for shoes)
+        ]
+        
+        for pattern in valid_patterns:
+            if re.match(pattern, size.strip(), re.IGNORECASE):
+                # Additional validation for reasonable ranges
+                numbers = re.findall(r'\d+', size)
+                if numbers:
+                    main_num = int(numbers[0])
+                    # Reasonable ranges for clothing (30-70) and shoes (20-60)
+                    if 20 <= main_num <= 70:
+                        return True
+                return True  # For non-numeric sizes like XL
+        
+        return False
     
     def _is_valid_clothing_size_scraper(self, size: str, context: str) -> bool:
         """Validate if the extracted text is actually a clothing size (Scraper version)"""

@@ -159,12 +159,13 @@ class Item:
             return ''
     
     def _extract_size(self) -> str:
-        """Extract size information from item data"""
-        # First check if size is directly available in raw_data
-        if 'size' in self.raw_data:
-            return str(self.raw_data['size']) if self.raw_data['size'] else ''
+        """Extract size information from item data with priority order"""
+        # Priority 1: Check if size is directly available in raw_data structure
+        size_from_data = self._extract_size_from_structured_data()
+        if size_from_data:
+            return size_from_data
         
-        # Extract from description and title
+        # Priority 2: Extract from description and title using text patterns
         texts_to_check = [
             self.title,
             self.description,
@@ -178,6 +179,95 @@ class Item:
                     return size
         
         return ''
+    
+    def _extract_size_from_structured_data(self) -> str:
+        """Extract size from structured API data (parameters, characteristics, etc.)"""
+        if not isinstance(self.raw_data, dict):
+            return ''
+        
+        # Common places where size information might be stored in API responses
+        size_fields = [
+            'size',
+            'parameters.size',
+            'characteristics.size', 
+            'account_parameters.size',
+            'ad_parameters.size',
+            'specs.size',
+        ]
+        
+        for field_path in size_fields:
+            try:
+                # Navigate nested dictionary paths like 'parameters.size'
+                current_data = self.raw_data
+                for key in field_path.split('.'):
+                    if isinstance(current_data, dict) and key in current_data:
+                        current_data = current_data[key]
+                    else:
+                        current_data = None
+                        break
+                
+                if current_data:
+                    size_value = str(current_data).strip()
+                    if size_value and self._is_valid_characteristics_size_api(size_value):
+                        return size_value
+                        
+            except (KeyError, AttributeError, TypeError):
+                continue
+        
+        # Look for size in account_parameters or ad_parameters arrays/objects
+        for param_field in ['account_parameters', 'ad_parameters', 'parameters']:
+            params = self.raw_data.get(param_field, {})
+            if isinstance(params, dict):
+                # Check for common size parameter names
+                size_keys = ['size', 'размер', 'Size', 'Размер', 'shoe_size', 'clothing_size']
+                for key in size_keys:
+                    if key in params:
+                        size_value = str(params[key]).strip()
+                        if size_value and self._is_valid_characteristics_size_api(size_value):
+                            return size_value
+            elif isinstance(params, list):
+                # Sometimes parameters are in list format
+                for param in params:
+                    if isinstance(param, dict):
+                        param_name = param.get('name', '').lower()
+                        param_value = param.get('value', '')
+                        if 'размер' in param_name or 'size' in param_name:
+                            size_value = str(param_value).strip()
+                            if size_value and self._is_valid_characteristics_size_api(size_value):
+                                return size_value
+        
+        return ''
+    
+    def _is_valid_characteristics_size_api(self, size: str) -> bool:
+        """Check if extracted size from API characteristics is valid"""
+        if not size or len(size) > 50:
+            return False
+        
+        import re
+        
+        # Valid size patterns for API characteristics (same as scraper)
+        valid_patterns = [
+            r'^\d{1,3}$',  # 48, 52
+            r'^\d{1,3}\s*\([XSMLXL]+\)$',  # 48 (M)
+            r'^\d{1,3}[-–]\d{1,3}$',  # 48-50
+            r'^\d{1,3}[-–]\d{1,3}\s*\([XSMLXL]+\)$',  # 48-50 (M)
+            r'^[XSMLXL]{1,4}$',  # XL, XXL
+            r'^\d{1,3}[.,]\d$',  # 39.5, 39,5 (for shoes)
+            r'^\d{1,3}[.,]\d{1,2}$',  # 39.5, 39,5 (for shoes)
+        ]
+        
+        for pattern in valid_patterns:
+            if re.match(pattern, size.strip(), re.IGNORECASE):
+                # Additional validation for reasonable ranges
+                numbers = re.findall(r'\d+', size)
+                if numbers:
+                    main_num = int(numbers[0])
+                    # Reasonable ranges for clothing (30-70) and shoes (20-60)
+                    if 20 <= main_num <= 70:
+                        return True
+                return True  # For non-numeric sizes like XL
+        
+        return False
     
     def _extract_size_from_text(self, text: str) -> str:
         """Extract size information from text using improved regex patterns with validation"""
