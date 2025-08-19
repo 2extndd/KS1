@@ -253,21 +253,24 @@ class TelegramWorker:
             
             # Format price
             if price > 0:
-                price_text = f"<b>{price:,} {currency}</b>".replace(',', ' ')
+                price_text = f"{price:,} {currency}".replace(',', ' ')
             else:
-                price_text = "<b>Цена не указана</b>"
+                price_text = "Цена не указана"
             
-            # Build message
+            # Build message with new format
             message_parts = [
-                f"🔍 {search_name}",
+                f"<b>{title}</b>",  # Заголовок жирным шрифтом
                 "",
-                f"<b>{title}</b>",
-                f"💶 {price_text}",
+                f"💶 {price_text}",  # Цена
             ]
             
             # Add size if available - в формате как в примере
             if size:
                 message_parts.append(f"⛓️{size}")
+            
+            # Add search name
+            if search_name:
+                message_parts.append(f"🔍 {search_name}")
             
             # Add location
             if location and location.strip():
