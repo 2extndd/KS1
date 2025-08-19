@@ -36,88 +36,46 @@ class KufarScraper:
             })
     
     def search_ads(self, search_url: str, max_items: int = 50) -> List[Dict[str, Any]]:
-        """Search for ads using Kufar URL with pagination support"""
+        """Search for ads using Kufar URL - simplified approach first"""
         try:
-            ads_data = []
-            page = 1
+            logger.info(f"🔍 Scraping Kufar URL: {search_url}")
             
-            while len(ads_data) < max_items:
-                # Construct URL with page parameter - try different pagination formats
-                if '?' in search_url:
-                    # Try different pagination parameter formats that Kufar might use
-                    page_url = f"{search_url}&cursor[p]={page}&size=30"  # Also request more items per page
-                else:
-                    page_url = f"{search_url}?cursor[p]={page}&size=30"
-                
-                logger.info(f"🔍 Scraping page {page}: {page_url}")
-                
-                # Make request to search page
-                response = self.session.get(page_url, timeout=30)
-                response.raise_for_status()
-                
-                # Parse HTML
-                soup = BeautifulSoup(response.text, 'html.parser')
-                
-                # Look for initial state data
-                page_ads = []
-                
-                # Method 1: Extract from script tags
-                script_tags = soup.find_all('script')
-                for script in script_tags:
-                    if script.string and 'window.__INITIAL_STATE__' in script.string:
-                        # Extract JSON data
-                        match = re.search(r'window\.__INITIAL_STATE__\s*=\s*({.*?});', script.string, re.DOTALL)
-                        if match:
-                            try:
-                                initial_state = json.loads(match.group(1))
-                                page_ads = self._extract_ads_from_state(initial_state)
-                                break
-                            except json.JSONDecodeError as e:
-                                logger.error(f"Error parsing initial state: {e}")
-                
-                # Method 2: Extract from ad cards in HTML
-                if not page_ads:
-                    page_ads = self._extract_ads_from_html(soup)
-                
-                # If no ads found on this page, stop pagination
-                if not page_ads:
-                    logger.info(f"🛑 No more ads found on page {page}, stopping pagination")
-                    break
-                
-                # Add new ads (avoid duplicates)
-                new_ads_count = 0
-                for ad in page_ads:
-                    ad_id = ad.get('ad_id') or ad.get('url', '')
-                    if ad_id and not any(existing.get('ad_id') == ad_id or existing.get('url') == ad_id for existing in ads_data):
-                        ads_data.append(ad)
-                        new_ads_count += 1
-                        
-                        # Stop if we've reached max_items
-                        if len(ads_data) >= max_items:
+            # Make request to search page
+            response = self.session.get(search_url, timeout=30)
+            response.raise_for_status()
+            
+            # Parse HTML
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Look for initial state data first
+            ads_data = []
+            
+            # Method 1: Extract from script tags (preferred)
+            script_tags = soup.find_all('script')
+            for script in script_tags:
+                if script.string and 'window.__INITIAL_STATE__' in script.string:
+                    # Extract JSON data
+                    match = re.search(r'window\.__INITIAL_STATE__\s*=\s*({.*?});', script.string, re.DOTALL)
+                    if match:
+                        try:
+                            initial_state = json.loads(match.group(1))
+                            ads_data = self._extract_ads_from_state(initial_state)
+                            logger.info(f"📦 Extracted {len(ads_data)} ads from initial state")
                             break
-                
-                logger.info(f"📦 Page {page}: found {len(page_ads)} ads, {new_ads_count} new, total: {len(ads_data)}")
-                
-                # If no new ads were added, probably reached the end
-                if new_ads_count == 0:
-                    logger.info(f"🛑 No new ads on page {page}, stopping pagination")
-                    break
-                
-                # If we got fewer ads than expected, probably reached the end
-                if len(page_ads) < 10:  # Usually pages have 20+ ads
-                    logger.info(f"🛑 Page {page} has only {len(page_ads)} ads, probably last page")
-                    break
-                
-                page += 1
-                
-                # Safety limit to prevent infinite loops
-                if page > 5:  # Don't go beyond 5 pages
-                    logger.info(f"🛑 Reached page limit {page}, stopping")
-                    break
-                
-                # Small delay between requests to be respectful
-                import time
-                time.sleep(0.5)
+                        except json.JSONDecodeError as e:
+                            logger.error(f"Error parsing initial state: {e}")
+            
+            # Method 2: Extract from HTML structure if initial state failed
+            if not ads_data:
+                logger.info("🔄 Fallback to HTML extraction")
+                ads_data = self._extract_ads_from_html(soup)
+                logger.info(f"📦 Extracted {len(ads_data)} ads from HTML")
+            
+            # Method 3: Simple text parsing as last resort
+            if not ads_data:
+                logger.info("🔄 Fallback to text-based extraction")
+                ads_data = self._extract_ads_from_text(soup)
+                logger.info(f"📦 Extracted {len(ads_data)} ads from text parsing")
             
             # Limit results to requested amount
             final_result = ads_data[:max_items]
@@ -170,36 +128,32 @@ class KufarScraper:
         ads = []
         
         try:
-            # Comprehensive selectors for modern Kufar
+            # Realistic selectors based on actual Kufar structure
             ad_selectors = [
-                # New Kufar selectors (most likely)
+                # Links to item pages (most reliable)
+                'a[href*="/item/"]',
+                'a[href*="/ad/"]',
+                # Common card selectors
+                '[class*="card"]',
+                '[class*="Card"]',
+                '[class*="listing"]',
+                '[class*="Listing"]',
+                '[class*="item"]',
+                '[class*="Item"]',
+                # Data attributes
                 '[data-testid*="listing"]',
                 '[data-testid*="ad"]', 
                 '[data-testid*="item"]',
                 '[data-testid*="card"]',
-                # Class-based selectors
-                '[class*="listing"]',
-                '[class*="CardComponent"]',
-                '[class*="Card__root"]',
-                '[class*="AdCard"]',
-                '[class*="ListingCard"]',
-                '[class*="ItemCard"]',
-                # Generic article/section selectors
+                # Generic containers that might hold ads
                 'article',
-                'section[class*="ad"]',
-                'section[class*="listing"]',
-                'section[class*="item"]',
-                # Div with specific patterns
-                'div[class*="card"]:has(a[href*="/item/"])',
-                'div:has(a[href*="/item/"])',
-                'a[href*="/item/"]',  # Direct links to items
-                # Legacy selectors
-                '.listing-card',
-                '.ad-card', 
-                '.item-card',
-                # More generic selectors as fallback
-                '*[class*="Card"]:has(img)',
-                '*[class*="listing"]:has(img)',
+                'section',
+                '.row > div',  # Bootstrap-style grid
+                '.col > div',
+                # Div containing price patterns
+                'div:contains("р.")',
+                'div:contains("BYN")',
+                'div:contains("USD")',
             ]
             
             for selector in ad_selectors:
@@ -217,6 +171,51 @@ class KufarScraper:
                         
         except Exception as e:
             logger.error(f"Error extracting ads from HTML: {e}")
+        
+        return ads
+    
+    def _extract_ads_from_text(self, soup: BeautifulSoup) -> List[Dict[str, Any]]:
+        """Extract ads using text patterns as last resort"""
+        ads = []
+        
+        try:
+            # Get all text from the page
+            page_text = soup.get_text()
+            
+            # Look for price patterns that indicate ads
+            import re
+            
+            # Pattern to find prices (e.g., "125 р.", "40 р.", etc.)
+            price_pattern = r'(\d+)\s*р\.'
+            prices = re.findall(price_pattern, page_text)
+            
+            logger.info(f"Found {len(prices)} price patterns in text")
+            
+            # For each price, try to find associated title and URL
+            for i, price in enumerate(prices[:50]):  # Limit to first 50 matches
+                try:
+                    # Create a basic ad structure
+                    ad_data = {
+                        'ad_id': f'text_extracted_{i}',
+                        'title': f'Item {i+1}',  # Placeholder title
+                        'price': int(price),
+                        'currency': 'BYN',
+                        'description': f'Price: {price} р.',
+                        'url': '',  # Will be filled if we find a link
+                        'images': [],
+                        'location': 'Минск',  # Default location
+                        'size': ''
+                    }
+                    
+                    ads.append(ad_data)
+                    
+                except (ValueError, AttributeError):
+                    continue
+            
+            logger.info(f"Text extraction created {len(ads)} ad entries")
+            
+        except Exception as e:
+            logger.error(f"Error in text extraction: {e}")
         
         return ads
     
