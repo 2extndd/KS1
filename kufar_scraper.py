@@ -156,18 +156,38 @@ class KufarScraper:
                 'div:contains("USD")',
             ]
             
-            for selector in ad_selectors:
-                ad_elements = soup.select(selector)
-                if ad_elements:
-                    logger.info(f"Found {len(ad_elements)} ads with selector: {selector}")
-                    
-                    for element in ad_elements:
-                        ad_data = self._extract_ad_from_element(element)
+            # Method 1: Find all links to items (most reliable)
+            item_links = soup.find_all('a', href=True)
+            item_links = [link for link in item_links if '/item/' in link.get('href', '')]
+            
+            logger.info(f"Found {len(item_links)} item links")
+            
+            if item_links:
+                for i, link in enumerate(item_links):
+                    try:
+                        # Extract data from link and its parent containers
+                        ad_data = self._extract_ad_from_link(link, i)
                         if ad_data:
                             ads.append(ad_data)
-                    
-                    if ads:
-                        break
+                    except Exception as e:
+                        logger.debug(f"Error processing link {i}: {e}")
+                        continue
+            
+            # Method 2: If no item links, try selector-based approach
+            if not ads:
+                logger.info("🔄 No item links found, trying selectors")
+                for selector in ad_selectors:
+                    ad_elements = soup.select(selector)
+                    if ad_elements:
+                        logger.info(f"Found {len(ad_elements)} ads with selector: {selector}")
+                        
+                        for element in ad_elements:
+                            ad_data = self._extract_ad_from_element(element)
+                            if ad_data:
+                                ads.append(ad_data)
+                        
+                        if ads:
+                            break
                         
         except Exception as e:
             logger.error(f"Error extracting ads from HTML: {e}")
@@ -218,6 +238,152 @@ class KufarScraper:
             logger.error(f"Error in text extraction: {e}")
         
         return ads
+    
+    def _extract_ad_from_link(self, link, index: int) -> Optional[Dict[str, Any]]:
+        """Extract ad data from item link and surrounding context"""
+        try:
+            # Get the URL
+            url = link.get('href', '')
+            if not url.startswith('http'):
+                url = 'https://www.kufar.by' + url
+            
+            # Extract ID from URL
+            import re
+            id_match = re.search(r'/item/(\d+)', url)
+            ad_id = id_match.group(1) if id_match else f'extracted_{index}'
+            
+            # Try to find parent container that might have all the ad info
+            parent = link.parent
+            for _ in range(5):  # Go up to 5 levels to find the ad container
+                if parent is None:
+                    break
+                    
+                # Look for price in this container
+                price_text = parent.get_text()
+                price_match = re.search(r'(\d+)\s*р\.', price_text)
+                
+                if price_match:
+                    # Found price, this might be the ad container
+                    price = int(price_match.group(1))
+                    
+                    # Extract title - from link text or nearby elements
+                    title = link.get_text(strip=True)
+                    if not title or len(title) < 3:
+                        # Try to find title in parent
+                        title_candidates = parent.find_all(text=True)
+                        for candidate in title_candidates:
+                            candidate = candidate.strip()
+                            if len(candidate) > 10 and 'р.' not in candidate:
+                                title = candidate
+                                break
+                    
+                    if not title:
+                        title = f"Item {index + 1}"
+                    
+                    # Extract size information from the container text
+                    size = self._extract_size_from_container_text(price_text)
+                    
+                    # Try to extract location
+                    location = self._extract_location_from_container_text(price_text)
+                    
+                    ad_data = {
+                        'ad_id': ad_id,
+                        'title': title,
+                        'price': price,
+                        'currency': 'BYN',
+                        'description': title,
+                        'url': url,
+                        'images': [],
+                        'location': location,
+                        'size': size
+                    }
+                    
+                    logger.debug(f"📄 Extracted ad: {title} - {price} р. - {size}")
+                    return ad_data
+                
+                parent = parent.parent
+            
+            # If no price found, create basic entry
+            title = link.get_text(strip=True) or f"Item {index + 1}"
+            ad_data = {
+                'ad_id': ad_id,
+                'title': title,
+                'price': 0,
+                'currency': 'BYN',
+                'description': title,
+                'url': url,
+                'images': [],
+                'location': '',
+                'size': ''
+            }
+            
+            return ad_data
+            
+        except Exception as e:
+            logger.debug(f"Error extracting ad from link: {e}")
+            return None
+    
+    def _extract_size_from_container_text(self, text: str) -> str:
+        """Extract size from container text like '48 (M)' or '52 (XL)'"""
+        import re
+        
+        # Patterns for sizes commonly found on Kufar
+        size_patterns = [
+            r'(\d{2,3}\s*\([XSMLXL]+\))',  # 48 (M), 52 (XL)
+            r'(\d{2,3}-\d{2,3}\s*\([XSMLXL]+\))',  # 52-54 (XXL)
+            r'(\d{2,3}[.,]\d{1,2})',  # 39.5 (shoes)
+            r'\b(\d{2,3})\s*\(',  # Just number before parentheses
+            r'\b([XSMLXL]{1,3})\b',  # Just size letters
+        ]
+        
+        for pattern in size_patterns:
+            match = re.search(pattern, text)
+            if match:
+                size = match.group(1)
+                # Validate it's actually a clothing size
+                if self._is_valid_size_quick(size):
+                    return size
+        
+        return ''
+    
+    def _is_valid_size_quick(self, size: str) -> bool:
+        """Quick validation for clothing sizes"""
+        import re
+        
+        # Must not be a year, phone number, or obviously wrong
+        if re.match(r'^(19|20)\d{2}$', size):  # Years like 1990, 2020
+            return False
+        if re.match(r'^[5-9]\d{2}$', size):  # Large numbers like 500+
+            return False
+        
+        # Extract first number to check range
+        numbers = re.findall(r'\d+', size)
+        if numbers:
+            num = int(numbers[0])
+            if 25 <= num <= 70:  # Reasonable clothing/shoe size range
+                return True
+        
+        # Accept letter sizes
+        if re.match(r'^[XSMLXL]{1,4}$', size):
+            return True
+            
+        return False
+    
+    def _extract_location_from_container_text(self, text: str) -> str:
+        """Extract location from container text"""
+        belarus_cities = ['Минск', 'Гомель', 'Брест', 'Витебск', 'Гродно', 'Могилёв']
+        
+        for city in belarus_cities:
+            if city in text:
+                # Try to extract district too
+                import re
+                pattern = f'{city}[^\\n]*?([А-Я][а-я]+ский|[А-Я][а-я]+кий)?'
+                match = re.search(pattern, text)
+                if match:
+                    return match.group(0).strip()
+                return city
+        
+        return ''
     
     def _extract_ad_from_element(self, element) -> Optional[Dict[str, Any]]:
         """Extract ad data from HTML element"""
