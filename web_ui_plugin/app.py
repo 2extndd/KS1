@@ -70,7 +70,7 @@ def format_price_with_size(item):
     
     # Combine price and size
     if size:
-        return f"{price_text} - {size}"
+        return f"{price_text}<br/><small class='text-muted'>{size}</small>"
     else:
         return price_text
 
@@ -159,13 +159,15 @@ def create_app():
             page = int(request.args.get('page', 1))
             per_page = int(request.args.get('per_page', 30))
             search_filter = request.args.get('search', '')
+            search_id = request.args.get('search_id', '')  # Добавляем фильтрацию по search_id
             
-            items_data = get_items_paginated(page, per_page, search_filter)
+            items_data = get_items_paginated(page, per_page, search_filter, search_id)
             
             return render_template('items.html',
                                  items=items_data['items'],
                                  pagination=items_data['pagination'],
-                                 search_filter=search_filter)
+                                 search_filter=search_filter,
+                                 search_id=search_id)
         except Exception as e:
             flash(f'Error loading items: {e}', 'error')
             return render_template('items.html', items=[], pagination={})
@@ -459,8 +461,15 @@ def create_app():
             # Save settings to database settings table
             for key, value in settings_to_save.items():
                 get_db().set_setting(key, value)
+                logger.info(f"🔧 Configuration saved: {key} = {value}")
             
-            get_db().add_log_entry('INFO', f'Configuration updated: {len(settings_to_save)} settings changed', 'WebUI', 'Configuration save operation')
+            # Log detailed information about what was saved
+            config_summary = []
+            for key, value in settings_to_save.items():
+                config_summary.append(f"{key}={value}")
+            
+            get_db().add_log_entry('INFO', f'Configuration updated: {", ".join(config_summary)}', 'WebUI', f'Updated {len(settings_to_save)} settings via web interface')
+            logger.info(f"✅ Configuration saved successfully: {settings_to_save}")
             
             return jsonify({'success': True, 'message': 'Configuration saved successfully'})
             
@@ -843,10 +852,11 @@ def create_app():
         try:
             page = int(request.args.get('page', 1))
             search_filter = request.args.get('search', '')
+            search_id = request.args.get('search_id', '')
             per_page = 30
             
             # Получаем пагинированные объявления
-            result = get_items_paginated(page=page, per_page=per_page, search_filter=search_filter)
+            result = get_items_paginated(page=page, per_page=per_page, search_filter=search_filter, search_id=search_id)
             
             return jsonify({
                 'success': True,
@@ -946,18 +956,29 @@ def get_recent_items(hours: int = 24):
         print(f"Error getting recent items: {e}")
         return []
 
-def get_items_paginated(page: int = 1, per_page: int = 20, search_filter: str = ''):
+def get_items_paginated(page: int = 1, per_page: int = 20, search_filter: str = '', search_id: str = ''):
     """Get paginated items"""
     try:
         offset = (page - 1) * per_page
         
         # Build query
-        where_clause = ""
+        where_conditions = []
         params = []
         
         if search_filter:
-            where_clause = "WHERE i.title ILIKE %s OR s.name ILIKE %s"
-            params = [f'%{search_filter}%', f'%{search_filter}%']
+            if get_db().is_postgres:
+                where_conditions.append("(i.title ILIKE %s OR s.name ILIKE %s)")
+            else:
+                where_conditions.append("(i.title LIKE %s OR s.name LIKE %s)")
+            params.extend([f'%{search_filter}%', f'%{search_filter}%'])
+        
+        if search_id:
+            where_conditions.append("i.search_id = %s")
+            params.append(int(search_id))
+        
+        where_clause = ""
+        if where_conditions:
+            where_clause = "WHERE " + " AND ".join(where_conditions)
         
         with get_db().get_connection() as conn:
             cursor = conn.cursor()

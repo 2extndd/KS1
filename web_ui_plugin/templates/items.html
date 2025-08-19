@@ -72,7 +72,7 @@
                     
                     <!-- Price with Size -->
                     <div class="mb-2">
-                        <span class="fw-bold text-dark" style="font-size: 16px;">{{ format_price_with_size(item) }}</span>
+                        <span class="fw-bold text-dark" style="font-size: 16px;">{{ format_price_with_size(item) | safe }}</span>
                     </div>
                     
                     <!-- Location -->
@@ -125,7 +125,7 @@
         <ul class="pagination justify-content-center">
             {% if pagination.has_prev %}
                 <li class="page-item">
-                    <a class="page-link" href="{{ url_for('items', page=pagination.page-1, search=search_filter) }}">
+                    <a class="page-link" href="{{ url_for('items', page=pagination.page-1, search=search_filter, search_id=search_id) }}">
                         <i class="fas fa-chevron-left"></i>
                     </a>
                 </li>
@@ -136,7 +136,7 @@
             
             {% if start_page > 1 %}
                 <li class="page-item">
-                    <a class="page-link" href="{{ url_for('items', page=1, search=search_filter) }}">1</a>
+                    <a class="page-link" href="{{ url_for('items', page=1, search=search_filter, search_id=search_id) }}">1</a>
                 </li>
                 {% if start_page > 2 %}
                     <li class="page-item disabled">
@@ -147,7 +147,7 @@
             
             {% for page_num in range(start_page, end_page + 1) %}
                 <li class="page-item {{ 'active' if page_num == pagination.page }}">
-                    <a class="page-link" href="{{ url_for('items', page=page_num, search=search_filter) }}">
+                    <a class="page-link" href="{{ url_for('items', page=page_num, search=search_filter, search_id=search_id) }}">
                         {{ page_num }}
                     </a>
                 </li>
@@ -160,7 +160,7 @@
                     </li>
                 {% endif %}
                 <li class="page-item">
-                    <a class="page-link" href="{{ url_for('items', page=pagination.total_pages, search=search_filter) }}">
+                    <a class="page-link" href="{{ url_for('items', page=pagination.total_pages, search=search_filter, search_id=search_id) }}">
                         {{ pagination.total_pages }}
                     </a>
                 </li>
@@ -168,7 +168,7 @@
             
             {% if pagination.has_next %}
                 <li class="page-item">
-                    <a class="page-link" href="{{ url_for('items', page=pagination.page+1, search=search_filter) }}">
+                    <a class="page-link" href="{{ url_for('items', page=pagination.page+1, search=search_filter, search_id=search_id) }}">
                         <i class="fas fa-chevron-right"></i>
                     </a>
                 </li>
@@ -222,9 +222,14 @@ function updateItemsPage() {
     const urlParams = new URLSearchParams(window.location.search);
     const currentPage = urlParams.get('page') || 1;
     const searchFilter = urlParams.get('search') || '';
+    const searchId = urlParams.get('search_id') || '';
     
     // Запрашиваем обновленные данные
-    fetch(`/api/items?page=${currentPage}&search=${encodeURIComponent(searchFilter)}`)
+    let apiUrl = `/api/items?page=${currentPage}&search=${encodeURIComponent(searchFilter)}`;
+    if (searchId) {
+        apiUrl += `&search_id=${encodeURIComponent(searchId)}`;
+    }
+    fetch(apiUrl)
         .then(response => response.json())
         .then(data => {
             if (data.error) {

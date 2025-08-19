@@ -67,6 +67,7 @@ class KufarScraper:
                 ads_data = self._extract_ads_from_html(soup)
             
             # Limit results
+            logger.info(f"🔧 KufarScraper: max_items={max_items}, found={len(ads_data)}, returning={len(ads_data[:max_items])}")
             return ads_data[:max_items]
             
         except Exception as e:
@@ -278,6 +279,14 @@ class KufarScraper:
                 except:
                     continue
             
+            # Extract size information from title and description
+            ad_data['size'] = self._extract_size_from_text(ad_data.get('title', ''))
+            
+            # If no size in title, try to extract from element text content
+            if not ad_data['size']:
+                element_text = element.get_text()
+                ad_data['size'] = self._extract_size_from_text(element_text)
+            
             # Only return if we have at least title and URL
             if ad_data.get('title') and ad_data.get('url'):
                 return ad_data
@@ -286,6 +295,35 @@ class KufarScraper:
             logger.error(f"Error extracting ad from element: {e}")
         
         return None
+    
+    def _extract_size_from_text(self, text: str) -> str:
+        """Extract size information from text using regex patterns"""
+        if not text:
+            return ""
+        
+        # Look for size patterns like "48 (M)", "M", "Large", etc.
+        size_patterns = [
+            r'размер\s+(\d+\s*\([XSMLXL]+\))',  # размер 48 (M)
+            r'размер\s+([XSMLXL]{1,3})\b',      # размер M, XL, XXL
+            r'размер\s+(\d{2,3})\b',            # размер 48
+            r'в\s+размере\s+([XSMLXL]{1,3})\b', # в размере XXL
+            r'в\s+размере\s+(\d{2,3})\b',       # в размере 48
+            r'size\s+([XSMLXL]{1,3})\b',        # size XL
+            r'\b(\d+\s*\([XSMLXL]+\))',         # 48 (M)
+            r'\b([XSMLXL]{1,3})\b',             # M, XL, XXL (standalone)
+            r'\b(\d{2,3})\s*размер',            # 48 размер
+            r'\b(large|medium|small)\b',        # Large, Medium, Small
+            r'р-р\s+(\d{2,3})',                # р-р 48
+            r'р\.\s*(\d{2,3})',                 # р. 48
+            r'(\d{2,3})-(\d{2,3})',             # 48-50
+        ]
+        
+        for pattern in size_patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                return match.group(1).strip()
+        
+        return ""
     
     def _normalize_ad_data(self, raw_data: Dict) -> Dict[str, Any]:
         """Normalize ad data to consistent format"""
@@ -303,6 +341,7 @@ class KufarScraper:
             'refresh_time': None,
             'category': {},
             'url': raw_data.get('url', ''),  # Add URL to raw data
+            'size': raw_data.get('size', ''),  # Add size information
         }
         
         return normalized

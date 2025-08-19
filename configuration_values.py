@@ -111,13 +111,15 @@ def get_max_items_per_search():
         # ПРИОРИТЕТ 1: Настройки из базы данных (веб-интерфейс)
         db_value = get_db().get_setting('MAX_ITEMS_PER_SEARCH')
         if db_value and db_value.strip():
-            print(f"🔧 MAX_ITEMS_PER_SEARCH from database (WebUI): {db_value}")
-            return int(db_value)
+            result = int(db_value)
+            print(f"🔧 MAX_ITEMS_PER_SEARCH from database (WebUI): {db_value} -> {result}")
+            return result
         
         # ПРИОРИТЕТ 2: Переменные среды (только если нет в БД)
         env_value = os.getenv('MAX_ITEMS_PER_SEARCH', '50')
-        print(f"🔧 MAX_ITEMS_PER_SEARCH from environment (no DB setting): {env_value}")
-        return int(env_value)
+        result = int(env_value)
+        print(f"🔧 MAX_ITEMS_PER_SEARCH from environment (no DB setting): {env_value} -> {result}")
+        return result
         
     except Exception as e:
         # FALLBACK: Переменные среды или дефолт

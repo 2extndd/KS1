@@ -256,10 +256,16 @@ class KufarSearcher:
                 self._init_kufar_client()
             
             # Search using Kufar API
+            max_items_config = get_max_items_per_search()
+            logger.info(f"🔧 Using MAX_ITEMS_PER_SEARCH setting: {max_items_config}")
+            
             items = self.kufar_client.items.search(
                 query_url=search['url'],
-                max_items=get_max_items_per_search()
+                max_items=max_items_config
             )
+            
+            logger.info(f"📦 Search returned {len(items)} items from Kufar for query '{search['name']}'")
+            logger.info(f"🎯 Max items requested: {max_items_config}, actual items received: {len(items)}")
             
             # Update API request counter
             try:
@@ -339,6 +345,14 @@ class KufarSearcher:
                 # Try to add item to database
                 from configuration_values import get_telegram_chat_id
                 
+                # Extract size from item if available
+                size_info = getattr(item, 'size', '')
+                
+                # Prepare raw_data with size information
+                raw_data = item.raw_data.copy() if item.raw_data else {}
+                if size_info:
+                    raw_data['size'] = size_info
+                
                 item_data = {
                     'kufar_id': item.id,
                     'title': item.title,
@@ -350,7 +364,7 @@ class KufarSearcher:
                     'seller_name': item.seller_name,
                     'seller_phone': item.seller_phone,
                     'url': item.url,
-                    'raw_data': item.raw_data,
+                    'raw_data': raw_data,
                     'search_name': search.get('name', 'Unknown'),
                     'thread_id': search.get('telegram_thread_id')
                 }
@@ -369,7 +383,8 @@ class KufarSearcher:
                         'thread_id': search.get('telegram_thread_id'),
                         'images': item.images,
                         'location': item.location,
-                        'description': item.description
+                        'description': item.description,
+                        'raw_data': raw_data  # Include raw_data with size
                     })
                 
             except Exception as e:

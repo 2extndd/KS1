@@ -115,31 +115,46 @@ class TelegramWorker:
         size = ""
         description = item.get('description', '')
         raw_data = item.get('raw_data', {})
+        title = item.get('title', '')
         
         # Try to extract size from various sources
         if isinstance(raw_data, dict):
             size = raw_data.get('size', '') or raw_data.get('параметры', {}).get('размер', '')
         
-        # If no size found, try to extract from description
-        if not size and description:
-            import re
-            # Look for size patterns like "48 (M)", "M", "Large", etc.
-            size_patterns = [
-                r'размер\s+(\d+\s*\([XSMLXL]+\))',  # размер 48 (M)
-                r'размер\s+([XSMLXL]{1,3})\b',      # размер M, XL, XXL
-                r'размер\s+(\d{2,3})\b',            # размер 48
-                r'в\s+размере\s+([XSMLXL]{1,3})\b', # в размере XXL
-                r'в\s+размере\s+(\d{2,3})\b',       # в размере 48
-                r'size\s+([XSMLXL]{1,3})\b',        # size XL
-                r'\b(\d+\s*\([XSMLXL]+\))',         # 48 (M)
-                r'\b([XSMLXL]{1,3})\b',             # M, XL, XXL (standalone)
-                r'\b(\d{2,3})\s*размер',            # 48 размер
-                r'\b(large|medium|small)\b',        # Large, Medium, Small
-            ]
-            for pattern in size_patterns:
-                match = re.search(pattern, description, re.IGNORECASE)
-                if match:
-                    size = match.group(1)
+        # If no size found, try to extract from description and title
+        if not size:
+            texts_to_check = [title, description]
+            
+            for text in texts_to_check:
+                if not text:
+                    continue
+                    
+                import re
+                # Look for size patterns like "48 (M)", "M", "Large", etc.
+                size_patterns = [
+                    r'размер\s+(\d+\s*\([XSMLXL]+\))',  # размер 48 (M)
+                    r'размер\s+(\d+[-–]\d+\s*\([XSMLXL]+\))',  # размер 52-54 (XXL)
+                    r'размер\s+([XSMLXL]{1,3})\b',      # размер M, XL, XXL
+                    r'размер\s+(\d{2,3})\b',            # размер 48
+                    r'в\s+размере\s+([XSMLXL]{1,3})\b', # в размере XXL
+                    r'в\s+размере\s+(\d{2,3})\b',       # в размере 48
+                    r'size\s+([XSMLXL]{1,3})\b',        # size XL
+                    r'\b(\d+[-–]\d+\s*\([XSMLXL]+\))',  # 52-54 (XXL)
+                    r'\b(\d+\s*\([XSMLXL]+\))',         # 48 (M)
+                    r'\b([XSMLXL]{1,3})\b',             # M, XL, XXL (standalone)
+                    r'\b(\d{2,3})\s*размер',            # 48 размер
+                    r'\b(large|medium|small)\b',        # Large, Medium, Small
+                    r'р-р\s+(\d{2,3})',                # р-р 48
+                    r'р\.\s*(\d{2,3})',                 # р. 48
+                    r'(\d{2,3})-(\d{2,3})',             # 48-50
+                ]
+                for pattern in size_patterns:
+                    match = re.search(pattern, text, re.IGNORECASE)
+                    if match:
+                        size = match.group(1)
+                        break
+                        
+                if size:
                     break
         
         return size.strip() if size else ""
@@ -172,9 +187,9 @@ class TelegramWorker:
                 f"💶 {price_text}",
             ]
             
-            # Add size if available
+            # Add size if available - в формате как в примере
             if size:
-                message_parts.append(f"⛓️ {size}")
+                message_parts.append(f"⛓️{size}")
             
             # Add location
             if location and location.strip():

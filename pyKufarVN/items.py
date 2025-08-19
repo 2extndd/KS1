@@ -82,6 +82,9 @@ class Item:
             # Category
             self.category = self._parse_category()
             
+            # Size information
+            self.size = self._extract_size()
+            
         except Exception as e:
             logger.error(f"Error parsing item data: {e}")
             raise KufarParsingException(f"Failed to parse item data: {e}")
@@ -155,6 +158,58 @@ class Item:
         except:
             return ''
     
+    def _extract_size(self) -> str:
+        """Extract size information from item data"""
+        # First check if size is directly available in raw_data
+        if 'size' in self.raw_data:
+            return str(self.raw_data['size']) if self.raw_data['size'] else ''
+        
+        # Extract from description and title
+        texts_to_check = [
+            self.title,
+            self.description,
+            str(self.raw_data)  # Check entire raw data as string
+        ]
+        
+        for text in texts_to_check:
+            if text:
+                size = self._extract_size_from_text(text)
+                if size:
+                    return size
+        
+        return ''
+    
+    def _extract_size_from_text(self, text: str) -> str:
+        """Extract size information from text using regex patterns"""
+        if not text:
+            return ""
+        
+        import re
+        
+        # Look for size patterns like "48 (M)", "M", "Large", etc.
+        size_patterns = [
+            r'размер\s+(\d+\s*\([XSMLXL]+\))',  # размер 48 (M)
+            r'размер\s+([XSMLXL]{1,3})\b',      # размер M, XL, XXL
+            r'размер\s+(\d{2,3})\b',            # размер 48
+            r'в\s+размере\s+([XSMLXL]{1,3})\b', # в размере XXL
+            r'в\s+размере\s+(\d{2,3})\b',       # в размере 48
+            r'size\s+([XSMLXL]{1,3})\b',        # size XL
+            r'\b(\d+\s*\([XSMLXL]+\))',         # 48 (M)
+            r'\b([XSMLXL]{1,3})\b',             # M, XL, XXL (standalone)
+            r'\b(\d{2,3})\s*размер',            # 48 размер
+            r'\b(large|medium|small)\b',        # Large, Medium, Small
+            r'р-р\s+(\d{2,3})',                # р-р 48
+            r'р\.\s*(\d{2,3})',                 # р. 48
+            r'(\d{2,3})-(\d{2,3})',             # 48-50
+        ]
+        
+        for pattern in size_patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                return match.group(1).strip()
+        
+        return ""
+    
     def to_dict(self) -> Dict[str, Any]:
         """Convert item to dictionary"""
         return {
@@ -171,6 +226,7 @@ class Item:
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
             'category': self.category,
+            'size': self.size,
             'raw_data': self.raw_data
         }
 
