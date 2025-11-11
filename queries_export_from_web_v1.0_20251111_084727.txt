@@ -1,0 +1,982 @@
+================================================================================
+KUFAR SEARCHER - ЭКСПОРТ QUERIES ИЗ ВЕБ-ИНТЕРФЕЙСА (ВЕРСИЯ 1.0)
+================================================================================
+Дата экспорта: 2025-11-11 08:47:27
+Всего queries: 108
+================================================================================
+
+QUERY #1
+----------------------------------------
+Номер в таблице: 1
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Туфли все
+URL: https://www.kufar.by/l/muzhskie-tufli/bez-posrednikov/w~chernyj?mss=v.or%3A9%2C24%2C8%2C23%2C7%2C22%2C6%2C21%2C5%2C20%2C4&ot=1&prc=r%3A0%2C15000&shm=v.or%3A1&sort=lst.d
+Thread ID: 86
+Найдено объявлений: 118
+
+QUERY #2
+----------------------------------------
+Номер в таблице: 2
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Marshall Marjor
+URL: https://www.kufar.by/l/bez-posrednikov?ot=1&prc=r%3A0%2C15000&query=Marshall+major&sort=lst.d
+Thread ID: 2072
+Найдено объявлений: 12
+
+QUERY #3
+----------------------------------------
+Номер в таблице: 3
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Avangarde мужское
+URL: https://www.kufar.by/l/muzhskaya-odezhda?ot=1&query=Avangarde&rgn=all&utm_filterOrigin=Search_suggester_3&utm_queryOrigin=Manually_typed&utm_suggestionType=Category_only
+Thread ID: 453
+Найдено объявлений: 2
+
+QUERY #4
+----------------------------------------
+Номер в таблице: 4
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Archive женская обувь
+URL: https://www.kufar.by/l/zhenskaya-obuv?ot=1&prc=r%3A0%2C12000&query=archive&sort=lst.d
+Thread ID: 86
+Найдено объявлений: 20
+
+QUERY #5
+----------------------------------------
+Номер в таблице: 5
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Archive женская обувь
+URL: https://www.kufar.by/l/zhenskaya-obuv?ot=1&prc=r%3A0%2C12000&query=archive&sort=lst.d
+Thread ID: 86
+Найдено объявлений: 0
+
+QUERY #6
+----------------------------------------
+Номер в таблице: 6
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Avangarde женская обувь
+URL: https://www.kufar.by/l/zhenskaya-obuv?ot=1&query=avangarde&rgn=all&utm_filterOrigin=Search_suggester_3&utm_queryOrigin=Manually_typed&utm_suggestionType=Category_only
+Thread ID: 86
+Найдено объявлений: 1
+
+QUERY #7
+----------------------------------------
+Номер в таблице: 7
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Archive мужская обувь
+URL: https://www.kufar.by/l/muzhskaya-obuv?ot=1&prc=r%3A0%2C15000&query=archive&sort=lst.d
+Thread ID: 86
+Найдено объявлений: 31
+
+QUERY #8
+----------------------------------------
+Номер в таблице: 8
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Guidi все категории
+URL: https://www.kufar.by/l?ot=1&prc=r%3A0%2C12000&query=guidi&sort=lst.d
+Thread ID: 86
+Найдено объявлений: 1
+
+QUERY #9
+----------------------------------------
+Номер в таблице: 9
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Aphex Twin
+URL: https://www.kufar.by/l/cd-dvd-plastinki?ot=1&query=aphex+twin&rgn=all&utm_filterOrigin=Search_suggester_3&utm_queryOrigin=Manually_typed&utm_suggestionType=Category_only
+Thread ID: 335
+Найдено объявлений: 6
+
+QUERY #10
+----------------------------------------
+Номер в таблице: 10
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Fur
+URL: https://www.kufar.by/l/muzhskaya-odezhda?mcs=v.or%3A4%2C5%2C6&ot=1&prc=r%3A0%2C15000&query=Fur&sort=lst.d
+Thread ID: 453
+Найдено объявлений: 4
+
+QUERY #11
+----------------------------------------
+Номер в таблице: 11
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        98
+URL: https://www.kufar.by/l/zhenskaya-obuv?ot=1&prc=r%3A0%2C12000&query=98&sort=lst.d
+Thread ID: 86
+Найдено объявлений: 4
+
+QUERY #12
+----------------------------------------
+Номер в таблице: 12
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        н2б
+URL: https://www.kufar.by/l?ot=1&query=%D0%BD2%D0%B1&rgn=all&sort=lst.d&utm_queryOrigin=Manually_typed
+Thread ID: 453
+Найдено объявлений: 3
+
+QUERY #13
+----------------------------------------
+Номер в таблице: 13
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Alaska
+URL: https://www.kufar.by/l/muzhskaya-odezhda?ot=1&query=Alaska&rgn=all&utm_filterOrigin=Search_suggester_3&utm_queryOrigin=Manually_typed&utm_suggestionType=Category_only
+Thread ID: 453
+Найдено объявлений: 41
+
+QUERY #14
+----------------------------------------
+Номер в таблице: 14
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Зима с капюшоном
+URL: https://www.kufar.by/l/muzhskaya-odezhda/winter?mcs=v.or%3A4%2C5%2C6%2C7%2C8&ot=1&prc=r%3A0%2C17000&query=%D1%81+%D0%BA%D0%B0%D0%BF%D1%8E%D1%88%D0%BE%D0%BD%D0%BE%D0%BC&sort=lst.d&wcl=v.or%3A105%2C100
+Thread ID: 453
+Найдено объявлений: 15
+
+QUERY #15
+----------------------------------------
+Номер в таблице: 15
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Зимний мужское
+URL: https://www.kufar.by/l/muzhskaya-verhnyaya-odezhda?mcs=v.or%3A6%2C5%2C4%2C7&ot=1&prc=r%3A0%2C15000&query=%D0%B7%D0%B8%D0%BC%D0%BD%D0%B8%D0%B9&sort=lst.d&wcl=v.or%3A105%2C80
+Thread ID: 453
+Найдено объявлений: 370
+
+QUERY #16
+----------------------------------------
+Номер в таблице: 16
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Пальто
+URL: https://www.kufar.by/l/muzhskaya-verhnyaya-odezhda/w~chernyj?mclot=v.or%3A25%2C35&mcs=v.or%3A5%2C6%2C4&ot=1&prc=r%3A0%2C10000&query=%D0%BF%D0%B0%D0%BB%D1%8C%D1%82%D0%BE&sort=lst.d
+Thread ID: 82
+Найдено объявлений: 139
+
+QUERY #17
+----------------------------------------
+Номер в таблице: 17
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Miss Sixty джинсы женские
+URL: https://www.kufar.by/l/zhenskie-dzhinsy-bryuki?ot=1&query=miss+sixty&sort=lst.d
+Thread ID: 453
+Найдено объявлений: 8
+
+QUERY #18
+----------------------------------------
+Номер в таблице: 18
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Miss Sixty джинсы мужское
+URL: https://www.kufar.by/l/muzhskie-dzhinsy-bryuki?ot=1&query=miss+sixty&sort=lst.d
+Thread ID: 453
+Найдено объявлений: 112
+
+QUERY #19
+----------------------------------------
+Номер в таблице: 19
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        audio technica
+URL: https://www.kufar.by/l/naushniki?ot=1&query=audio+technica&rgn=all&utm_filterOrigin=Search_suggester_3&utm_queryOrigin=Manually_typed&utm_suggestionType=Category_only
+Thread ID: 2072
+Найдено объявлений: 22
+
+QUERY #20
+----------------------------------------
+Номер в таблице: 20
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                         Diesel пуховик
+URL: https://www.kufar.by/l?ot=1&query=DIESEL%20%D0%BF%D1%83%D1%85%D0%BE%D0%B2%D0%B8%D0%BA&rgn=all&utm_queryOrigin=Manually_typed
+Thread ID: 453
+Найдено объявлений: 23
+
+QUERY #21
+----------------------------------------
+Номер в таблице: 21
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Miss Sixty
+URL: https://www.kufar.by/l/zhenskie-verhnyaya-odezhda?ot=1&query=miss+sixty&sort=lst.d
+Thread ID: 453
+Найдено объявлений: 17
+
+QUERY #22
+----------------------------------------
+Номер в таблице: 22
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Assymetrical жен
+URL: https://www.kufar.by/l/zhenskaya-odezhda?ot=1&query=asymmetrical&rgn=all&utm_filterOrigin=Search_suggester_3&utm_queryOrigin=Manually_typed&utm_suggestionType=Category_only
+Thread ID: 453
+Найдено объявлений: 14
+
+QUERY #23
+----------------------------------------
+Номер в таблице: 23
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Assymetrical муж
+URL: https://www.kufar.by/l/muzhskaya-odezhda?ot=1&prc=r%3A0%2C15000&query=asymmetrical&sort=lst.d
+Thread ID: 453
+Найдено объявлений: 12
+
+QUERY #24
+----------------------------------------
+Номер в таблице: 24
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Parajampers
+URL: https://www.kufar.by/l/muzhskaya-verhnyaya-odezhda?mcs=v.or%3A4%2C5%2C6%2C7%2C8&ot=1&prc=r%3A0%2C15000&query=parajumpers&sort=lst.d
+Thread ID: 453
+Найдено объявлений: 116
+
+QUERY #25
+----------------------------------------
+Номер в таблице: 25
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Demonia
+URL: https://www.kufar.by/l?ot=1&query=demonia&sort=lst.d
+Thread ID: 86
+Найдено объявлений: 77
+
+QUERY #26
+----------------------------------------
+Номер в таблице: 26
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        indie sleaze
+URL: https://www.kufar.by/l?ot=1&prc=r%3A0%2C10000&query=indie+sleaze&sort=lst.d
+Thread ID: 16
+Найдено объявлений: 43
+
+QUERY #27
+----------------------------------------
+Номер в таблице: 27
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Ботинки Все
+URL: https://www.kufar.by/l/muzhskie-botinki/w~chernyj/bez-posrednikov?mss=v.or%3A20%2C5%2C4%2C21%2C6%2C22%2C7%2C23%2C8%2C24%2C9&ot=1&prc=r%3A0%2C15000&shm=v.or%3A1&sort=lst.d
+Thread ID: 86
+Найдено объявлений: 1945
+
+QUERY #28
+----------------------------------------
+Номер в таблице: 28
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        CWU
+URL: https://www.kufar.by/l/muzhskaya-verhnyaya-odezhda?ot=1&prc=r%3A0%2C15000&query=cwu&sort=lst.d
+Thread ID: 453
+Найдено объявлений: 77
+
+QUERY #29
+----------------------------------------
+Номер в таблице: 29
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Marshall
+URL: https://www.kufar.by/l/muzhskaya-verhnyaya-odezhda?ot=1&prc=r%3A0%2C20000&query=Marshall&sort=lst.d
+Thread ID: 453
+Найдено объявлений: 20
+
+QUERY #30
+----------------------------------------
+Номер в таблице: 30
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Ann Demeulemeester
+URL: https://www.kufar.by/l?ot=1&prc=r%3A0%2C20000&query=Ann+Demeulemeester&sort=lst.d
+Thread ID: 16
+Найдено объявлений: 4
+
+QUERY #31
+----------------------------------------
+Номер в таблице: 31
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        AirStep
+URL: https://www.kufar.by/l?ot=1&prc=r%3A0%2C20000&query=+Airstep&sort=lst.d
+Thread ID: 86
+Найдено объявлений: 16
+
+QUERY #32
+----------------------------------------
+Номер в таблице: 32
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Зима
+URL: https://www.kufar.by/l/muzhskaya-verhnyaya-odezhda/bez-posrednikov?mcs=v.or%3A5%2C6%2C4%2C7&ot=1&prc=r%3A0%2C15000&query=%D0%B7%D0%B8%D0%BC%D0%B0&sort=lst.d&wcl=v.or%3A105%2C100%2C80%2C30
+Thread ID: 453
+Найдено объявлений: 592
+
+QUERY #33
+----------------------------------------
+Номер в таблице: 33
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Аляска женская
+URL: https://www.kufar.by/l/zhenskaya-odezhda?ot=1&prc=r%3A0%2C17000&query=%D0%B0%D0%BB%D1%8F%D1%81%D0%BA%D0%B0&sort=lst.d&wcs=v.or%3A4%2C5%2C6
+Thread ID: 453
+Найдено объявлений: 42
+
+QUERY #34
+----------------------------------------
+Номер в таблице: 34
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Кожа женская
+URL: https://www.kufar.by/l/zhenskie-verhnyaya-odezhda/w~chernyj?ot=1&prc=r%3A0%2C15000&query=%D0%BA%D0%BE%D0%B6%D0%B0&sort=lst.d&wcs=v.or%3A5%2C6%2C7
+Thread ID: 19
+Найдено объявлений: 207
+
+QUERY #35
+----------------------------------------
+Номер в таблице: 35
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Тренч женский
+URL: https://www.kufar.by/l/zhenskaya-odezhda/bez-posrednikov/w~chernyj?ot=1&prc=r%3A0%2C15000&query=%D1%82%D1%80%D0%B5%D0%BD%D1%87&sort=lst.d&wcs=v.or%3A5%2C6%2C7%2C8
+Thread ID: 82
+Найдено объявлений: 139
+
+QUERY #36
+----------------------------------------
+Номер в таблице: 36
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Armani вверх
+URL: https://www.kufar.by/l/muzhskaya-verhnyaya-odezhda/bez-posrednikov?ot=1&prc=r%3A0%2C20000&query=armani&sort=lst.d
+Thread ID: 16
+Найдено объявлений: 97
+
+QUERY #37
+----------------------------------------
+Номер в таблице: 37
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Dolce куртки
+URL: https://www.kufar.by/l/muzhskaya-verhnyaya-odezhda/bez-posrednikov?mcs=v.or%3A4%2C5%2C6&ot=1&prc=r%3A0%2C15000&query=dolce&sort=lst.d
+Thread ID: 17
+Найдено объявлений: 14
+
+QUERY #38
+----------------------------------------
+Номер в таблице: 38
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Armani джинсы
+URL: https://www.kufar.by/l/muzhskie-dzhinsy-bryuki/m~dzhinsy/bez-posrednikov?mcs=v.or%3A4%2C5%2C6%2C7&ot=1&prc=r%3A0%2C8000&query=armani&sort=lst.d
+Thread ID: 2480
+Найдено объявлений: 56
+
+QUERY #39
+----------------------------------------
+Номер в таблице: 39
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Тактические
+URL: https://www.kufar.by/l/muzhskaya-obuv?mss=v.or%3A4%2C20%2C5%2C21%2C6%2C22%2C7%2C23%2C8&ot=1&prc=r%3A0%2C13000&query=%D1%82%D0%B0%D0%BA%D1%82%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B5&sort=lst.d
+Thread ID: 86
+Найдено объявлений: 54
+
+QUERY #40
+----------------------------------------
+Номер в таблице: 40
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Авангард обувь
+URL: https://www.kufar.by/l/muzhskaya-obuv?ot=1&query=%D0%B0%D0%B2%D0%B0%D0%BD%D0%B3%D0%B0%D1%80%D0%B4&rgn=all&utm_filterOrigin=Search_suggester_3&utm_queryOrigin=Manually_typed&utm_suggestionType=Category_only
+Thread ID: 86
+Найдено объявлений: 13
+
+QUERY #41
+----------------------------------------
+Номер в таблице: 41
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Джинсы серые
+URL: https://www.kufar.by/l/muzhskie-dzhinsy-bryuki/w~seryj/bez-posrednikov?mcs=v.or%3A4%2C5%2C6&ot=1&prc=r%3A0%2C10000&query=%D0%B4%D0%B6%D0%B8%D0%BD%D1%81%D1%8B&sort=lst.d
+Thread ID: 16
+Найдено объявлений: 605
+
+QUERY #42
+----------------------------------------
+Номер в таблице: 42
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Кресло 2
+URL: https://www.kufar.by/l/r~minsk/bez-posrednikov?ot=1&prc=r%3A0%2C15000&query=%D0%BA%D1%80%D0%B5%D1%81%D0%BB%D0%BE+%D0%BA%D0%BE%D0%BC%D0%BF%D1%8C%D1%8E%D1%82%D0%B5%D1%80%D0%BD%D0%BE%D0%B5&sort=lst.d
+Thread ID: 2072
+Найдено объявлений: 430
+
+QUERY #43
+----------------------------------------
+Номер в таблице: 43
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Кресло 1
+URL: https://www.kufar.by/l/r~minsk/bez-posrednikov?ot=1&prc=r%3A0%2C15000&query=%D0%BA%D1%80%D0%B5%D1%81%D0%BB%D0%BE+%D0%BE%D1%84%D0%B8%D1%81%D0%BD%D0%BE%D0%B5&sort=lst.d
+Thread ID: 2072
+Найдено объявлений: 345
+
+QUERY #44
+----------------------------------------
+Номер в таблице: 44
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Весь поиск пиджаков
+URL: https://www.kufar.by/l/muzhskie-pidzhaki/w~chernyj?mcs=v.or%3A5%2C4%2C6&sort=lst.d
+Thread ID: 2072
+Найдено объявлений: 319
+
+QUERY #45
+----------------------------------------
+Номер в таблице: 45
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Блейзер
+URL: https://www.kufar.by/l/muzhskaya-odezhda?mcs=v.or%3A4%2C6%2C5&ot=1&prc=r%3A0%2C15000&query=%D0%B1%D0%BB%D0%B5%D0%B9%D0%B7%D0%B5%D1%80&sort=lst.d
+Thread ID: 2072
+Найдено объявлений: 43
+
+QUERY #46
+----------------------------------------
+Номер в таблице: 46
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Пинжак
+URL: https://www.kufar.by/l/muzhskaya-odezhda/w~chernyj?mcs=v.or%3A5%2C6%2C4&ot=1&prc=r%3A0%2C15000&query=%D0%BF%D0%B8%D0%B4%D0%B6%D0%B0%D0%BA&sort=lst.d
+Thread ID: 2072
+Найдено объявлений: 40
+
+QUERY #47
+----------------------------------------
+Номер в таблице: 47
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Кофемашина
+URL: https://www.kufar.by/l/bez-posrednikov?ot=1&query=delonghi+dedica+ec685&sort=lst.d
+Thread ID: 335
+Найдено объявлений: 28
+
+QUERY #48
+----------------------------------------
+Номер в таблице: 48
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Карго
+URL: https://www.kufar.by/l/muzhskie-dzhinsy-bryuki/w~chernyj?ot=1&prc=r%3A0%2C7000&query=%D0%9A%D0%90%D0%A0%D0%93%D0%9E&sort=lst.d
+Thread ID: 2480
+Найдено объявлений: 49
+
+QUERY #49
+----------------------------------------
+Номер в таблице: 49
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Meindi
+URL: https://www.kufar.by/l/muzhskaya-obuv?ot=1&prc=r%3A0%2C15000&query=Meindl&sort=lst.d
+Thread ID: 86
+Найдено объявлений: 35
+
+QUERY #50
+----------------------------------------
+Номер в таблице: 50
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Haix
+URL: https://www.kufar.by/l/muzhskaya-obuv/bez-posrednikov?ot=1&prc=r%3A0%2C20000&query=haix&sort=lst.d
+Thread ID: 86
+Найдено объявлений: 19
+
+QUERY #51
+----------------------------------------
+Номер в таблице: 51
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Batles Ботинки
+URL: https://www.kufar.by/l/muzhskaya-obuv?ot=1&query=Baltes&rgn=all&utm_filterOrigin=Search_suggester_3&utm_queryOrigin=Manually_typed&utm_suggestionType=Category_only
+Thread ID: 86
+Найдено объявлений: 2
+
+QUERY #52
+----------------------------------------
+Номер в таблице: 52
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Аляска
+URL: https://www.kufar.by/l/muzhskaya-odezhda?ot=1&query=%D0%90%D0%BB%D1%8F%D1%81%D0%BA%D0%B0&sort=lst.d
+Thread ID: 453
+Найдено объявлений: 118
+
+QUERY #53
+----------------------------------------
+Номер в таблице: 53
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Пуховик
+URL: https://www.kufar.by/l/muzhskaya-verhnyaya-odezhda/winter/bez-posrednikov?mcs=v.or%3A4%2C5%2C6&ot=1&prc=r%3A0%2C15000&query=%D0%BF%D1%83%D1%85%D0%BE%D0%B2%D0%B8%D0%BA&sort=lst.d&wcl=v.or%3A105%2C100%2C80
+Thread ID: 453
+Найдено объявлений: 370
+
+QUERY #54
+----------------------------------------
+Номер в таблице: 54
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Зимняя
+URL: https://www.kufar.by/l/muzhskaya-verhnyaya-odezhda/bez-posrednikov?mcs=v.or%3A4%2C5%2C6&ot=1&prc=r%3A0%2C15000&query=%D0%B7%D0%B8%D0%BC%D0%BD%D1%8F%D1%8F&sort=lst.d&wcl=v.or%3A105%2C100%2C80
+Thread ID: 453
+Найдено объявлений: 349
+
+QUERY #55
+----------------------------------------
+Номер в таблице: 55
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Пух 1
+URL: https://www.kufar.by/l/muzhskaya-verhnyaya-odezhda/m~puhoviki-zimnie-kurtki/w~chernyj/bez-posrednikov?mcs=v.or%3A4%2C5%2C6%2C7&ot=1&prc=r%3A0%2C15000&query=%D0%BA%D1%83%D1%80%D1%82%D0%BA%D0%B0&sort=lst.d
+Thread ID: 453
+Найдено объявлений: 858
+
+QUERY #56
+----------------------------------------
+Номер в таблице: 56
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Кожаные категория
+URL: https://www.kufar.by/l/muzhskaya-verhnyaya-odezhda/m~kozhanye-kurtki/bez-posrednikov?mcs=v.or%3A4%2C5%2C6%2C7&prc=r%3A0%2C15000&sort=lst.d
+Thread ID: 19
+Найдено объявлений: 941
+
+QUERY #57
+----------------------------------------
+Номер в таблице: 57
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        D&G низ
+URL: https://www.kufar.by/l/muzhskie-dzhinsy-bryuki?ot=1&prc=r%3A0%2C8000&query=d%26g&sort=lst.d
+Thread ID: 17
+Найдено объявлений: 22
+
+QUERY #58
+----------------------------------------
+Номер в таблице: 58
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        A.S. 98
+URL: https://www.kufar.by/l?ot=1&prc=r%3A0%2C12000&query=a.s.+98&sort=lst.d
+Thread ID: 86
+Найдено объявлений: 29
+
+QUERY #59
+----------------------------------------
+Номер в таблице: 59
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Archive джинсы
+URL: https://www.kufar.by/l/muzhskie-dzhinsy-bryuki/bez-posrednikov?mcs=v.or%3A4%2C5%2C6&ot=1&prc=r%3A0%2C10000&query=archive&sort=lst.d
+Thread ID: 2480
+Найдено объявлений: 526
+
+QUERY #60
+----------------------------------------
+Номер в таблице: 60
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Archive верх
+URL: https://www.kufar.by/l/muzhskaya-verhnyaya-odezhda?ot=1&prc=r%3A0%2C10000&query=archive&sort=lst.d
+Thread ID: 16
+Найдено объявлений: 394
+
+QUERY #61
+----------------------------------------
+Номер в таблице: 61
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Dirk Свитеры
+URL: https://www.kufar.by/l/muzhskie-svitery-i-kardigany?ot=1&prc=r%3A0%2C15000&query=dirk+bikkembergs&sort=lst.d
+Thread ID: 1061
+Найдено объявлений: 12
+
+QUERY #62
+----------------------------------------
+Номер в таблице: 62
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Balmain
+URL: https://www.kufar.by/l/muzhskie-rubashki/bez-posrednikov?ot=1&prc=r%3A0%2C8000&query=Balmain&sort=lst.d
+Thread ID: 1059
+Найдено объявлений: 267
+
+QUERY #63
+----------------------------------------
+Номер в таблице: 63
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        dirk bikkembergs
+URL: https://www.kufar.by/l/muzhskaya-obuv/bez-posrednikov?cnd=1&ot=1&query=dirk+bikkembergs&sort=lst.d
+Thread ID: 1061
+Найдено объявлений: 14
+
+QUERY #64
+----------------------------------------
+Номер в таблице: 64
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Active Jacket
+URL: https://www.kufar.by/l/muzhskaya-verhnyaya-odezhda/bez-posrednikov?ot=1&prc=r%3A0%2C15000&query=Active+Jacket&sort=lst.d
+Thread ID: 453
+Найдено объявлений: 29
+
+QUERY #65
+----------------------------------------
+Номер в таблице: 65
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        n2b
+URL: https://www.kufar.by/l/bez-posrednikov?ot=1&prc=r%3A0%2C100000&query=n2b&sort=lst.d
+Thread ID: 453
+Найдено объявлений: 292
+
+QUERY #66
+----------------------------------------
+Номер в таблице: 66
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Rick Owens
+URL: https://www.kufar.by/l/bez-posrednikov?ot=1&prc=r%3A0%2C35000&query=Rick+Owens&sort=lst.d
+Thread ID: 16
+Найдено объявлений: 724
+
+QUERY #67
+----------------------------------------
+Номер в таблице: 67
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Grinders
+URL: https://www.kufar.by/l/muzhskaya-obuv?ot=1&prc=r%3A0%2C15000&query=Grinders&sort=lst.d
+Thread ID: 86
+Найдено объявлений: 17
+
+QUERY #68
+----------------------------------------
+Номер в таблице: 68
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Camelot
+URL: https://www.kufar.by/l/muzhskaya-obuv/bez-posrednikov?ot=1&prc=r%3A0%2C15000&query=camelot&sort=lst.d
+Thread ID: 86
+Найдено объявлений: 24
+
+QUERY #69
+----------------------------------------
+Номер в таблице: 69
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Steel
+URL: https://www.kufar.by/l/muzhskaya-obuv?ot=1&prc=r%3A0%2C10000&query=steel&sort=lst.d
+Thread ID: 86
+Найдено объявлений: 32
+
+QUERY #70
+----------------------------------------
+Номер в таблице: 70
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Alpha Indastries
+URL: https://www.kufar.by/l/muzhskaya-verhnyaya-odezhda?mcs=v.or%3A4%2C5%2C6%2C3%2C7&ot=1&prc=r%3A0%2C20000&query=alpha+industries&sort=lst.d
+Thread ID: 453
+Найдено объявлений: 209
+
+QUERY #71
+----------------------------------------
+Номер в таблице: 71
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        ma-1
+URL: https://www.kufar.by/l/muzhskaya-verhnyaya-odezhda/bez-posrednikov?ot=1&prc=r%3A0%2C10000&query=ma-1&sort=lst.d
+Thread ID: 453
+Найдено объявлений: 36
+
+QUERY #72
+----------------------------------------
+Номер в таблице: 72
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Аэрогриль
+URL: https://www.kufar.by/l/r~minsk/bez-posrednikov?ot=1&prc=r%3A0%2C20000&query=%D0%B0%D1%8D%D1%80%D0%BE%D0%B3%D1%80%D0%B8%D0%BB%D1%8C+&sort=lst.d
+Thread ID: 335
+Найдено объявлений: 247
+
+QUERY #73
+----------------------------------------
+Номер в таблице: 73
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Salomon XA PRO 3D
+URL: https://www.kufar.by/l?ot=1&prc=r%3A0%2C10000&query=Salomon+Xa+Pro+3D&sort=lst.d
+Thread ID: 86
+Найдено объявлений: 11
+
+QUERY #74
+----------------------------------------
+Номер в таблице: 74
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Diesel рюкзак муж
+URL: https://www.kufar.by/l/muzhskie-ryukzaki?ot=1&prc=r%3A0%2C11000&query=Diesel&sort=lst.d
+Thread ID: 3
+Найдено объявлений: 41
+
+QUERY #75
+----------------------------------------
+Номер в таблице: 75
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Bootcut
+URL: https://www.kufar.by/l/muzhskaya-odezhda/bez-posrednikov?ot=1&prc=r%3A0%2C9000&query=bootcut&sort=lst.d
+Thread ID: 2480
+Найдено объявлений: 197
+
+QUERY #76
+----------------------------------------
+Номер в таблице: 76
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Joy Division
+URL: https://www.kufar.by/l?ot=1&query=Joy%20Division&rgn=all&sort=lst.d&utm_queryOrigin=Manually_typed
+Thread ID: 16
+Найдено объявлений: 11
+
+QUERY #77
+----------------------------------------
+Номер в таблице: 77
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Tigha
+URL: https://www.kufar.by/l?ot=1&query=Tigha&rgn=all&sort=lst.d&utm_queryOrigin=Manually_typed
+Thread ID: 16
+Найдено объявлений: 7
+
+QUERY #78
+----------------------------------------
+Номер в таблице: 78
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Bata Bunny
+URL: https://www.kufar.by/l?ot=1&query=bata%20bunny&rgn=all&sort=lst.d&utm_queryOrigin=Manually_typed
+Thread ID: 16
+Найдено объявлений: 17
+
+QUERY #79
+----------------------------------------
+Номер в таблице: 79
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Dolce рубашки муж
+URL: https://www.kufar.by/l/muzhskie-rubashki/bez-posrednikov?mcs=v.or%3A4%2C6%2C5&ot=1&prc=r%3A0%2C12000&query=DOLCE%26GABBANA&sort=lst.d
+Thread ID: 17
+Найдено объявлений: 15
+
+QUERY #80
+----------------------------------------
+Номер в таблице: 80
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Тренч муж
+URL: https://www.kufar.by/l/muzhskaya-odezhda/bez-posrednikov?cnd=1&mcs=v.or%3A4%2C5%2C6%2C7%2C8&ot=1&prc=r%3A0%2C12000&query=%D1%82%D1%80%D0%B5%D0%BD%D1%87&sort=lst.d
+Thread ID: 82
+Найдено объявлений: 97
+
+QUERY #81
+----------------------------------------
+Номер в таблице: 81
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        YSL рубашки
+URL: https://www.kufar.by/l/muzhskie-rubashki/bez-posrednikov?mcs=v.or%3A3%2C4%2C5%2C6&ot=1&prc=r%3A0%2C10000&query=Saint+Laurent&sort=lst.d
+Thread ID: 314
+Найдено объявлений: 16
+
+QUERY #82
+----------------------------------------
+Номер в таблице: 82
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        YSL джинсы
+URL: https://www.kufar.by/l/muzhskie-dzhinsy-bryuki/bez-posrednikov?mcs=v.or%3A3%2C4%2C5%2C6&ot=1&prc=r%3A0%2C10000&query=Saint+Laurent&sort=lst.d
+Thread ID: 314
+Найдено объявлений: 550
+
+QUERY #83
+----------------------------------------
+Номер в таблице: 83
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Gothicana
+URL: https://www.kufar.by/l/bez-posrednikov?ot=1&query=gothicana&sort=lst.d
+Thread ID: 16
+Найдено объявлений: 12
+
+QUERY #84
+----------------------------------------
+Номер в таблице: 84
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        YSL
+URL: https://www.kufar.by/l/muzhskaya-odezhda/bez-posrednikov?mcs=v.or%3A4%2C6%2C5&ot=1&prc=r%3A0%2C12000&query=ysl&sort=lst.d
+Thread ID: 314
+Найдено объявлений: 110
+
+QUERY #85
+----------------------------------------
+Номер в таблице: 85
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Клеш
+URL: https://www.kufar.by/l/muzhskie-dzhinsy-bryuki/bez-posrednikov?mcs=v.or%3A4%2C5%2C7%2C6&ot=1&prc=r%3A0%2C7000&query=%D0%BA%D0%BB%D0%B5%D1%88&sort=lst.d
+Thread ID: 2480
+Найдено объявлений: 97
+
+QUERY #86
+----------------------------------------
+Номер в таблице: 86
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Flared
+URL: https://www.kufar.by/l/muzhskie-dzhinsy-bryuki/bez-posrednikov?mcs=v.or%3A4%2C5%2C6&ot=1&prc=r%3A0%2C8000&query=flared&sort=lst.d
+Thread ID: 2480
+Найдено объявлений: 220
+
+QUERY #87
+----------------------------------------
+Номер в таблице: 87
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Dolce муж джинсы
+URL: https://www.kufar.by/l/muzhskie-dzhinsy-bryuki/bez-posrednikov?mcs=v.or%3A4%2C5%2C6&ot=1&prc=r%3A0%2C8000&query=dolce&sort=lst.d
+Thread ID: 17
+Найдено объявлений: 22
+
+QUERY #88
+----------------------------------------
+Номер в таблице: 88
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Казаки
+URL: https://www.kufar.by/l/muzhskaya-obuv?ot=1&prc=r%3A0%2C11000&query=%D0%BA%D0%B0%D0%B7%D0%B0%D0%BA%D0%B8&sort=lst.d
+Thread ID: 86
+Найдено объявлений: 67
+
+QUERY #89
+----------------------------------------
+Номер в таблице: 89
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Diesel муж верх
+URL: https://www.kufar.by/l/muzhskaya-verhnyaya-odezhda/bez-posrednikov?cnd=1&mcs=v.or%3A4%2C5%2C6%2C7%2C8%2C9%2C23&ot=1&prc=r%3A0%2C12000&query=diesel&sort=lst.d
+Thread ID: 3
+Найдено объявлений: 45
+
+QUERY #90
+----------------------------------------
+Номер в таблице: 90
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Плащ муж
+URL: https://www.kufar.by/l/muzhskaya-odezhda/w~chernyj/bez-posrednikov?ot=1&prc=r%3A0%2C10000&query=%D0%BF%D0%BB%D0%B0%D1%89&sort=lst.d
+Thread ID: 82
+Найдено объявлений: 103
+
+QUERY #91
+----------------------------------------
+Номер в таблице: 91
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Акссессуары кожаная муж
+URL: https://www.kufar.by/l/muzhskie-ryukzaki/bez-posrednikov?ot=1&prc=r%3A0%2C10000&query=%D0%BA%D0%BE%D0%B6%D0%B0%D0%BD%D0%B0%D1%8F&sort=lst.d
+Thread ID: 20
+Найдено объявлений: 32
+
+QUERY #92
+----------------------------------------
+Номер в таблице: 92
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Акссессуары кожа муж
+URL: https://www.kufar.by/l/muzhskie-ryukzaki/m~naturalnaya-kozha/bez-posrednikov?ot=1&prc=r%3A0%2C10000&query=%D0%BA%D0%BE%D0%B6%D0%B0&sort=lst.d
+Thread ID: 20
+Найдено объявлений: 23
+
+QUERY #93
+----------------------------------------
+Номер в таблице: 93
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Акссессуары кожаная жен
+URL: https://www.kufar.by/l/zhenskie-ryukzaki/m~naturalnaya-kozha/w~chernyj/bez-posrednikov?ot=1&prc=r%3A3000%2C10000&query=%D0%BA%D0%BE%D0%B6%D0%B0&sort=lst.d
+Thread ID: 20
+Найдено объявлений: 68
+
+QUERY #94
+----------------------------------------
+Номер в таблице: 94
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Акссессуары кожа жен
+URL: https://www.kufar.by/l/zhenskie-ryukzaki/m~naturalnaya-kozha/bez-posrednikov?ot=1&prc=r%3A3000%2C10000&query=%D0%BA%D0%BE%D0%B6%D0%B0&sort=lst.d
+Thread ID: 20
+Найдено объявлений: 113
+
+QUERY #95
+----------------------------------------
+Номер в таблице: 95
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        CDG жен майки
+URL: https://www.kufar.by/l/zhenskie-majki-i-topy/bez-posrednikov?cnd=1&ot=1&prc=r%3A3000%2C10000&query=comme+des+garcons&sort=lst.d
+Thread ID: 71
+Найдено объявлений: 34
+
+QUERY #96
+----------------------------------------
+Номер в таблице: 96
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        CDG муж майки
+URL: https://www.kufar.by/l/muzhskie-majki-i-futbolki/bez-posrednikov?cnd=1&ot=1&prc=r%3A0%2C15000&query=comme+des+garcons&sort=lst.d
+Thread ID: 71
+Найдено объявлений: 34
+
+QUERY #97
+----------------------------------------
+Номер в таблице: 97
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        G-Star муж низ
+URL: https://www.kufar.by/l/muzhskie-dzhinsy-bryuki/bez-posrednikov?mcs=v.or%3A5%2C6%2C4&ot=1&prc=r%3A0%2C6500&query=g-star&sort=lst.d
+Thread ID: 70
+Найдено объявлений: 44
+
+QUERY #98
+----------------------------------------
+Номер в таблице: 98
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        G-Star муж верх
+URL: https://www.kufar.by/l/muzhskaya-verhnyaya-odezhda/bez-posrednikov?ot=1&prc=r%3A0%2C15000&query=g-star&sort=lst.d
+Thread ID: 70
+Найдено объявлений: 77
+
+QUERY #99
+----------------------------------------
+Номер в таблице: 99
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Maison Margiela жен
+URL: https://www.kufar.by/l/zhenskaya-odezhda/bez-posrednikov?ot=1&prc=r%3A2000%2C20000&query=maison+margiela&sort=lst.d
+Thread ID: 69
+Найдено объявлений: 258
+
+QUERY #100
+----------------------------------------
+Номер в таблице: 100
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Maison Margiela муж
+URL: https://www.kufar.by/l/muzhskaya-odezhda/bez-posrednikov?ot=1&query=maison+margiela&sort=lst.d
+Thread ID: 69
+Найдено объявлений: 189
+
+QUERY #101
+----------------------------------------
+Номер в таблице: 101
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Кожанка муж
+URL: https://www.kufar.by/l/muzhskaya-verhnyaya-odezhda?ot=1&prc=r%3A0%2C15000&query=%D0%BA%D0%BE%D0%B6%D0%B0%D0%BD%D0%BA%D0%B0&sort=lst.d
+Thread ID: 19
+Найдено объявлений: 75
+
+QUERY #102
+----------------------------------------
+Номер в таблице: 102
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Кожа муж
+URL: https://www.kufar.by/l/muzhskaya-verhnyaya-odezhda/bez-posrednikov?ot=1&prc=r%3A0%2C15000&query=%D0%BA%D0%BE%D0%B6%D0%B0&sort=lst.d
+Thread ID: 19
+Найдено объявлений: 337
+
+QUERY #103
+----------------------------------------
+Номер в таблице: 103
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Кожаная муж
+URL: https://www.kufar.by/l/muzhskaya-verhnyaya-odezhda/bez-posrednikov?mcs=v.or%3A4%2C5%2C6%2C7&ot=1&prc=r%3A0%2C15000&query=%D0%BA%D0%BE%D0%B6%D0%B0%D0%BD%D0%B0%D1%8F&sort=lst.d
+Thread ID: 19
+Найдено объявлений: 521
+
+QUERY #104
+----------------------------------------
+Номер в таблице: 104
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Prada муж
+URL: https://www.kufar.by/l/muzhskaya-odezhda/bez-posrednikov?ot=1&prc=r%3A0%2C10000&query=prada&sort=lst.d
+Thread ID: 18
+Найдено объявлений: 131
+
+QUERY #105
+----------------------------------------
+Номер в таблице: 105
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Vivienne Westwood жен
+URL: https://www.kufar.by/l/zhenskie-majki-i-topy/bez-posrednikov?ot=1&prc=r%3A0%2C8000&query=vivienne+westwood&sort=lst.d
+Thread ID: 15
+Найдено объявлений: 99
+
+QUERY #106
+----------------------------------------
+Номер в таблице: 106
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Vivienne Westwood муж
+URL: https://www.kufar.by/l/muzhskaya-odezhda/bez-posrednikov?cnd=1&mcs=v.or%3A4%2C5%2C6&ot=1&prc=r%3A0%2C13000&query=vivienne+westwood&sort=lst.d
+Thread ID: 15
+Найдено объявлений: 69
+
+QUERY #107
+----------------------------------------
+Номер в таблице: 107
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Dior
+URL: https://www.kufar.by/l/muzhskaya-odezhda?ot=1&prc=r%3A0%2C10000&query=dior&sort=lst.d
+Thread ID: 14
+Найдено объявлений: 70
+
+QUERY #108
+----------------------------------------
+Номер в таблице: 108
+Название: <i class="bi bi-link-45deg me-1"></i>
+                                        Diesel муж джинсы
+URL: https://www.kufar.by/l/muzhskie-dzhinsy-bryuki/bez-posrednikov?cnd=1&mcs=v.or%3A4%2C5%2C6%2C7%2C8%2C9%2C23&ot=1&prc=r%3A0%2C8000&query=diesel&sort=lst.d
+Thread ID: 3
+Найдено объявлений: 93
+
+================================================================================
+КОНЕЦ ЭКСПОРТА
+================================================================================
