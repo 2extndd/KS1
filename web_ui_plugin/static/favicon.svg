@@ -1,4 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <circle cx="50" cy="50" r="45" fill="#0d6efd"/>
-  <path d="M30 35 L45 50 L30 65 M55 35 L70 50 L55 65" stroke="white" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Black background circle -->
+  <circle cx="50" cy="50" r="48" fill="#1a1a1a"/>
+  <!-- White border/ring -->
+  <circle cx="50" cy="50" r="45" fill="none" stroke="#ffffff" stroke-width="4"/>
+  <!-- White letter K -->
+  <text x="50" y="72" font-family="Arial, sans-serif" font-size="65" font-weight="bold" fill="#ffffff" text-anchor="middle">K</text>
 </svg>
