@@ -174,12 +174,12 @@ function loadRecentItems() {
 function createItemCardHTML(item) {
     const imageUrl = item.images && item.images.length > 0 ? item.images[0] : '';
     const priceDisplay = formatPrice(item);
-    const dateDisplay = item.date || 'Unknown date';
+    const dateDisplay = formatDate(item);
     
     return `
         <div class="col-6 col-sm-4 col-md-3 col-lg-3 col-xl-2 mb-3">
             <div class="card h-100 shadow-sm">
-                <a href="${item.item_url}" target="_blank" class="text-decoration-none">
+                <a href="${item.item_url || item.url}" target="_blank" class="text-decoration-none">
                     <div class="item-image-container" style="aspect-ratio: 4/5; overflow: hidden; background: var(--bg-card); border-radius: 0.25rem 0.25rem 0 0;">
                         ${imageUrl ?
                             `<img src="${imageUrl}" class="d-block w-100 h-100" style="object-fit: cover;" loading="lazy" 
@@ -192,16 +192,16 @@ function createItemCardHTML(item) {
                     </div>
                 </a>
                 <div class="card-body p-2">
-                    <h6 class="card-title mb-1 fw-bold" style="font-size: 0.8rem; line-height: 1.2; height: 2.4rem; overflow: hidden;">
+                    <h6 class="card-title mb-2 fw-bold" style="font-size: 0.8rem; line-height: 1.2; height: 2.4rem; overflow: hidden;">
                         ${escapeHtml(item.title).substring(0, 50)}${item.title.length > 50 ? '...' : ''}
                     </h6>
-                    <div class="mb-1">
-                        <div class="fw-bold item-price" style="font-size: 1.1rem;">${priceDisplay}</div>
+                    <div class="mb-2">
+                        ${priceDisplay}
                     </div>
-                    ${item.search_keyword ?
-                        `<span class="badge bg-primary" style="font-size: 0.6rem;">${escapeHtml(item.search_keyword).substring(0, 15)}</span>` : ''
+                    ${item.search_keyword || item.search_name ?
+                        `<span class="badge bg-primary" style="font-size: 0.6rem;">${escapeHtml(item.search_keyword || item.search_name).substring(0, 15)}</span>` : ''
                     }
-                    <div class="text-muted" style="font-size: 0.65rem; margin-top: 0.25rem;">
+                    <div class="text-muted mt-2" style="font-size: 0.65rem;">
                         <i class="bi bi-clock"></i> ${dateDisplay}
                     </div>
                 </div>
@@ -210,14 +210,66 @@ function createItemCardHTML(item) {
     `;
 }
 
-// Format price (handle both price and price_byn fields)
+// Format price with better styling (like MRS)
 function formatPrice(item) {
-    if (item.price_byn) {
-        return `${item.price_byn} BYN`;
-    } else if (item.price) {
-        return `${item.price} BYN`;
+    const price = item.price_byn || item.price || 0;
+    const currency = item.currency || 'BYN';
+    
+    if (price === 0) {
+        return '<span class="text-muted" style="font-size: 0.9rem;">Цена не указана</span>';
     }
-    return 'Price not available';
+    
+    // Format with thousand separators
+    const formattedPrice = new Intl.NumberFormat('ru-RU').format(price);
+    
+    // Extract size if available
+    let sizeText = '';
+    if (item.size) {
+        sizeText = ` <span class="text-muted" style="font-size: 0.7rem;">· ${escapeHtml(item.size)}</span>`;
+    }
+    
+    return `<div class="fw-bold" style="font-size: 1.1rem; color: #0d6efd;">${formattedPrice} ${currency}${sizeText}</div>`;
+}
+
+// Format date for display
+function formatDate(item) {
+    // Try different date fields
+    const dateStr = item.created_at || item.date || item.found_at;
+    
+    if (!dateStr) {
+        return '<span class="text-muted">Только что</span>';
+    }
+    
+    try {
+        const date = new Date(dateStr);
+        
+        // Check if date is valid
+        if (isNaN(date.getTime())) {
+            return '<span class="text-muted">Только что</span>';
+        }
+        
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+        
+        // Format relative time
+        if (diffMins < 1) {
+            return 'Только что';
+        } else if (diffMins < 60) {
+            return `${diffMins} мин назад`;
+        } else if (diffHours < 24) {
+            return `${diffHours} ч назад`;
+        } else if (diffDays < 7) {
+            return `${diffDays} дн назад`;
+        } else {
+            // Format as date
+            return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+        }
+    } catch (e) {
+        return '<span class="text-muted">Только что</span>';
+    }
 }
 
 // Escape HTML to prevent XSS
