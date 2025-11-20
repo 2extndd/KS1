@@ -10,9 +10,9 @@
     <div class="col-3">
         <div class="card h-100">
             <div class="card-body p-2 text-center">
-                <div class="small text-muted mb-1" style="font-size: 0.7rem;">Queries</div>
-                <div class="fw-bold" style="font-size: 1.2rem;">{{ db_stats.get('total_searches', 0) }}</div>
-                <div class="small text-success" style="font-size: 0.65rem;">{{ db_stats.get('active_searches', 0) }} active</div>
+                <div class="small text-muted mb-1" style="font-size: 0.75rem;">Queries</div>
+                <div class="fw-bold" style="font-size: 1.8rem;">{{ db_stats.get('total_searches', 0) }}</div>
+                <div class="small text-success" style="font-size: 0.7rem;">{{ db_stats.get('active_searches', 0) }} active</div>
             </div>
         </div>
     </div>
@@ -20,9 +20,9 @@
     <div class="col-3">
         <div class="card h-100">
             <div class="card-body p-2 text-center">
-                <div class="small text-muted mb-1" style="font-size: 0.7rem;">Items</div>
-                <div class="fw-bold" style="font-size: 1.2rem;" id="total-items">{{ db_stats.get('total_items', 0) }}</div>
-                <div class="small text-warning" style="font-size: 0.65rem;">{{ db_stats.get('unsent_items', 0) }} new</div>
+                <div class="small text-muted mb-1" style="font-size: 0.75rem;">Items</div>
+                <div class="fw-bold" style="font-size: 1.8rem;" id="total-items">{{ db_stats.get('total_items', 0) }}</div>
+                <div class="small text-warning" style="font-size: 0.7rem;">{{ db_stats.get('unsent_items', 0) }} new</div>
             </div>
         </div>
     </div>
@@ -30,9 +30,9 @@
     <div class="col-3">
         <div class="card h-100">
             <div class="card-body p-2 text-center">
-                <div class="small text-muted mb-1" style="font-size: 0.7rem;">API</div>
-                <div class="fw-bold" style="font-size: 1.2rem;" id="api-requests">{{ searcher_status.total_api_requests or 0 }}</div>
-                <div class="small text-muted" style="font-size: 0.65rem;">requests</div>
+                <div class="small text-muted mb-1" style="font-size: 0.75rem;">API</div>
+                <div class="fw-bold" style="font-size: 1.8rem;" id="api-requests">{{ searcher_status.total_api_requests or 0 }}</div>
+                <div class="small text-muted" style="font-size: 0.7rem;">requests</div>
             </div>
         </div>
     </div>
@@ -40,9 +40,9 @@
     <div class="col-3">
         <div class="card h-100">
             <div class="card-body p-2 text-center">
-                <div class="small text-muted mb-1" style="font-size: 0.7rem;">Uptime</div>
-                <div class="fw-bold" style="font-size: 0.9rem;" id="uptime">{{ searcher_status.uptime or '0s' }}</div>
-                <div class="small text-muted" style="font-size: 0.65rem;">h:m:s</div>
+                <div class="small text-muted mb-1" style="font-size: 0.75rem;">Uptime</div>
+                <div class="fw-bold" style="font-size: 1.1rem;" id="uptime">{{ searcher_status.uptime or '0s' }}</div>
+                <div class="small text-muted" style="font-size: 0.7rem;">h:m:s</div>
             </div>
         </div>
     </div>
