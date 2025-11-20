@@ -1,9 +1,50 @@
-/* Custom styles for KF Searcher Web UI */
+/* Custom styles for KufarSearcher Web UI - Unified Design System */
+
+/* CSS Variables for Light/Dark Theme */
+:root {
+    /* Light Theme (default) */
+    --bg-primary: #f8f9fa;
+    --bg-secondary: #ffffff;
+    --bg-card: #ffffff;
+    --bg-header: #ffffff;
+    --text-primary: #212529;
+    --text-secondary: #6c757d;
+    --text-muted: #adb5bd;
+    --border-color: #dee2e6;
+    --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    --shadow-md: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    --table-hover: rgba(0, 0, 0, 0.02);
+    --log-hover: rgba(0, 0, 0, 0.02);
+    --input-bg: #ffffff;
+    --input-border: #ced4da;
+    --card-header-bg: #ffffff;
+}
+
+[data-theme="dark"] {
+    /* Dark Theme - High Contrast */
+    --bg-primary: #0d1117;
+    --bg-secondary: #161b22;
+    --bg-card: #21262d;
+    --bg-header: #161b22;
+    --text-primary: #f0f6fc;
+    --text-secondary: #c9d1d9;
+    --text-muted: #8b949e;
+    --border-color: #30363d;
+    --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 0.5rem 1rem rgba(0, 0, 0, 0.6);
+    --table-hover: rgba(255, 255, 255, 0.08);
+    --log-hover: rgba(255, 255, 255, 0.08);
+    --input-bg: #161b22;
+    --input-border: #30363d;
+    --card-header-bg: #161b22;
+}
 
 /* General Styles */
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    background-color: #f8f9fa;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Navigation */
@@ -30,19 +71,22 @@ body {
 
 /* Cards */
 .card {
-    border: none;
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
     transition: box-shadow 0.15s ease-in-out;
+    background-color: var(--bg-card);
+    color: var(--text-primary);
 }
 
 .card:hover {
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    box-shadow: var(--shadow-md);
 }
 
 .card-header {
-    background-color: #fff;
-    border-bottom: 1px solid #dee2e6;
+    background-color: var(--card-header-bg);
+    border-bottom: 1px solid var(--border-color);
     font-weight: 600;
+    color: var(--text-primary);
 }
 
 /* Stats Cards */
@@ -94,16 +138,23 @@ body {
 /* Tables */
 .table {
     font-size: 0.9rem;
+    color: var(--text-primary);
 }
 
 .table th {
     font-weight: 600;
     border-top: none;
-    background-color: #f8f9fa;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
 }
 
 .table-hover tbody tr:hover {
-    background-color: rgba(0, 0, 0, 0.02);
+    background-color: var(--table-hover);
+}
+
+.table-light {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
 }
 
 /* Item Cards */
@@ -137,7 +188,9 @@ body {
 .form-control,
 .form-select {
     border-radius: 0.375rem;
-    border: 1px solid #ced4da;
+    border: 1px solid var(--input-border);
+    background-color: var(--input-bg);
+    color: var(--text-primary);
     transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
@@ -145,11 +198,18 @@ body {
 .form-select:focus {
     border-color: #86b7fe;
     box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    background-color: var(--input-bg);
+    color: var(--text-primary);
 }
 
 .form-label {
     font-weight: 500;
     margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.text-muted {
+    color: var(--text-muted) !important;
 }
 
 /* Pagination */
@@ -208,22 +268,24 @@ body {
     line-height: 1.4;
     white-space: pre-wrap;
     word-break: break-word;
+    color: var(--text-primary);
 }
 
 .log-row {
     transition: background-color 0.2s ease;
+    background-color: var(--bg-card);
 }
 
 .log-row:hover {
-    background-color: rgba(0, 0, 0, 0.02);
+    background-color: var(--log-hover);
 }
 
 /* Search Form */
 .search-form {
-    background-color: #fff;
+    background-color: var(--bg-card);
     border-radius: 0.5rem;
     padding: 1rem;
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    box-shadow: var(--shadow-sm);
 }
 
 /* Item Grid */
@@ -249,6 +311,57 @@ body {
     color: #6c757d;
 }
 
+/* Dark theme price fixes */
+[data-theme="dark"] .text-dark,
+[data-theme="dark"] .item-price {
+    color: #f0f6fc !important;
+}
+
+[data-theme="dark"] .bg-light,
+[data-theme="dark"] .item-image-container {
+    background-color: var(--bg-card) !important;
+}
+
+/* Larger navbar on desktop */
+@media (min-width: 992px) {
+    .navbar {
+        padding: 1rem 0 !important;
+    }
+
+    .brand-title {
+        font-size: 1.5rem !important;
+    }
+
+    .brand-subtitle {
+        font-size: 0.8rem !important;
+    }
+
+    .navbar-nav .nav-link {
+        font-size: 1.05rem;
+        padding: 0.6rem 1rem;
+    }
+}
+
+/* Queries table dark theme */
+[data-theme="dark"] .queries-table tbody tr {
+    background-color: var(--bg-card);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .queries-table tbody tr:hover {
+    background-color: var(--table-hover);
+}
+
+[data-theme="dark"] .query-code {
+    background-color: var(--bg-primary);
+    color: #58a6ff;
+    border: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .table-striped > tbody > tr:nth-of-type(odd) > * {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
 /* Location Display */
 .location-display {
     color: #6c757d;
@@ -270,7 +383,31 @@ body {
 
 /* Footer */
 footer {
-    border-top: 1px solid #dee2e6;
+    border-top: 1px solid var(--border-color);
+}
+
+/* Theme Toggle Button */
+.theme-toggle-btn {
+    position: relative;
+    padding: 0.5rem 1rem;
+    border: 2px solid var(--border-color);
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.theme-toggle-btn:hover {
+    background-color: var(--bg-primary);
+    border-color: #0d6efd;
+}
+
+.theme-toggle-btn i {
+    font-size: 1.2rem;
 }
 
 /* Responsive adjustments */
@@ -281,19 +418,19 @@ footer {
     .card.bg-info .card-title {
         font-size: 1.5rem;
     }
-    
+
     .navbar-nav .nav-link {
         margin: 0.125rem 0;
     }
-    
+
     .table-responsive {
         font-size: 0.8rem;
     }
-    
+
     .btn-group {
         flex-direction: column;
     }
-    
+
     .btn-group .btn {
         border-radius: 0.375rem !important;
         margin-bottom: 0.25rem;
