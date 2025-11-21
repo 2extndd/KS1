@@ -1061,7 +1061,7 @@ def get_recent_items(hours: int = 24):
         return []
 
 def get_items_paginated(page: int = 1, per_page: int = 20, search_filter: str = '', search_id: str = ''):
-    """Get paginated items"""
+    """Get paginated items with support for multiple search terms separated by semicolon"""
     try:
         offset = (page - 1) * per_page
         
@@ -1070,11 +1070,21 @@ def get_items_paginated(page: int = 1, per_page: int = 20, search_filter: str = 
         params = []
         
         if search_filter:
-            if get_db().is_postgres:
-                where_conditions.append("(i.title ILIKE %s OR s.name ILIKE %s)")
-            else:
-                where_conditions.append("(i.title LIKE %s OR s.name LIKE %s)")
-            params.extend([f'%{search_filter}%', f'%{search_filter}%'])
+            # Split by semicolon to support multiple search terms
+            search_terms = [term.strip() for term in search_filter.split(';') if term.strip()]
+            
+            if search_terms:
+                # Build OR conditions for each search term
+                term_conditions = []
+                for term in search_terms:
+                    if get_db().is_postgres:
+                        term_conditions.append("(i.title ILIKE %s OR s.name ILIKE %s)")
+                    else:
+                        term_conditions.append("(i.title LIKE %s OR s.name LIKE %s)")
+                    params.extend([f'%{term}%', f'%{term}%'])
+                
+                # Combine all term conditions with OR
+                where_conditions.append(f"({' OR '.join(term_conditions)})")
         
         if search_id:
             where_conditions.append("i.search_id = %s")

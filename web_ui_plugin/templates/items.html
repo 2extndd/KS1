@@ -12,8 +12,11 @@
             
             <!-- Search Form - Mobile Responsive -->
             <form method="GET" class="d-flex w-100 w-md-auto" style="max-width: 400px;">
-                <input type="text" name="search" class="form-control me-2 flex-grow-1" placeholder="Search items..." 
-                       value="{{ search_filter }}" style="min-width: 0;">
+                <input type="text" name="search" class="form-control me-2 flex-grow-1" 
+                       placeholder="Search items... (use ; for multiple terms)" 
+                       value="{{ search_filter }}" 
+                       style="min-width: 0;"
+                       title="Use semicolon (;) to search for multiple terms. Example: Alpha; Пуховики">
                 <button type="submit" class="btn btn-outline-primary flex-shrink-0">
                     <i class="fas fa-search"></i>
                 </button>
