@@ -5,20 +5,20 @@
 {% block content %}
 <div class="row">
     <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
             <h1 class="h3 mb-0">
                 <i class="fas fa-box me-2"></i>Items
             </h1>
             
-            <!-- Search Form -->
-            <form method="GET" class="d-flex">
-                <input type="text" name="search" class="form-control me-2" placeholder="Search items..." 
-                       value="{{ search_filter }}" style="width: 300px;">
-                <button type="submit" class="btn btn-outline-primary">
+            <!-- Search Form - Mobile Responsive -->
+            <form method="GET" class="d-flex w-100 w-md-auto" style="max-width: 400px;">
+                <input type="text" name="search" class="form-control me-2 flex-grow-1" placeholder="Search items..." 
+                       value="{{ search_filter }}" style="min-width: 0;">
+                <button type="submit" class="btn btn-outline-primary flex-shrink-0">
                     <i class="fas fa-search"></i>
                 </button>
                 {% if search_filter %}
-                <a href="{{ url_for('items') }}" class="btn btn-outline-secondary ms-2">
+                <a href="{{ url_for('items') }}" class="btn btn-outline-secondary ms-2 flex-shrink-0">
                     <i class="fas fa-times"></i>
                 </a>
                 {% endif %}
@@ -28,33 +28,17 @@
 </div>
 
 {% if items %}
-    <!-- Items Grid -->
+    <!-- Items Grid with Infinite Scroll -->
     <div class="row" id="items-grid-container">
         {% for item in items %}
         <div class="col-lg-2 col-md-3 col-sm-4 col-6 mb-4">
             <div class="card h-100">
                 <!-- Clickable Image with 4:5 aspect ratio -->
                 <a href="{{ item.url }}" target="_blank" class="text-decoration-none position-relative d-block">
-                    {% if item.images %}
-                        <div id="carousel-{{ item.id }}" class="carousel slide" data-bs-ride="carousel">
-                            <div class="carousel-inner">
-                                {% for image in item.images[:3] %}
-                                <div class="carousel-item {{ 'active' if loop.first }}">
-                                    <div style="aspect-ratio: 4/5; overflow: hidden; position: relative;">
-                                        <img src="{{ image }}" class="d-block w-100 h-100" alt="Item image" 
-                                             style="object-fit: cover; object-position: center;">
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                            {% if item.images|length > 1 %}
-                            <button class="carousel-control-prev" type="button" data-bs-target="#carousel-{{ item.id }}" data-bs-slide="prev" onclick="event.stopPropagation();">
-                                <span class="carousel-control-prev-icon"></span>
-                            </button>
-                            <button class="carousel-control-next" type="button" data-bs-target="#carousel-{{ item.id }}" data-bs-slide="next" onclick="event.stopPropagation();">
-                                <span class="carousel-control-next-icon"></span>
-                            </button>
-                            {% endif %}
+                    {% if item.images and item.images|length > 0 %}
+                        <div style="aspect-ratio: 4/5; overflow: hidden; position: relative;">
+                            <img src="{{ item.images[0] }}" class="d-block w-100 h-100" alt="Item image" 
+                                 style="object-fit: cover; object-position: center;">
                         </div>
                     {% else %}
                         <div class="bg-light d-flex align-items-center justify-content-center" 
@@ -119,71 +103,20 @@
         {% endfor %}
     </div>
     
-    <!-- Pagination -->
-    {% if pagination.total_pages > 1 %}
-    <nav aria-label="Items pagination">
-        <ul class="pagination justify-content-center">
-            {% if pagination.has_prev %}
-                <li class="page-item">
-                    <a class="page-link" href="{{ url_for('items', page=pagination.page-1, search=search_filter, search_id=search_id) }}">
-                        <i class="fas fa-chevron-left"></i>
-                    </a>
-                </li>
-            {% endif %}
-            
-            {% set start_page = [pagination.page - 2, 1] | max %}
-            {% set end_page = [pagination.page + 2, pagination.total_pages] | min %}
-            
-            {% if start_page > 1 %}
-                <li class="page-item">
-                    <a class="page-link" href="{{ url_for('items', page=1, search=search_filter, search_id=search_id) }}">1</a>
-                </li>
-                {% if start_page > 2 %}
-                    <li class="page-item disabled">
-                        <span class="page-link">...</span>
-                    </li>
-                {% endif %}
-            {% endif %}
-            
-            {% for page_num in range(start_page, end_page + 1) %}
-                <li class="page-item {{ 'active' if page_num == pagination.page }}">
-                    <a class="page-link" href="{{ url_for('items', page=page_num, search=search_filter, search_id=search_id) }}">
-                        {{ page_num }}
-                    </a>
-                </li>
-            {% endfor %}
-            
-            {% if end_page < pagination.total_pages %}
-                {% if end_page < pagination.total_pages - 1 %}
-                    <li class="page-item disabled">
-                        <span class="page-link">...</span>
-                    </li>
-                {% endif %}
-                <li class="page-item">
-                    <a class="page-link" href="{{ url_for('items', page=pagination.total_pages, search=search_filter, search_id=search_id) }}">
-                        {{ pagination.total_pages }}
-                    </a>
-                </li>
-            {% endif %}
-            
-            {% if pagination.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="{{ url_for('items', page=pagination.page+1, search=search_filter, search_id=search_id) }}">
-                        <i class="fas fa-chevron-right"></i>
-                    </a>
-                </li>
-            {% endif %}
-        </ul>
-    </nav>
+    <!-- Loading indicator for infinite scroll -->
+    <div class="text-center py-4 d-none" id="items-scroll-loading">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading more...</span>
+        </div>
+        <p class="text-muted mt-2">Loading more items...</p>
+    </div>
     
-    <div class="text-center text-muted">
+    <!-- Items count display -->
+    <div class="text-center text-muted mb-3" id="items-count-info">
         <small>
-            Showing {{ ((pagination.page - 1) * pagination.per_page + 1) }} - 
-            {{ [pagination.page * pagination.per_page, pagination.total] | min }} 
-            of {{ pagination.total }} items
+            Showing {{ items|length }} of {{ pagination.total }} items
         </small>
     </div>
-    {% endif %}
     
 {% else %}
     <!-- No Items -->
@@ -207,126 +140,130 @@
 
 {% block scripts %}
 <script>
-// AJAX автообновление страницы Items без перезагрузки
-let lastItemCount = 0;
+// Infinite scroll variables
+let currentItemsPage = {{ pagination.page if pagination else 1 }};
+let isLoadingItems = false;
+let hasMoreItemsToLoad = {{ 'true' if pagination and pagination.has_next else 'false' }};
+let totalItemsCount = {{ pagination.total if pagination else 0 }};
+let loadedItemsCount = {{ items|length if items else 0 }};
 
-function updateItemsPage() {
-    // Проверяем, что пользователь не взаимодействует с формами
-    if (document.visibilityState !== 'visible' || document.querySelector('input:focus, textarea:focus, select:focus')) {
-        return;
+// Get current search params
+const urlParams = new URLSearchParams(window.location.search);
+const searchFilter = urlParams.get('search') || '';
+const searchId = urlParams.get('search_id') || '';
+
+// Initialize infinite scroll
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔄 Initializing items infinite scroll...');
+    
+    // Setup infinite scroll listener
+    window.addEventListener('scroll', handleItemsInfiniteScroll);
+    
+    // Update initial count display
+    updateItemsCountDisplay();
+});
+
+// Handle infinite scroll
+function handleItemsInfiniteScroll() {
+    if (isLoadingItems || !hasMoreItemsToLoad) return;
+    
+    const scrollLoading = document.getElementById('items-scroll-loading');
+    if (!scrollLoading) return;
+    
+    const scrollPosition = window.innerHeight + window.scrollY;
+    const threshold = document.documentElement.scrollHeight - 800;
+    
+    if (scrollPosition >= threshold) {
+        loadMoreItemsPage();
     }
+}
+
+// Load more items
+function loadMoreItemsPage() {
+    if (isLoadingItems || !hasMoreItemsToLoad) return;
     
-    console.log('🔄 Проверка новых объявлений...');
+    isLoadingItems = true;
+    currentItemsPage++;
     
-    // Получаем текущие параметры страницы
-    const urlParams = new URLSearchParams(window.location.search);
-    const currentPage = urlParams.get('page') || 1;
-    const searchFilter = urlParams.get('search') || '';
-    const searchId = urlParams.get('search_id') || '';
+    const scrollLoading = document.getElementById('items-scroll-loading');
+    scrollLoading.classList.remove('d-none');
     
-    // Запрашиваем обновленные данные
-    let apiUrl = `/api/items?page=${currentPage}&search=${encodeURIComponent(searchFilter)}`;
+    // Build API URL with filters
+    let apiUrl = `/api/items?page=${currentItemsPage}&per_page=30`;
+    if (searchFilter) {
+        apiUrl += `&search=${encodeURIComponent(searchFilter)}`;
+    }
     if (searchId) {
         apiUrl += `&search_id=${encodeURIComponent(searchId)}`;
     }
+    
+    console.log(`🔄 Loading page ${currentItemsPage}...`);
+    
     fetch(apiUrl)
         .then(response => response.json())
         .then(data => {
-            if (data.error) {
-                console.error('❌ Ошибка получения объявлений:', data.error);
+            if (!data.success || !data.items || data.items.length === 0) {
+                hasMoreItemsToLoad = false;
+                scrollLoading.classList.add('d-none');
+                isLoadingItems = false;
+                console.log('✅ No more items to load');
                 return;
             }
             
-            // ПОЛНОЕ ОБНОВЛЕНИЕ - всегда обновляем контент если есть новые данные
-            if (data.items && data.items.length > 0) {
-                console.log(`📦 Обновляем содержимое страницы: ${data.items.length} объявлений`);
-                
-                // Обновляем контент страницы
-                updateItemsContent(data.items);
-                
-                // Обновляем счетчик в пагинации
-                updatePaginationInfo(data.pagination);
-                
-                lastItemCount = data.items.length;
-                
-                console.log('✅ Содержимое страницы обновлено');
-            } else {
-                console.log('📦 Нет объявлений для отображения');
-            }
+            // Render new items
+            const container = document.getElementById('items-grid-container');
+            data.items.forEach(item => {
+                container.insertAdjacentHTML('beforeend', createItemCardHTMLForItemsPage(item));
+            });
             
-            console.log('✅ Проверка объявлений завершена');
+            // Update counts
+            loadedItemsCount += data.items.length;
+            totalItemsCount = data.pagination?.total || totalItemsCount;
+            hasMoreItemsToLoad = data.pagination?.has_next || false;
+            
+            updateItemsCountDisplay();
+            
+            scrollLoading.classList.add('d-none');
+            isLoadingItems = false;
+            
+            console.log(`✅ Loaded ${data.items.length} more items (${loadedItemsCount}/${totalItemsCount})`);
         })
         .catch(error => {
-            console.error('❌ Ошибка AJAX запроса:', error);
+            console.error('❌ Failed to load more items:', error);
+            scrollLoading.classList.add('d-none');
+            isLoadingItems = false;
         });
 }
 
-function updateItemsContent(items) {
-    // Находим конкретный контейнер с товарами по ID
-    const itemsContainer = document.getElementById('items-grid-container');
-    
-    if (!itemsContainer) {
-        console.log('❌ Контейнер товаров #items-grid-container не найден');
-        return;
+// Update items count display
+function updateItemsCountDisplay() {
+    const countInfo = document.getElementById('items-count-info');
+    if (countInfo) {
+        countInfo.innerHTML = `<small>Showing ${loadedItemsCount} of ${totalItemsCount} items</small>`;
     }
-    
-    console.log('✅ Найден правильный контейнер товаров, обновляем только его');
-    
-    // Полностью заменяем контент
-    itemsContainer.innerHTML = '';
-    
-    items.forEach(item => {
-        const itemHTML = createItemCardHTMLForItemsPage(item);
-        itemsContainer.insertAdjacentHTML('beforeend', itemHTML);
-    });
-    
-    console.log(`✅ Создано ${items.length} карточек товаров`);
 }
 
+// LEGACY: Keep for compatibility (disabled auto-update on items page)
+function updateItemsPage() {
+    // Disabled - using infinite scroll instead
+    console.log('Auto-update disabled on items page (using infinite scroll)');
+}
+
+// LEGACY: Removed - not needed for infinite scroll
+
 function createItemCardHTMLForItemsPage(item) {
-    // Generate carousel for multiple images or single image, exactly like original
+    // Single image only - no carousel
     let imageHTML;
     if (item.images && item.images.length > 0) {
-        const carouselId = `carousel-${item.id || Math.random().toString(36).substr(2, 9)}`;
-        
-        if (item.images.length > 1) {
-            // Multiple images - create carousel exactly like original
-            let carouselItems = '';
-            item.images.slice(0, 3).forEach((image, index) => {
-                carouselItems += `
-                    <div class="carousel-item ${index === 0 ? 'active' : ''}">
-                        <div style="aspect-ratio: 4/5; overflow: hidden; position: relative;">
-                            <img src="${escapeHtml(image)}" class="d-block w-100 h-100" alt="Item image" 
-                                 style="object-fit: cover; object-position: center;">
-                        </div>
-                    </div>
-                `;
-            });
-            
-            imageHTML = `
-                <div id="${carouselId}" class="carousel slide" data-bs-ride="carousel">
-                    <div class="carousel-inner">
-                        ${carouselItems}
-                    </div>
-                    <button class="carousel-control-prev" type="button" data-bs-target="#${carouselId}" data-bs-slide="prev" onclick="event.stopPropagation();">
-                        <span class="carousel-control-prev-icon"></span>
-                    </button>
-                    <button class="carousel-control-next" type="button" data-bs-target="#${carouselId}" data-bs-slide="next" onclick="event.stopPropagation();">
-                        <span class="carousel-control-next-icon"></span>
-                    </button>
-                </div>
-            `;
-        } else {
-            // Single image
-            imageHTML = `
-                <div style="aspect-ratio: 4/5; overflow: hidden; position: relative;">
-                    <img src="${escapeHtml(item.images[0])}" class="d-block w-100 h-100" alt="Item image" 
-                         style="object-fit: cover; object-position: center;">
-                </div>
-            `;
-        }
+        // Always show only first image
+        imageHTML = `
+            <div style="aspect-ratio: 4/5; overflow: hidden; position: relative;">
+                <img src="${escapeHtml(item.images[0])}" class="d-block w-100 h-100" alt="Item image" 
+                     style="object-fit: cover; object-position: center;">
+            </div>
+        `;
     } else {
-        // No images - placeholder exactly like original
+        // No images - placeholder
         imageHTML = `
             <div class="bg-light d-flex align-items-center justify-content-center" 
                  style="aspect-ratio: 4/5;">
@@ -484,52 +421,6 @@ function isValidClothingSize(size) {
     return false;
 }
 
-function updatePaginationInfo(pagination) {
-    if (pagination) {
-        // Обновляем информацию о пагинации если она есть
-        const paginationInfo = document.querySelector('.text-center.text-muted small');
-        if (paginationInfo && pagination.total) {
-            const start = ((pagination.page - 1) * pagination.per_page + 1);
-            const end = Math.min(pagination.page * pagination.per_page, pagination.total);
-            paginationInfo.innerHTML = `Showing ${start} - ${end} of ${pagination.total} items`;
-        }
-    }
-}
-
-function showNewItemsNotification() {
-    // Показываем ненавязчивое уведомление о новых объявлениях
-    const notification = document.createElement('div');
-    notification.className = 'alert alert-info alert-dismissible fade show position-fixed';
-    notification.style.cssText = 'top: 20px; right: 20px; z-index: 1050; max-width: 300px;';
-    notification.innerHTML = `
-        <i class="fas fa-info-circle me-2"></i>
-        Появились новые объявления!
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    
-    document.body.appendChild(notification);
-    
-    // Автоматически убираем через 5 секунд
-    setTimeout(() => {
-        if (notification.parentNode) {
-            notification.remove();
-        }
-    }, 5000);
-}
-
-// Инициализируем счетчик объявлений
-document.addEventListener('DOMContentLoaded', function() {
-    const itemsContainer = document.getElementById('items-grid-container');
-    if (itemsContainer) {
-        lastItemCount = itemsContainer.querySelectorAll('.col-lg-2').length;
-        console.log(`📊 Начальное количество объявлений: ${lastItemCount}`);
-    }
-});
-
-// Запускаем автообновление каждые 15 секунд (чуть реже чем дашборд)
-setInterval(updateItemsPage, 15000);
-
-// Первое обновление через 3 секунды после загрузки страницы
-setTimeout(updateItemsPage, 3000);
+// LEGACY: Removed - not needed for infinite scroll
 </script>
 {% endblock %}

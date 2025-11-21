@@ -5,44 +5,44 @@
 {% block content %}
 <h1 class="mb-3 d-none d-md-block">Dashboard</h1>
 
-<!-- Mobile-optimized stats (single row with 4 columns) -->
+<!-- Compact stats cards matching bot design -->
 <div class="row g-2 mb-3">
     <div class="col-3">
-        <div class="card h-100">
-            <div class="card-body p-2 text-center">
-                <div class="small text-muted mb-1" style="font-size: 0.75rem;">Queries</div>
-                <div class="fw-bold" style="font-size: 1.8rem;">{{ db_stats.get('total_searches', 0) }}</div>
-                <div class="small text-success" style="font-size: 0.7rem;">{{ db_stats.get('active_searches', 0) }} active</div>
+        <div class="card h-100 shadow-sm">
+            <div class="card-body p-3 text-center">
+                <div class="text-muted mb-2" style="font-size: 0.85rem; font-weight: 500;">Queries</div>
+                <div class="fw-bold mb-1" style="font-size: 2rem; line-height: 1;">{{ db_stats.get('total_searches', 0) }}</div>
+                <div class="small text-success" style="font-size: 0.75rem;">{{ db_stats.get('active_searches', 0) }} active</div>
             </div>
         </div>
     </div>
 
     <div class="col-3">
-        <div class="card h-100">
-            <div class="card-body p-2 text-center">
-                <div class="small text-muted mb-1" style="font-size: 0.75rem;">Items</div>
-                <div class="fw-bold" style="font-size: 1.8rem;" id="total-items">{{ db_stats.get('total_items', 0) }}</div>
-                <div class="small text-warning" style="font-size: 0.7rem;">{{ db_stats.get('unsent_items', 0) }} new</div>
+        <div class="card h-100 shadow-sm">
+            <div class="card-body p-3 text-center">
+                <div class="text-muted mb-2" style="font-size: 0.85rem; font-weight: 500;">Items</div>
+                <div class="fw-bold mb-1" style="font-size: 2rem; line-height: 1;" id="total-items">{{ db_stats.get('total_items', 0) }}</div>
+                <div class="small text-warning" style="font-size: 0.75rem;">{{ db_stats.get('unsent_items', 0) }} new</div>
             </div>
         </div>
     </div>
 
     <div class="col-3">
-        <div class="card h-100">
-            <div class="card-body p-2 text-center">
-                <div class="small text-muted mb-1" style="font-size: 0.75rem;">API</div>
-                <div class="fw-bold" style="font-size: 1.8rem;" id="api-requests">{{ searcher_status.total_api_requests or 0 }}</div>
-                <div class="small text-muted" style="font-size: 0.7rem;">requests</div>
+        <div class="card h-100 shadow-sm">
+            <div class="card-body p-3 text-center">
+                <div class="text-muted mb-2" style="font-size: 0.85rem; font-weight: 500;">API Calls</div>
+                <div class="fw-bold mb-1" style="font-size: 2rem; line-height: 1;" id="api-requests">{{ searcher_status.total_api_requests or 0 }}</div>
+                <div class="small text-muted" style="font-size: 0.75rem;">requests</div>
             </div>
         </div>
     </div>
 
     <div class="col-3">
-        <div class="card h-100">
-            <div class="card-body p-2 text-center">
-                <div class="small text-muted mb-1" style="font-size: 0.75rem;">Uptime</div>
-                <div class="fw-bold" style="font-size: 1.1rem;" id="uptime">{{ searcher_status.uptime or '0s' }}</div>
-                <div class="small text-muted" style="font-size: 0.7rem;">h:m:s</div>
+        <div class="card h-100 shadow-sm">
+            <div class="card-body p-3 text-center">
+                <div class="text-muted mb-2" style="font-size: 0.85rem; font-weight: 500;">Uptime</div>
+                <div class="fw-bold mb-1" style="font-size: 1.4rem; line-height: 1;" id="uptime">{{ searcher_status.uptime or '0s' }}</div>
+                <div class="small text-muted" style="font-size: 0.75rem;">running time</div>
             </div>
         </div>
     </div>
@@ -67,14 +67,15 @@
     </div>
 </div>
 
-<!-- Recent Items Section -->
+<!-- Recent Items Section with Infinite Scroll -->
 <div class="row">
     <div class="col-12">
         <div class="card">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h6 class="mb-0 d-flex align-items-center" style="font-size: 0.9rem;">
                     <i class="bi bi-clock-history me-2"></i>Recent Items (24h)
                 </h6>
+                <small class="text-muted" id="items-count-display">Loading...</small>
             </div>
             <div class="card-body">
                 <div class="row" id="recent-items-container">
@@ -85,6 +86,13 @@
                         </div>
                         <p class="text-muted mt-2">Loading recent items...</p>
                     </div>
+                </div>
+                <!-- Loading indicator for infinite scroll -->
+                <div class="text-center py-3 d-none" id="scroll-loading">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                        <span class="visually-hidden">Loading more...</span>
+                    </div>
+                    <p class="text-muted mt-2 mb-0">Loading more items...</p>
                 </div>
             </div>
         </div>
@@ -97,6 +105,12 @@
 // Auto-refresh interval IDs
 let statsRefreshInterval;
 let itemsRefreshInterval;
+
+// Infinite scroll variables
+let currentPage = 1;
+let isLoading = false;
+let hasMoreItems = true;
+let allLoadedItems = [];
 
 // Initialize auto-refresh on page load
 document.addEventListener('DOMContentLoaded', function() {
@@ -114,6 +128,9 @@ document.addEventListener('DOMContentLoaded', function() {
     itemsRefreshInterval = setInterval(function() {
         loadRecentItems();
     }, 30000);
+    
+    // Setup infinite scroll
+    window.addEventListener('scroll', handleInfiniteScroll);
 });
 
 // Refresh dashboard stats without page reload
@@ -135,9 +152,13 @@ function refreshDashboardStats() {
         });
 }
 
-// Load recent items
+// Load recent items (first page)
 function loadRecentItems() {
-    fetch('/api/recent-items?limit=24')
+    currentPage = 1;
+    allLoadedItems = [];
+    hasMoreItems = true;
+    
+    fetch('/api/items?page=1&per_page=24')
         .then(response => response.json())
         .then(data => {
             if (!data.success) {
@@ -151,9 +172,13 @@ function loadRecentItems() {
 
             if (!data.items || data.items.length === 0) {
                 container.innerHTML = '<div class="col-12 text-center py-3"><p class="text-muted">No items found yet</p></div>';
+                document.getElementById('items-count-display').textContent = '0 items';
                 return;
             }
 
+            // Store loaded items
+            allLoadedItems = data.items;
+            
             // Render items
             let html = '';
             data.items.forEach(item => {
@@ -161,12 +186,80 @@ function loadRecentItems() {
             });
 
             container.innerHTML = html;
+            
+            // Update count and pagination
+            const total = data.pagination?.total || data.items.length;
+            document.getElementById('items-count-display').textContent = `${data.items.length} of ${total} items`;
+            
+            hasMoreItems = data.pagination?.has_next || false;
+            
             console.log('✅ Recent items loaded:', data.items.length);
         })
         .catch(error => {
             console.error('❌ Failed to load recent items:', error);
             document.getElementById('recent-items-container').innerHTML = 
                 '<div class="col-12 text-center py-3"><p class="text-danger">Failed to load items</p></div>';
+        });
+}
+
+// Infinite scroll handler
+function handleInfiniteScroll() {
+    if (isLoading || !hasMoreItems) return;
+    
+    const scrollLoading = document.getElementById('scroll-loading');
+    if (!scrollLoading) return;
+    
+    const scrollPosition = window.innerHeight + window.scrollY;
+    const threshold = document.documentElement.scrollHeight - 500;
+    
+    if (scrollPosition >= threshold) {
+        loadMoreItems();
+    }
+}
+
+// Load more items for infinite scroll
+function loadMoreItems() {
+    if (isLoading || !hasMoreItems) return;
+    
+    isLoading = true;
+    currentPage++;
+    
+    const scrollLoading = document.getElementById('scroll-loading');
+    scrollLoading.classList.remove('d-none');
+    
+    fetch(`/api/items?page=${currentPage}&per_page=24`)
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success || !data.items || data.items.length === 0) {
+                hasMoreItems = false;
+                scrollLoading.classList.add('d-none');
+                isLoading = false;
+                return;
+            }
+            
+            // Add new items to array
+            allLoadedItems = [...allLoadedItems, ...data.items];
+            
+            // Render new items
+            const container = document.getElementById('recent-items-container');
+            data.items.forEach(item => {
+                container.insertAdjacentHTML('beforeend', createItemCardHTML(item));
+            });
+            
+            // Update count
+            const total = data.pagination?.total || allLoadedItems.length;
+            document.getElementById('items-count-display').textContent = `${allLoadedItems.length} of ${total} items`;
+            
+            hasMoreItems = data.pagination?.has_next || false;
+            scrollLoading.classList.add('d-none');
+            isLoading = false;
+            
+            console.log('✅ Loaded more items:', data.items.length);
+        })
+        .catch(error => {
+            console.error('❌ Failed to load more items:', error);
+            scrollLoading.classList.add('d-none');
+            isLoading = false;
         });
 }
 

@@ -435,6 +435,15 @@ footer {
         border-radius: 0.375rem !important;
         margin-bottom: 0.25rem;
     }
+    
+    /* Mobile search form fix - prevent overflow */
+    .d-flex.w-100.w-md-auto {
+        max-width: 100% !important;
+    }
+    
+    .form-control.flex-grow-1 {
+        min-width: 100px !important;
+    }
 }
 
 /* Dark mode support (if needed in future) */
