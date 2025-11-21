@@ -5,44 +5,44 @@
 {% block content %}
 <h1 class="mb-3 d-none d-md-block">Dashboard</h1>
 
-<!-- Compact stats cards matching bot design -->
+<!-- Mobile-optimized stats (single row with 4 columns) -->
 <div class="row g-2 mb-3">
     <div class="col-3">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body p-3 text-center">
-                <div class="text-muted mb-2" style="font-size: 0.85rem; font-weight: 500;">Queries</div>
-                <div class="fw-bold mb-1" style="font-size: 2rem; line-height: 1;">{{ db_stats.get('total_searches', 0) }}</div>
-                <div class="small text-success" style="font-size: 0.75rem;">{{ db_stats.get('active_searches', 0) }} active</div>
+        <div class="card h-100">
+            <div class="card-body p-2 text-center">
+                <div class="small text-muted mb-1" style="font-size: 0.7rem;">Queries</div>
+                <div class="fw-bold" style="font-size: 1.2rem;">{{ db_stats.get('total_searches', 0) }}</div>
+                <div class="small text-success" style="font-size: 0.65rem;">{{ db_stats.get('active_searches', 0) }} active</div>
             </div>
         </div>
     </div>
 
     <div class="col-3">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body p-3 text-center">
-                <div class="text-muted mb-2" style="font-size: 0.85rem; font-weight: 500;">Items</div>
-                <div class="fw-bold mb-1" style="font-size: 2rem; line-height: 1;" id="total-items">{{ db_stats.get('total_items', 0) }}</div>
-                <div class="small text-warning" style="font-size: 0.75rem;">{{ db_stats.get('unsent_items', 0) }} new</div>
+        <div class="card h-100">
+            <div class="card-body p-2 text-center">
+                <div class="small text-muted mb-1" style="font-size: 0.7rem;">Items</div>
+                <div class="fw-bold" style="font-size: 1.2rem;" id="total-items">{{ db_stats.get('total_items', 0) }}</div>
+                <div class="small text-warning" style="font-size: 0.65rem;">{{ db_stats.get('unsent_items', 0) }} new</div>
             </div>
         </div>
     </div>
 
     <div class="col-3">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body p-3 text-center">
-                <div class="text-muted mb-2" style="font-size: 0.85rem; font-weight: 500;">API Calls</div>
-                <div class="fw-bold mb-1" style="font-size: 2rem; line-height: 1;" id="api-requests">{{ searcher_status.total_api_requests or 0 }}</div>
-                <div class="small text-muted" style="font-size: 0.75rem;">requests</div>
+        <div class="card h-100">
+            <div class="card-body p-2 text-center">
+                <div class="small text-muted mb-1" style="font-size: 0.7rem;">API</div>
+                <div class="fw-bold" style="font-size: 1.2rem;" id="api-requests">{{ searcher_status.total_api_requests or 0 }}</div>
+                <div class="small text-muted" style="font-size: 0.65rem;">requests</div>
             </div>
         </div>
     </div>
 
     <div class="col-3">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body p-3 text-center">
-                <div class="text-muted mb-2" style="font-size: 0.85rem; font-weight: 500;">Uptime</div>
-                <div class="fw-bold mb-1" style="font-size: 1.4rem; line-height: 1;" id="uptime">{{ searcher_status.uptime or '0s' }}</div>
-                <div class="small text-muted" style="font-size: 0.75rem;">running time</div>
+        <div class="card h-100">
+            <div class="card-body p-2 text-center">
+                <div class="small text-muted mb-1" style="font-size: 0.7rem;">Uptime</div>
+                <div class="fw-bold" style="font-size: 0.9rem;" id="uptime">{{ searcher_status.uptime or '0s' }}</div>
+                <div class="small text-muted" style="font-size: 0.65rem;">h:m:s</div>
             </div>
         </div>
     </div>
