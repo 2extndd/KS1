@@ -158,6 +158,8 @@ const searchId = urlParams.get('search_id') || '';
 // Initialize infinite scroll
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🔄 Initializing items infinite scroll...');
+    console.log(`📋 Search params: filter="${searchFilter}", id="${searchId}"`);
+    console.log(`📊 Initial state: page=${currentItemsPage}, hasMore=${hasMoreItemsToLoad}, total=${totalItemsCount}`);
     
     // Setup infinite scroll listener
     window.addEventListener('scroll', handleItemsInfiniteScroll);
@@ -201,6 +203,7 @@ function loadMoreItemsPage() {
     }
     
     console.log(`🔄 Loading page ${currentItemsPage}...`);
+    console.log(`🔗 API URL: ${apiUrl}`);
     
     fetch(apiUrl)
         .then(response => response.json())
