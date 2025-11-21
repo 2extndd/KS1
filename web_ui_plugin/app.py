@@ -1131,6 +1131,10 @@ def get_items_paginated(page: int = 1, per_page: int = 20, search_filter: str = 
             # Calculate pagination
             total_pages = (total + per_page - 1) // per_page
             
+            # Check if there are more items: if we got full page, there might be more
+            # Only consider has_next=False if we got less items than requested
+            has_more_items = len(items) >= per_page and (page * per_page) < total
+            
             return {
                 'items': items,
                 'pagination': {
@@ -1139,7 +1143,7 @@ def get_items_paginated(page: int = 1, per_page: int = 20, search_filter: str = 
                     'total': total,
                     'total_pages': total_pages,
                     'has_prev': page > 1,
-                    'has_next': page < total_pages
+                    'has_next': has_more_items
                 }
             }
     except Exception as e:
