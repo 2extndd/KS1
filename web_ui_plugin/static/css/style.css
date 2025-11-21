@@ -410,6 +410,14 @@ footer {
     font-size: 1.2rem;
 }
 
+/* Desktop: 5 items per row (20% width) */
+@media (min-width: 992px) {
+    .col-lg-2.item-card-col {
+        flex: 0 0 20%;
+        max-width: 20%;
+    }
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .card.bg-primary .card-title,

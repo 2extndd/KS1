@@ -34,7 +34,7 @@
     <!-- Items Grid with Infinite Scroll -->
     <div class="row" id="items-grid-container">
         {% for item in items %}
-        <div class="col-lg-2 col-md-3 col-sm-4 col-6 mb-4">
+        <div class="col-lg-2 col-md-3 col-sm-4 col-6 mb-4 item-card-col">
             <div class="card h-100">
                 <!-- Clickable Image with 4:5 aspect ratio -->
                 <a href="{{ item.url }}" target="_blank" class="text-decoration-none position-relative d-block">
@@ -287,7 +287,7 @@ function createItemCardHTMLForItemsPage(item) {
     const priceWithSize = formatPriceWithSizeForItems(item);
     
     return `
-        <div class="col-lg-2 col-md-3 col-sm-4 col-6 mb-4">
+        <div class="col-lg-2 col-md-3 col-sm-4 col-6 mb-4 item-card-col">
             <div class="card h-100">
                 <!-- Clickable Image with 4:5 aspect ratio -->
                 <a href="${escapeHtml(item.url)}" target="_blank" class="text-decoration-none position-relative d-block">
