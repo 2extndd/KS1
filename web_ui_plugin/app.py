@@ -552,6 +552,7 @@ def create_app():
         """Save configuration"""
         try:
             data = request.get_json()
+            logger.info(f"📥 Received config save request: {data}")
             
             # Save to environment variables or settings table
             settings_to_save = {}
@@ -574,23 +575,49 @@ def create_app():
             if 'proxy_list' in data and data['proxy_list']:
                 settings_to_save['PROXY_LIST'] = data['proxy_list'].replace('\n', ',')
             
+            logger.info(f"📝 Settings to save: {settings_to_save}")
+            
             # Save settings to database settings table
+            saved_count = 0
+            failed_keys = []
             for key, value in settings_to_save.items():
-                get_db().set_setting(key, value)
-                logger.info(f"🔧 Configuration saved: {key} = {value}")
+                success = get_db().set_setting(key, value)
+                if success:
+                    saved_count += 1
+                    logger.info(f"✅ Configuration saved: {key} = {value[:50]}...")
+                else:
+                    failed_keys.append(key)
+                    logger.error(f"❌ Failed to save: {key}")
+            
+            # Verify that settings were saved
+            logger.info(f"🔍 Verifying saved settings...")
+            for key in settings_to_save.keys():
+                db_value = get_db().get_setting(key)
+                logger.info(f"   {key}: saved='{settings_to_save[key][:50]}...', read='{db_value[:50] if db_value else None}...'")
             
             # Log detailed information about what was saved
             config_summary = []
             for key, value in settings_to_save.items():
-                config_summary.append(f"{key}={value}")
+                config_summary.append(f"{key}={value[:20]}...")
             
-            get_db().add_log_entry('INFO', f'Configuration updated: {", ".join(config_summary)}', 'WebUI', f'Updated {len(settings_to_save)} settings via web interface')
-            logger.info(f"✅ Configuration saved successfully: {settings_to_save}")
+            get_db().add_log_entry('INFO', f'Configuration updated: {", ".join(config_summary)}', 'WebUI', f'Updated {saved_count}/{len(settings_to_save)} settings via web interface')
+            logger.info(f"✅ Configuration save complete: {saved_count} saved, {len(failed_keys)} failed")
             
-            return jsonify({'success': True, 'message': 'Configuration saved successfully'})
+            if failed_keys:
+                return jsonify({
+                    'success': False, 
+                    'message': f'Failed to save some settings: {", ".join(failed_keys)}'
+                }), 500
+            
+            return jsonify({
+                'success': True, 
+                'message': f'Configuration saved successfully! ({saved_count} settings updated)'
+            })
             
         except Exception as e:
-            logger.error(f"Error saving configuration: {e}")
+            logger.error(f"❌ Error saving configuration: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return jsonify({'error': str(e)}), 500
     
     @app.route('/api/bot/stop', methods=['POST'])
