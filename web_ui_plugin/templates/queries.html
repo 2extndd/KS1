@@ -58,15 +58,6 @@
     </div>
 </div>
 
-<!-- Force Scan Button -->
-<div class="row mb-3">
-    <div class="col-12">
-        <button class="btn btn-success w-100" onclick="forceScanAll()" id="forceScanBtn">
-            <i class="bi bi-arrow-repeat me-2"></i>Force Scan All Queries Now
-        </button>
-    </div>
-</div>
-
 <!-- Current Queries Section -->
 <div class="row">
     <div class="col-12">
@@ -235,43 +226,6 @@
 
 {% block scripts %}
 <script>
-// Force Scan All Queries
-function forceScanAll() {
-    const btn = document.getElementById('forceScanBtn');
-    const originalHTML = btn.innerHTML;
-    
-    // Disable button and show loading
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Scanning...';
-    
-    fetch('/api/force-scan', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlert('Force scan completed! Found ' + (data.results?.new_items || 0) + ' new items.', 'success');
-            // Refresh page after scan
-            setTimeout(() => {
-                location.reload();
-            }, 2000);
-        } else {
-            showAlert('Force scan failed: ' + (data.error || 'Unknown error'), 'danger');
-        }
-    })
-    .catch(error => {
-        showAlert('Error during force scan: ' + error.message, 'danger');
-    })
-    .finally(() => {
-        // Re-enable button
-        btn.disabled = false;
-        btn.innerHTML = originalHTML;
-    });
-}
-
 // Add new query
 document.getElementById('addQueryForm').addEventListener('submit', function(e) {
     e.preventDefault();
