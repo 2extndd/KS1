@@ -145,9 +145,9 @@ def get_telegram_chat_id():
     except:
         return os.getenv('TELEGRAM_CHAT_ID')
 
-# Legacy compatibility
-SEARCH_INTERVAL = get_search_interval()
-MAX_ITEMS_PER_SEARCH = get_max_items_per_search()
+# Legacy compatibility - removed caching, now always reads from DB
+# SEARCH_INTERVAL = get_search_interval()  # Don't cache - always call function
+# MAX_ITEMS_PER_SEARCH = get_max_items_per_search()  # Don't cache - always call function
 
 # Web UI Configuration
 WEB_UI_PORT = int(os.getenv('PORT', '5000'))
