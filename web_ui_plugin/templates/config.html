@@ -322,8 +322,9 @@ document.getElementById('configForm').addEventListener('submit', function(e) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showAlert('Configuration saved successfully!', 'success');
-            setTimeout(() => location.reload(), 1000);
+            showAlert('Configuration saved successfully! Reloading...', 'success');
+            // Wait longer to ensure PostgreSQL commit is complete
+            setTimeout(() => location.reload(), 2000);
         } else {
             showAlert('Failed to save configuration: ' + data.error, 'danger');
         }
