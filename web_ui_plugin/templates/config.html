@@ -323,8 +323,8 @@ document.getElementById('configForm').addEventListener('submit', function(e) {
     .then(data => {
         if (data.success) {
             showAlert('Configuration saved successfully! Reloading...', 'success');
-            // Wait longer to ensure PostgreSQL commit is complete
-            setTimeout(() => location.reload(), 2000);
+            // Wait MUCH longer to ensure PostgreSQL commit is complete on Railway
+            setTimeout(() => location.reload(), 3000);
         } else {
             showAlert('Failed to save configuration: ' + data.error, 'danger');
         }

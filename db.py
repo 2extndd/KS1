@@ -687,8 +687,25 @@ class DatabaseManager:
                         """, (key, value))
                 
                 conn.commit()
-                logger.info(f"✅ Setting saved: {key} = {value}")
-                return True
+                
+                # ВАЖНО: Явно проверяем что commit прошёл успешно
+                # Для PostgreSQL на Railway это критично!
+                import time
+                time.sleep(0.1)  # Даём время на commit
+                
+                # Проверяем что значение действительно сохранилось
+                cursor_check = conn.cursor()
+                self.execute_query(cursor_check, """
+                    SELECT value FROM settings WHERE key = %s
+                """, (key,))
+                check_result = cursor_check.fetchone()
+                
+                if check_result and check_result[0] == value:
+                    logger.info(f"✅ Setting saved and verified: {key} = {value}")
+                    return True
+                else:
+                    logger.error(f"❌ Setting saved but verification FAILED: {key} (expected={value}, got={check_result[0] if check_result else None})")
+                    return False
                 
         except Exception as e:
             logger.error(f"❌ Error setting {key}: {e}")
