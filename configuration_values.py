@@ -86,16 +86,24 @@ def get_search_interval():
     try:
         from db import get_db
         
-        # ПРИОРИТЕТ 1: Настройки из базы данных (веб-интерфейс)
+        # ПРИОРИТЕТ 1: Настройки из базы данных (веб-интерфейс) - ВСЕГДА ИМЕЕТ ПРИОРИТЕТ!
         db_value = get_db().get_setting('SEARCH_INTERVAL')
         if db_value and db_value.strip():
-            print(f"🔧 SEARCH_INTERVAL from database (WebUI): {db_value}")
-            return int(db_value)
+            result = int(db_value)
+            env_value = os.getenv('SEARCH_INTERVAL', 'NOT SET')
+            print(f"🔧 SEARCH_INTERVAL from database (WebUI): {db_value} -> {result} (env={env_value} IGNORED)")
+            return result
         
-        # ПРИОРИТЕТ 2: Переменные среды (только если нет в БД)
-        env_value = os.getenv('SEARCH_INTERVAL', '300')
-        print(f"🔧 SEARCH_INTERVAL from environment (no DB setting): {env_value}")
-        return int(env_value)
+        # ПРИОРИТЕТ 2: Переменные среды (только если НЕТ в БД)
+        env_value = os.getenv('SEARCH_INTERVAL')
+        if env_value and env_value.strip():
+            result = int(env_value)
+            print(f"🔧 SEARCH_INTERVAL from environment (no DB setting): {env_value} -> {result}")
+            return result
+        
+        # ПРИОРИТЕТ 3: Дефолт
+        print(f"🔧 SEARCH_INTERVAL default (no DB, no env): 300")
+        return 300
         
     except Exception as e:
         # FALLBACK: Переменные среды или дефолт
@@ -108,18 +116,24 @@ def get_max_items_per_search():
     try:
         from db import get_db
         
-        # ПРИОРИТЕТ 1: Настройки из базы данных (веб-интерфейс)
+        # ПРИОРИТЕТ 1: Настройки из базы данных (веб-интерфейс) - ВСЕГДА ИМЕЕТ ПРИОРИТЕТ!
         db_value = get_db().get_setting('MAX_ITEMS_PER_SEARCH')
         if db_value and db_value.strip():
             result = int(db_value)
-            print(f"🔧 MAX_ITEMS_PER_SEARCH from database (WebUI): {db_value} -> {result}")
+            env_value = os.getenv('MAX_ITEMS_PER_SEARCH', 'NOT SET')
+            print(f"🔧 MAX_ITEMS_PER_SEARCH from database (WebUI): {db_value} -> {result} (env={env_value} IGNORED)")
             return result
         
-        # ПРИОРИТЕТ 2: Переменные среды (только если нет в БД)
-        env_value = os.getenv('MAX_ITEMS_PER_SEARCH', '50')
-        result = int(env_value)
-        print(f"🔧 MAX_ITEMS_PER_SEARCH from environment (no DB setting): {env_value} -> {result}")
-        return result
+        # ПРИОРИТЕТ 2: Переменные среды (только если НЕТ в БД)
+        env_value = os.getenv('MAX_ITEMS_PER_SEARCH')
+        if env_value and env_value.strip():
+            result = int(env_value)
+            print(f"🔧 MAX_ITEMS_PER_SEARCH from environment (no DB setting): {env_value} -> {result}")
+            return result
+        
+        # ПРИОРИТЕТ 3: Дефолт
+        print(f"🔧 MAX_ITEMS_PER_SEARCH default (no DB, no env): 50")
+        return 50
         
     except Exception as e:
         # FALLBACK: Переменные среды или дефолт
