@@ -330,14 +330,17 @@ def create_app():
     def config():
         """Configuration page"""
         try:
-            from configuration_values import get_max_items_per_search, get_search_interval, get_telegram_bot_token
+            from configuration_values import get_max_items_per_search, get_search_interval, get_telegram_bot_token, get_telegram_chat_id
             
             # Get real configuration from database/environment
             config_data = {
                 'max_items_per_search': get_max_items_per_search(),
                 'search_interval': get_search_interval(),
+                'telegram_bot_token': get_telegram_bot_token() or '',
+                'telegram_chat_id': get_telegram_chat_id() or '',
                 'telegram_configured': bool(get_telegram_bot_token()),
                 'proxy_enabled': get_db().get_setting('PROXY_ENABLED', 'false').lower() == 'true',
+                'proxy_list': get_db().get_setting('PROXY_LIST', ''),
                 'max_errors_before_redeploy': 5
             }
             
@@ -597,21 +600,16 @@ def create_app():
         """Force scan all queries"""
         try:
             logger.info("🔍 Force scan initiated via API (WEB process)")
+            get_db().add_log_entry('INFO', 'Force Scan All initiated via WebUI', 'WebUI', 'Manual scan triggered by user')
             
-            # Import SearchCore from core module
-            import sys
-            import os
-            sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-            sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            # Use the global searcher instance
+            from core import searcher
             
-            from core import KufarSearcher
-            
-            # Initialize KufarSearcher and run scan
-            search_core = KufarSearcher()
-            results = search_core.search_all_queries()
+            # Run scan
+            results = searcher.search_all_queries()
             
             logger.info(f"✅ Force scan completed: {results}")
-            get_db().add_log_entry('INFO', 'Force Scan All initiated via WebUI (manual trigger)', 'WebUI', f'Manual scan triggered - found {results.get("new_items", 0)} new items')
+            get_db().add_log_entry('INFO', 'Force Scan All completed', 'WebUI', f'Manual scan - found {results.get("new_items", 0)} new items')
             
             return jsonify({
                 'success': True, 

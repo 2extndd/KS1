@@ -48,6 +48,15 @@
     </div>
 </div>
 
+<!-- Force Scan Button -->
+<div class="row mb-3">
+    <div class="col-12">
+        <button class="btn btn-primary w-100" onclick="forceScanAll()" id="forceScanBtn">
+            <i class="bi bi-arrow-repeat me-2"></i>Force Scan All Queries
+        </button>
+    </div>
+</div>
+
 <!-- Compact Action Buttons (Mobile-optimized) -->
 <div class="row g-2 mb-3">
     <div class="col-4">
@@ -111,6 +120,44 @@ let currentPage = 1;
 let isLoading = false;
 let hasMoreItems = true;
 let allLoadedItems = [];
+
+// Force Scan All Queries
+function forceScanAll() {
+    const btn = document.getElementById('forceScanBtn');
+    const originalHTML = btn.innerHTML;
+    
+    // Disable button and show loading
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Scanning...';
+    
+    fetch('/api/force-scan', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Force scan completed! Found ' + (data.results?.new_items || 0) + ' new items.', 'success');
+            // Refresh items after scan
+            setTimeout(() => {
+                loadRecentItems();
+                refreshDashboardStats();
+            }, 2000);
+        } else {
+            showAlert('Force scan failed: ' + (data.error || 'Unknown error'), 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert('Error during force scan: ' + error.message, 'danger');
+    })
+    .finally(() => {
+        // Re-enable button
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+    });
+}
 
 // Initialize auto-refresh on page load
 document.addEventListener('DOMContentLoaded', function() {

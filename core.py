@@ -184,10 +184,14 @@ class KufarSearcher:
                         for item in new_items:
                             try:
                                 from simple_telegram_worker import send_notification_for_item
-                                send_notification_for_item(item)
-                                logger.debug(f"Telegram notification sent for item {item['kufar_id']}")
+                                success = send_notification_for_item(item)
+                                if success:
+                                    logger.info(f"✅ Telegram notification sent successfully for item {item['kufar_id']}")
+                                else:
+                                    logger.warning(f"⚠️ Telegram notification failed for item {item['kufar_id']} (returned False)")
+                                    get_db().add_log_entry('WARNING', f"Telegram notification failed for item {item['kufar_id']}", 'core', 'Notification returned False')
                             except Exception as e:
-                                logger.error(f"Failed to send telegram notification: {e}")
+                                logger.error(f"❌ Failed to send telegram notification: {e}")
                                 get_db().add_log_entry('ERROR', f"Failed to send telegram notification: {str(e)}", 'core', f"Notification error for item {item['kufar_id']}")
                     else:
                         logger.info(f"[SEARCH] '{search['name']}': No items found")
