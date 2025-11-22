@@ -655,21 +655,45 @@ class DatabaseManager:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 
-                # Upsert setting
-                self.execute_query(cursor, """
-                    INSERT INTO settings (key, value, updated_at) 
-                    VALUES (%s, %s, CURRENT_TIMESTAMP)
-                    ON CONFLICT (key) DO UPDATE SET 
-                    value = EXCLUDED.value,
-                    updated_at = CURRENT_TIMESTAMP
-                """, (key, value))
+                if self.is_postgres:
+                    # PostgreSQL - use ON CONFLICT
+                    self.execute_query(cursor, """
+                        INSERT INTO settings (key, value, updated_at) 
+                        VALUES (%s, %s, CURRENT_TIMESTAMP)
+                        ON CONFLICT (key) DO UPDATE SET 
+                        value = EXCLUDED.value,
+                        updated_at = CURRENT_TIMESTAMP
+                    """, (key, value))
+                else:
+                    # SQLite - use INSERT OR REPLACE
+                    # First check if setting exists
+                    self.execute_query(cursor, """
+                        SELECT id FROM settings WHERE key = %s
+                    """, (key,))
+                    existing = cursor.fetchone()
+                    
+                    if existing:
+                        # Update existing
+                        self.execute_query(cursor, """
+                            UPDATE settings 
+                            SET value = %s, updated_at = CURRENT_TIMESTAMP
+                            WHERE key = %s
+                        """, (value, key))
+                    else:
+                        # Insert new
+                        self.execute_query(cursor, """
+                            INSERT INTO settings (key, value, updated_at) 
+                            VALUES (%s, %s, CURRENT_TIMESTAMP)
+                        """, (key, value))
                 
                 conn.commit()
-                logger.info(f"Setting saved: {key} = {value}")
+                logger.info(f"✅ Setting saved: {key} = {value}")
                 return True
                 
         except Exception as e:
-            logger.error(f"Error setting {key}: {e}")
+            logger.error(f"❌ Error setting {key}: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return False
     
     def get_setting(self, key: str, default: str = None) -> str:
