@@ -60,7 +60,7 @@
 <!-- Compact Action Buttons (Mobile-optimized) -->
 <div class="row g-2 mb-3">
     <div class="col-4">
-        <button class="btn btn-success btn-sm w-100" onclick="window.runSearch()" style="font-size: 0.75rem; padding: 0.4rem;">
+        <button class="btn btn-success btn-sm w-100" onclick="forceScanAll()" style="font-size: 0.75rem; padding: 0.4rem;">
             <i class="bi bi-arrow-clockwise"></i><span class="d-none d-sm-inline ms-1">Scan</span>
         </button>
     </div>
@@ -420,27 +420,7 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Run search (scan all queries)
-window.runSearch = function() {
-    if (confirm('Start scanning all active queries?')) {
-        fetch('/api/run-search', {
-            method: 'POST'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('✅ Scan started successfully!');
-                // Refresh stats after a few seconds
-                setTimeout(refreshDashboardStats, 3000);
-            } else {
-                alert('❌ Failed to start scan: ' + (data.error || 'Unknown error'));
-            }
-        })
-        .catch(error => {
-            alert('❌ Error: ' + error);
-        });
-    }
-};
+// Run search removed - now using forceScanAll() for all scan buttons
 
 // Clear all items
 window.clearAllItems = function() {

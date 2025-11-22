@@ -461,22 +461,31 @@ def create_app():
     
     @app.route('/api/search/run', methods=['POST'])
     def api_run_search():
-        """Run search manually"""
+        """Run search manually (deprecated - use /api/force-scan instead)"""
         try:
-            print(f"🔍 Force Scan All triggered at {datetime.now()}")
-            get_db().add_log_entry('INFO', 'Force Scan All triggered manually', 'Web UI', 'User requested manual search')
+            logger.info("🔍 Force scan initiated via /api/search/run (deprecated endpoint)")
+            get_db().add_log_entry('INFO', 'Force Scan All initiated via deprecated endpoint', 'WebUI', 'Manual scan triggered by user')
             
+            # Use the global searcher instance
             results = searcher.search_all_queries()
             
-            print(f"🔍 Force Scan completed: {results}")
-            get_db().add_log_entry('INFO', f'Force Scan completed: {results}', 'Web UI', 'Manual search results')
+            logger.info(f"✅ Force scan completed: {results}")
+            get_db().add_log_entry('INFO', 'Force Scan All completed', 'WebUI', f'Manual scan - found {results.get("new_items", 0)} new items')
             
-            return jsonify(results)
+            return jsonify({
+                'success': True,
+                'message': f'Force scan completed successfully! Found {results.get("new_items", 0)} new items.',
+                'results': results
+            })
         except Exception as e:
-            error_msg = f"Error in Force Scan: {e}"
-            print(f"❌ {error_msg}")
-            get_db().add_log_entry('ERROR', error_msg, 'Web UI', 'Force scan error')
-            return jsonify({'error': str(e)}), 500
+            logger.error(f"❌ Error in force scan: {e}")
+            import traceback
+            traceback.print_exc()
+            get_db().add_log_entry('ERROR', f'Force Scan All failed: {str(e)}', 'WebUI', 'Manual scan error')
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
     
     @app.route('/api/notifications/send', methods=['POST'])
     def api_send_notifications():
