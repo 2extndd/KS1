@@ -82,64 +82,58 @@ ERROR_CODES_FOR_REDEPLOY = [403, 404, 429, 500, 502, 503]
 
 # Search Configuration
 def get_search_interval():
-    """Get search interval from database or environment"""
+    """Get search interval - БД ВСЕГДА имеет приоритет над env!"""
     try:
         from db import get_db
         
-        # ПРИОРИТЕТ 1: Настройки из базы данных (веб-интерфейс) - ВСЕГДА ИМЕЕТ ПРИОРИТЕТ!
+        # ПРИОРИТЕТ 1: Настройки из базы данных (веб-интерфейс)
+        # ВНИМАНИЕ: Даже если db_value пустая строка - всё равно используем дефолт, НЕ env!
         db_value = get_db().get_setting('SEARCH_INTERVAL')
-        if db_value and db_value.strip():
+        
+        # Проверяем что в БД есть РЕАЛЬНОЕ значение
+        if db_value is not None and db_value.strip():
             result = int(db_value)
             env_value = os.getenv('SEARCH_INTERVAL', 'NOT SET')
-            print(f"🔧 SEARCH_INTERVAL from database (WebUI): {db_value} -> {result} (env={env_value} IGNORED)")
+            print(f"🔧 SEARCH_INTERVAL from database: {db_value} -> {result} (env={env_value} IGNORED)")
             return result
         
-        # ПРИОРИТЕТ 2: Переменные среды (только если НЕТ в БД)
-        env_value = os.getenv('SEARCH_INTERVAL')
-        if env_value and env_value.strip():
-            result = int(env_value)
-            print(f"🔧 SEARCH_INTERVAL from environment (no DB setting): {env_value} -> {result}")
-            return result
-        
-        # ПРИОРИТЕТ 3: Дефолт
-        print(f"🔧 SEARCH_INTERVAL default (no DB, no env): 300")
+        # Если в БД нет значения - используем ДЕФОЛТ, НЕ env!
+        # Это гарантирует что env не переопределит WebUI
+        env_value = os.getenv('SEARCH_INTERVAL', 'NOT SET')
+        print(f"🔧 SEARCH_INTERVAL: NO DB VALUE, using DEFAULT 300 (env={env_value} IGNORED)")
         return 300
         
     except Exception as e:
-        # FALLBACK: Переменные среды или дефолт
-        env_value = os.getenv('SEARCH_INTERVAL', '300')
-        print(f"🔧 SEARCH_INTERVAL fallback due to error: {env_value} (error: {e})")
-        return int(env_value)
+        # FALLBACK при ошибке БД
+        print(f"⚠️ SEARCH_INTERVAL fallback due to DB error: using 300 (error: {e})")
+        return 300
 
 def get_max_items_per_search():
-    """Get max items per search from database or environment"""
+    """Get max items per search - БД ВСЕГДА имеет приоритет над env!"""
     try:
         from db import get_db
         
-        # ПРИОРИТЕТ 1: Настройки из базы данных (веб-интерфейс) - ВСЕГДА ИМЕЕТ ПРИОРИТЕТ!
+        # ПРИОРИТЕТ 1: Настройки из базы данных (веб-интерфейс)
+        # ВНИМАНИЕ: Даже если db_value пустая строка - всё равно используем дефолт, НЕ env!
         db_value = get_db().get_setting('MAX_ITEMS_PER_SEARCH')
-        if db_value and db_value.strip():
+        
+        # Проверяем что в БД есть РЕАЛЬНОЕ значение
+        if db_value is not None and db_value.strip():
             result = int(db_value)
             env_value = os.getenv('MAX_ITEMS_PER_SEARCH', 'NOT SET')
-            print(f"🔧 MAX_ITEMS_PER_SEARCH from database (WebUI): {db_value} -> {result} (env={env_value} IGNORED)")
+            print(f"🔧 MAX_ITEMS_PER_SEARCH from database: {db_value} -> {result} (env={env_value} IGNORED)")
             return result
         
-        # ПРИОРИТЕТ 2: Переменные среды (только если НЕТ в БД)
-        env_value = os.getenv('MAX_ITEMS_PER_SEARCH')
-        if env_value and env_value.strip():
-            result = int(env_value)
-            print(f"🔧 MAX_ITEMS_PER_SEARCH from environment (no DB setting): {env_value} -> {result}")
-            return result
-        
-        # ПРИОРИТЕТ 3: Дефолт
-        print(f"🔧 MAX_ITEMS_PER_SEARCH default (no DB, no env): 50")
+        # Если в БД нет значения - используем ДЕФОЛТ, НЕ env!
+        # Это гарантирует что env не переопределит WebUI
+        env_value = os.getenv('MAX_ITEMS_PER_SEARCH', 'NOT SET')
+        print(f"🔧 MAX_ITEMS_PER_SEARCH: NO DB VALUE, using DEFAULT 50 (env={env_value} IGNORED)")
         return 50
         
     except Exception as e:
-        # FALLBACK: Переменные среды или дефолт
-        env_value = os.getenv('MAX_ITEMS_PER_SEARCH', '50')
-        print(f"🔧 MAX_ITEMS_PER_SEARCH fallback due to error: {env_value} (error: {e})")
-        return int(env_value)
+        # FALLBACK при ошибке БД
+        print(f"⚠️ MAX_ITEMS_PER_SEARCH fallback due to DB error: using 50 (error: {e})")
+        return 50
 
 def get_telegram_bot_token():
     """Get telegram bot token from database or environment"""
