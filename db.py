@@ -372,45 +372,57 @@ class DatabaseManager:
     
     def update_search_query(self, search_id: int, **kwargs) -> bool:
         """Update search query"""
+        conn = None
         try:
-            with self.get_connection() as conn:
-                cursor = conn.cursor()
-                
-                # Build dynamic update query
-                set_clauses = []
-                values = []
-                param_count = 1
-                
-                for key, value in kwargs.items():
-                    if key in ['name', 'url', 'region', 'category', 'min_price', 'max_price', 
-                              'keywords', 'telegram_chat_id', 'telegram_thread_id', 'is_active', 'last_scan_time']:
-                        set_clauses.append(f"{key} = %s")
-                        values.append(value)
-                
-                if not set_clauses:
-                    return False
-                
-                values.append(search_id)
-                query = f"""
-                    UPDATE searches 
-                    SET {', '.join(set_clauses)}, updated_at = CURRENT_TIMESTAMP
-                    WHERE id = %s
-                """
-                
-                # Execute with proper error handling
-                try:
-                    self.execute_query(cursor, query, values)
-                except Exception as e:
-                    logger.error(f"SQL execution error: {e}")
-                    logger.error(f"Query: {query}")
-                    logger.error(f"Values: {values}")
-                    raise
-                conn.commit()
-                return cursor.rowcount > 0
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            # Build dynamic update query
+            set_clauses = []
+            values = []
+            
+            for key, value in kwargs.items():
+                if key in ['name', 'url', 'region', 'category', 'min_price', 'max_price', 
+                          'keywords', 'telegram_chat_id', 'telegram_thread_id', 'is_active', 'last_scan_time']:
+                    set_clauses.append(f"{key} = %s")
+                    values.append(value)
+            
+            if not set_clauses:
+                return False
+            
+            values.append(search_id)
+            query = f"""
+                UPDATE searches 
+                SET {', '.join(set_clauses)}, updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+            """
+            
+            # Execute with proper error handling
+            try:
+                self.execute_query(cursor, query, values)
+                rows_updated = cursor.rowcount
+            except Exception as e:
+                logger.error(f"SQL execution error: {e}")
+                logger.error(f"Query: {query}")
+                logger.error(f"Values: {values}")
+                raise
+            
+            # CRITICAL: Commit BEFORE closing connection
+            conn.commit()
+            
+            logger.info(f"Updated search query {search_id}, affected rows: {rows_updated}")
+            return rows_updated > 0
                 
         except Exception as e:
+            if conn:
+                conn.rollback()
             logger.error(f"Error updating search query: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return False
+        finally:
+            if conn:
+                conn.close()
     
     def update_search_scan_time(self, search_id: int) -> bool:
         """Обновить время последнего сканирования поиска (VS5-style)"""
@@ -502,27 +514,38 @@ class DatabaseManager:
     
     def delete_search_query(self, search_id: int) -> bool:
         """Delete search query and associated items"""
+        conn = None
         try:
-            with self.get_connection() as conn:
-                cursor = conn.cursor()
-                
-                # First delete associated items
-                self.execute_query(cursor, "DELETE FROM items WHERE search_id = %s", (search_id,))
-                logger.info(f"Deleted {cursor.rowcount} items for search {search_id}")
-                
-                # Then delete the search query
-                self.execute_query(cursor, "DELETE FROM searches WHERE id = %s", (search_id,))
-                deleted_rows = cursor.rowcount
-                
-                conn.commit()
-                logger.info(f"Deleted search query {search_id}, affected rows: {deleted_rows}")
-                return deleted_rows > 0
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            # First delete associated items
+            self.execute_query(cursor, "DELETE FROM items WHERE search_id = %s", (search_id,))
+            items_deleted = cursor.rowcount
+            logger.info(f"Deleted {items_deleted} items for search {search_id}")
+            
+            # Then delete the search query
+            self.execute_query(cursor, "DELETE FROM searches WHERE id = %s", (search_id,))
+            queries_deleted = cursor.rowcount
+            
+            # CRITICAL: Commit BEFORE closing connection
+            conn.commit()
+            
+            logger.info(f"Deleted search query {search_id}, affected rows: {queries_deleted}")
+            
+            # Return True if query was deleted (even if no items were deleted)
+            return queries_deleted > 0
                 
         except Exception as e:
+            if conn:
+                conn.rollback()
             logger.error(f"Error deleting search query {search_id}: {e}")
             import traceback
             logger.error(traceback.format_exc())
             return False
+        finally:
+            if conn:
+                conn.close()
     
     def add_item(self, item_data: Dict[str, Any], search_id: int = None) -> int:
         """Add new item to database"""
