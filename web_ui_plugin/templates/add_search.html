@@ -307,11 +307,8 @@ document.getElementById('searchForm').addEventListener('submit', function(e) {
         return;
     }
     
-    if (!urlValidated) {
-        e.preventDefault();
-        alert('Please test the URL first to ensure it\'s valid');
-        return;
-    }
+    // REMOVED: URL validation requirement - allow form submission without testing
+    // Users can save searches without testing the URL first
 });
 
 // Auto-test URL when it's pasted or changed

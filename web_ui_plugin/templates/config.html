@@ -322,11 +322,11 @@ document.getElementById('configForm').addEventListener('submit', function(e) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showAlert('Configuration saved successfully! Reloading...', 'success');
-            // Wait MUCH longer to ensure PostgreSQL commit is complete on Railway
-            setTimeout(() => location.reload(), 3000);
+            showAlert('✅ Configuration saved successfully!', 'success');
+            // DON'T auto-reload - let user verify settings or manually reload
+            // Auto-reload can cause issues with PostgreSQL commit timing on Railway
         } else {
-            showAlert('Failed to save configuration: ' + data.error, 'danger');
+            showAlert('❌ Failed to save configuration: ' + data.error, 'danger');
         }
     })
     .catch(error => {
