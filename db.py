@@ -236,15 +236,7 @@ class DatabaseManager:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 
-                # Use standard Python-style parameterized query with %s
-                query = """
-                    INSERT INTO searches (name, url, region, category, min_price, max_price, 
-                                        keywords, telegram_chat_id, telegram_thread_id, is_active)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    RETURNING id
-                """
-                
-                # Ensure all values are properly formatted for PostgreSQL
+                # Ensure all values are properly formatted
                 values = (
                     str(name), str(url), 
                     str(kwargs.get('region', '')) if kwargs.get('region') else None, 
@@ -259,25 +251,47 @@ class DatabaseManager:
                 
                 # Execute with proper error handling
                 try:
-                    self.execute_query(cursor, query, values)
+                    if self.is_postgres:
+                        # PostgreSQL - use RETURNING
+                        query = """
+                            INSERT INTO searches (name, url, region, category, min_price, max_price, 
+                                                keywords, telegram_chat_id, telegram_thread_id, is_active)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            RETURNING id
+                        """
+                        self.execute_query(cursor, query, values)
+                        result = cursor.fetchone()
+                        if result is None:
+                            logger.error(f"Failed to get search ID for: {name}")
+                            raise Exception("Failed to get search ID from database")
+                        search_id = result[0]
+                    else:
+                        # SQLite - use lastrowid
+                        query = """
+                            INSERT INTO searches (name, url, region, category, min_price, max_price, 
+                                                keywords, telegram_chat_id, telegram_thread_id, is_active)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """
+                        self.execute_query(cursor, query, values)
+                        search_id = cursor.lastrowid
+                        if not search_id:
+                            logger.error(f"Failed to get search ID for: {name}")
+                            raise Exception("Failed to get search ID from database")
+                    
                 except Exception as e:
                     logger.error(f"SQL execution error: {e}")
                     logger.error(f"Query: {query}")
                     logger.error(f"Values: {values}")
                     raise
                 
-                result = cursor.fetchone()
-                if result is None:
-                    logger.error(f"Failed to get search ID for: {name}")
-                    raise Exception("Failed to get search ID from database")
-                
-                search_id = result[0]
                 conn.commit()
-                logger.info(f"Added new search: {name} (ID: {search_id})")
+                logger.info(f"✅ Added new search: {name} (ID: {search_id})")
                 return search_id
                 
         except Exception as e:
-            logger.error(f"Error adding search: {e}")
+            logger.error(f"❌ Error adding search: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             raise
     
     def get_active_searches(self) -> List[Dict]:
@@ -537,13 +551,7 @@ class DatabaseManager:
                         return 0
                 
                 # Insert new item
-                self.execute_query(cursor, """
-                    INSERT INTO items (kufar_id, search_id, title, price, currency, 
-                                     description, images, location, seller_name, 
-                                     seller_phone, url, raw_data, is_sent)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    RETURNING id
-                """, (
+                item_values = (
                     item_data.get('kufar_id', ''),
                     search_id or item_data.get('search_id'),
                     item_data.get('title', ''),
@@ -557,9 +565,28 @@ class DatabaseManager:
                     item_data.get('url', ''),
                     json.dumps(item_data.get('raw_data', {})) if item_data.get('raw_data') else None,
                     False
-                ))
+                )
                 
-                item_id = cursor.fetchone()[0]
+                if self.is_postgres:
+                    # PostgreSQL - use RETURNING
+                    self.execute_query(cursor, """
+                        INSERT INTO items (kufar_id, search_id, title, price, currency, 
+                                         description, images, location, seller_name, 
+                                         seller_phone, url, raw_data, is_sent)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        RETURNING id
+                    """, item_values)
+                    item_id = cursor.fetchone()[0]
+                else:
+                    # SQLite - use lastrowid
+                    self.execute_query(cursor, """
+                        INSERT INTO items (kufar_id, search_id, title, price, currency, 
+                                         description, images, location, seller_name, 
+                                         seller_phone, url, raw_data, is_sent)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """, item_values)
+                    item_id = cursor.lastrowid
+                
                 conn.commit()
                 
                 # Log new item in VS5 style
