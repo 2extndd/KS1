@@ -637,10 +637,11 @@ class DatabaseManager:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
+                # CRITICAL FIX: Use LEFT JOIN to include items even if search was deleted
                 self.execute_query(cursor, """
                     SELECT i.*, s.telegram_chat_id, s.telegram_thread_id, s.name as search_name
                     FROM items i
-                    JOIN searches s ON i.search_id = s.id
+                    LEFT JOIN searches s ON i.search_id = s.id
                     WHERE i.is_sent = FALSE
                     ORDER BY i.created_at ASC
                 """, ())
@@ -659,6 +660,8 @@ class DatabaseManager:
                 
         except Exception as e:
             logger.error(f"Error getting unsent items: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return []
     
     def mark_item_sent(self, item_id: int):
