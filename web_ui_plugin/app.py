@@ -855,6 +855,23 @@ def create_app():
         except Exception as e:
             return jsonify({'error': str(e)}), 500
     
+    @app.route('/api/queries/<int:query_id>/toggle', methods=['PUT'])
+    def api_toggle_query(query_id):
+        """Toggle query active status"""
+        try:
+            data = request.get_json()
+            is_active = data.get('is_active', True)
+            
+            success = get_db().update_search_query(query_id, is_active=is_active)
+            if success:
+                status = 'enabled' if is_active else 'disabled'
+                get_db().add_log_entry('INFO', f'Query {status}: ID {query_id}', 'WebUI')
+                return jsonify({'success': True})
+            else:
+                return jsonify({'error': 'Failed to toggle query status'}), 500
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
     @app.route('/api/queries/all', methods=['DELETE'])
     def api_delete_all_queries():
         """Delete all queries"""

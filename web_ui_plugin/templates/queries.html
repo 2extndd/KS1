@@ -76,14 +76,18 @@
                 {% if queries %}
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">
-                        <thead class="table-light">
+                        <thead>
                             <tr>
                                 <th style="width: 40px;">#</th>
-                                <th style="cursor: pointer;" onclick="sortTable(1)">
+                                <th style="width: 80px; cursor: pointer;" onclick="sortByStatus()">
+                                    Status
+                                    <i class="bi bi-arrow-down-up ms-1" id="status-sort-icon"></i>
+                                </th>
+                                <th style="cursor: pointer;" onclick="sortTable(2)">
                                     Query 
                                     <i class="bi bi-arrow-down-up ms-1"></i>
                                 </th>
-                                <th style="width: 120px; cursor: pointer;" onclick="sortTable(2)">
+                                <th style="width: 120px; cursor: pointer;" onclick="sortTable(3)">
                                     Thread ID 
                                     <i class="bi bi-arrow-down-up ms-1"></i>
                                 </th>
@@ -94,8 +98,22 @@
                         </thead>
                         <tbody>
                             {% for query in queries %}
-                            <tr>
+                            <tr data-query-id="{{ query.id }}" data-is-active="{{ query.is_active|default(true)|string|lower }}">
                                 <td class="fw-bold">{{ loop.index }}</td>
+                                <td>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" 
+                                               id="toggle-{{ query.id }}" 
+                                               {{ 'checked' if query.is_active|default(true) else '' }}
+                                               onchange="toggleQueryStatus({{ query.id }}, this.checked)"
+                                               title="{{ 'Disable query' if query.is_active|default(true) else 'Enable query' }}">
+                                        <label class="form-check-label" for="toggle-{{ query.id }}">
+                                            <span class="badge bg-{{ 'success' if query.is_active|default(true) else 'secondary' }}">
+                                                {{ 'Active' if query.is_active|default(true) else 'Inactive' }}
+                                            </span>
+                                        </label>
+                                    </div>
+                                </td>
                                 <td>
                                     <a href="{{ query.url }}" target="_blank" class="text-decoration-none fw-bold">
                                         <i class="bi bi-link-45deg me-1"></i>
@@ -385,6 +403,89 @@ function editThreadId(queryId) {
     }
 }
 
+// Toggle query status (active/inactive)
+function toggleQueryStatus(queryId, isActive) {
+    fetch(`/api/queries/${queryId}/toggle`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ is_active: isActive })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(`Query ${isActive ? 'enabled' : 'disabled'} successfully!`, 'success');
+            
+            // Update row appearance
+            const row = document.querySelector(`tr[data-query-id="${queryId}"]`);
+            if (row) {
+                row.setAttribute('data-is-active', isActive.toString());
+                
+                // Update badge
+                const badge = row.querySelector('.badge');
+                if (badge) {
+                    badge.className = `badge bg-${isActive ? 'success' : 'secondary'}`;
+                    badge.textContent = isActive ? 'Active' : 'Inactive';
+                }
+            }
+        } else {
+            showAlert('Error toggling query status: ' + data.error, 'danger');
+            // Revert checkbox
+            const checkbox = document.getElementById(`toggle-${queryId}`);
+            if (checkbox) {
+                checkbox.checked = !isActive;
+            }
+        }
+    })
+    .catch(error => {
+        showAlert('Error toggling query status: ' + error.message, 'danger');
+        // Revert checkbox
+        const checkbox = document.getElementById(`toggle-${queryId}`);
+        if (checkbox) {
+            checkbox.checked = !isActive;
+        }
+    });
+}
+
+// Sort by status (active/inactive)
+let statusSortDirection = 'desc'; // Start with active first
+
+function sortByStatus() {
+    const table = document.querySelector('.table');
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    // Toggle sort direction
+    statusSortDirection = statusSortDirection === 'asc' ? 'desc' : 'asc';
+    
+    // Sort rows by is_active attribute
+    rows.sort((a, b) => {
+        const aActive = a.getAttribute('data-is-active') === 'true';
+        const bActive = b.getAttribute('data-is-active') === 'true';
+        
+        if (statusSortDirection === 'desc') {
+            // Active first
+            return bActive - aActive;
+        } else {
+            // Inactive first
+            return aActive - bActive;
+        }
+    });
+    
+    // Update row numbers and re-append rows
+    rows.forEach((row, index) => {
+        row.children[0].textContent = index + 1; // Update row number
+        tbody.appendChild(row);
+    });
+    
+    // Update sort indicator
+    const icon = document.getElementById('status-sort-icon');
+    if (icon) {
+        icon.className = statusSortDirection === 'desc' ? 'bi bi-sort-down ms-1' : 'bi bi-sort-up ms-1';
+    }
+}
+
 // Table sorting functionality (like VS5)
 let sortDirection = {};
 
@@ -407,7 +508,7 @@ function sortTable(columnIndex) {
         const aValue = a.children[columnIndex].textContent.trim().toLowerCase();
         const bValue = b.children[columnIndex].textContent.trim().toLowerCase();
         
-        if (columnIndex === 2) { // Thread ID column
+        if (columnIndex === 3) { // Thread ID column
             // Handle numeric sorting for thread IDs
             const aNum = parseInt(aValue) || 0;
             const bNum = parseInt(bValue) || 0;

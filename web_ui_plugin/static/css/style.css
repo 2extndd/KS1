@@ -386,6 +386,37 @@ footer {
     border-top: 1px solid var(--border-color);
 }
 
+/* Table Header Dark Theme Fix */
+thead {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+}
+
+thead th {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+/* Remove table-light class override for dark theme */
+.table-light {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Fix table borders in dark theme */
+.table {
+    --bs-table-bg: var(--bg-card);
+    --bs-table-border-color: var(--border-color);
+    --bs-table-striped-bg: var(--bg-secondary);
+    --bs-table-hover-bg: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.table > :not(caption) > * > * {
+    border-bottom-color: var(--border-color);
+}
+
 /* Theme Toggle Button */
 .theme-toggle-btn {
     position: relative;
