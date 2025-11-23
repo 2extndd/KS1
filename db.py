@@ -232,67 +232,68 @@ class DatabaseManager:
     
     def add_search(self, name: str, url: str, **kwargs) -> int:
         """Add new search query"""
+        conn = None
         try:
-            with self.get_connection() as conn:
-                cursor = conn.cursor()
-                
-                # Ensure all values are properly formatted
-                values = (
-                    str(name), str(url), 
-                    str(kwargs.get('region', '')) if kwargs.get('region') else None, 
-                    str(kwargs.get('category', '')) if kwargs.get('category') else None,
-                    int(kwargs.get('min_price', 0)) if kwargs.get('min_price') else None, 
-                    int(kwargs.get('max_price', 0)) if kwargs.get('max_price') else None,
-                    str(kwargs.get('keywords', '')) if kwargs.get('keywords') else None, 
-                    str(kwargs.get('telegram_chat_id', '')) if kwargs.get('telegram_chat_id') else None,
-                    str(kwargs.get('telegram_thread_id', '')) if kwargs.get('telegram_thread_id') else None, 
-                    True
-                )
-                
-                # Execute with proper error handling
-                try:
-                    if self.is_postgres:
-                        # PostgreSQL - use RETURNING
-                        query = """
-                            INSERT INTO searches (name, url, region, category, min_price, max_price, 
-                                                keywords, telegram_chat_id, telegram_thread_id, is_active)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                            RETURNING id
-                        """
-                        self.execute_query(cursor, query, values)
-                        result = cursor.fetchone()
-                        if result is None:
-                            logger.error(f"Failed to get search ID for: {name}")
-                            raise Exception("Failed to get search ID from database")
-                        search_id = result[0]
-                    else:
-                        # SQLite - use lastrowid
-                        query = """
-                            INSERT INTO searches (name, url, region, category, min_price, max_price, 
-                                                keywords, telegram_chat_id, telegram_thread_id, is_active)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                        """
-                        self.execute_query(cursor, query, values)
-                        search_id = cursor.lastrowid
-                        if not search_id:
-                            logger.error(f"Failed to get search ID for: {name}")
-                            raise Exception("Failed to get search ID from database")
-                    
-                except Exception as e:
-                    logger.error(f"SQL execution error: {e}")
-                    logger.error(f"Query: {query}")
-                    logger.error(f"Values: {values}")
-                    raise
-                
-                conn.commit()
-                logger.info(f"✅ Added new search: {name} (ID: {search_id})")
-                return search_id
-                
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            # Ensure all values are properly formatted
+            values = (
+                str(name), str(url), 
+                str(kwargs.get('region', '')) if kwargs.get('region') else None, 
+                str(kwargs.get('category', '')) if kwargs.get('category') else None,
+                int(kwargs.get('min_price', 0)) if kwargs.get('min_price') else None, 
+                int(kwargs.get('max_price', 0)) if kwargs.get('max_price') else None,
+                str(kwargs.get('keywords', '')) if kwargs.get('keywords') else None, 
+                str(kwargs.get('telegram_chat_id', '')) if kwargs.get('telegram_chat_id') else None,
+                str(kwargs.get('telegram_thread_id', '')) if kwargs.get('telegram_thread_id') else None, 
+                True
+            )
+            
+            # Execute with proper error handling
+            if self.is_postgres:
+                # PostgreSQL - use RETURNING
+                query = """
+                    INSERT INTO searches (name, url, region, category, min_price, max_price, 
+                                        keywords, telegram_chat_id, telegram_thread_id, is_active)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
+                """
+                self.execute_query(cursor, query, values)
+                result = cursor.fetchone()
+                if result is None:
+                    logger.error(f"Failed to get search ID for: {name}")
+                    raise Exception("Failed to get search ID from database")
+                search_id = result[0]
+            else:
+                # SQLite - use lastrowid
+                query = """
+                    INSERT INTO searches (name, url, region, category, min_price, max_price, 
+                                        keywords, telegram_chat_id, telegram_thread_id, is_active)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """
+                self.execute_query(cursor, query, values)
+                search_id = cursor.lastrowid
+                if not search_id:
+                    logger.error(f"Failed to get search ID for: {name}")
+                    raise Exception("Failed to get search ID from database")
+            
+            # CRITICAL: Commit BEFORE closing connection
+            conn.commit()
+            logger.info(f"✅ Added new search: {name} (ID: {search_id})")
+            
+            return search_id
+            
         except Exception as e:
+            if conn:
+                conn.rollback()
             logger.error(f"❌ Error adding search: {e}")
             import traceback
             logger.error(traceback.format_exc())
             raise
+        finally:
+            if conn:
+                conn.close()
     
     def get_active_searches(self) -> List[Dict]:
         """Get all active search queries"""
@@ -678,67 +679,74 @@ class DatabaseManager:
     
     def set_setting(self, key: str, value: str) -> bool:
         """Set a configuration setting"""
+        conn = None
         try:
-            with self.get_connection() as conn:
-                cursor = conn.cursor()
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            if self.is_postgres:
+                # PostgreSQL - use ON CONFLICT
+                self.execute_query(cursor, """
+                    INSERT INTO settings (key, value, updated_at) 
+                    VALUES (%s, %s, CURRENT_TIMESTAMP)
+                    ON CONFLICT (key) DO UPDATE SET 
+                    value = EXCLUDED.value,
+                    updated_at = CURRENT_TIMESTAMP
+                """, (key, value))
+            else:
+                # SQLite - use INSERT OR REPLACE
+                # First check if setting exists
+                self.execute_query(cursor, """
+                    SELECT id FROM settings WHERE key = %s
+                """, (key,))
+                existing = cursor.fetchone()
                 
-                if self.is_postgres:
-                    # PostgreSQL - use ON CONFLICT
+                if existing:
+                    # Update existing
+                    self.execute_query(cursor, """
+                        UPDATE settings 
+                        SET value = %s, updated_at = CURRENT_TIMESTAMP
+                        WHERE key = %s
+                    """, (value, key))
+                else:
+                    # Insert new
                     self.execute_query(cursor, """
                         INSERT INTO settings (key, value, updated_at) 
                         VALUES (%s, %s, CURRENT_TIMESTAMP)
-                        ON CONFLICT (key) DO UPDATE SET 
-                        value = EXCLUDED.value,
-                        updated_at = CURRENT_TIMESTAMP
                     """, (key, value))
-                else:
-                    # SQLite - use INSERT OR REPLACE
-                    # First check if setting exists
-                    self.execute_query(cursor, """
-                        SELECT id FROM settings WHERE key = %s
-                    """, (key,))
-                    existing = cursor.fetchone()
-                    
-                    if existing:
-                        # Update existing
-                        self.execute_query(cursor, """
-                            UPDATE settings 
-                            SET value = %s, updated_at = CURRENT_TIMESTAMP
-                            WHERE key = %s
-                        """, (value, key))
-                    else:
-                        # Insert new
-                        self.execute_query(cursor, """
-                            INSERT INTO settings (key, value, updated_at) 
-                            VALUES (%s, %s, CURRENT_TIMESTAMP)
-                        """, (key, value))
-                
-                conn.commit()
-                
-                # ВАЖНО: Явно проверяем что commit прошёл успешно
-                # Для PostgreSQL на Railway это критично!
-                import time
-                time.sleep(0.1)  # Даём время на commit
-                
-                # Проверяем что значение действительно сохранилось
-                cursor_check = conn.cursor()
-                self.execute_query(cursor_check, """
-                    SELECT value FROM settings WHERE key = %s
-                """, (key,))
-                check_result = cursor_check.fetchone()
-                
-                if check_result and check_result[0] == value:
-                    logger.info(f"✅ Setting saved and verified: {key} = {value}")
-                    return True
-                else:
-                    logger.error(f"❌ Setting saved but verification FAILED: {key} (expected={value}, got={check_result[0] if check_result else None})")
-                    return False
-                
+            
+            # CRITICAL: Commit BEFORE closing connection
+            conn.commit()
+            
+            # ВАЖНО: Явно проверяем что commit прошёл успешно
+            # Для PostgreSQL на Railway это критично!
+            import time
+            time.sleep(0.1)  # Даём время на commit
+            
+            # Проверяем что значение действительно сохранилось
+            cursor_check = conn.cursor()
+            self.execute_query(cursor_check, """
+                SELECT value FROM settings WHERE key = %s
+            """, (key,))
+            check_result = cursor_check.fetchone()
+            
+            if check_result and check_result[0] == value:
+                logger.info(f"✅ Setting saved and verified: {key} = {value}")
+                return True
+            else:
+                logger.error(f"❌ Setting saved but verification FAILED: {key} (expected={value}, got={check_result[0] if check_result else None})")
+                return False
+            
         except Exception as e:
+            if conn:
+                conn.rollback()
             logger.error(f"❌ Error setting {key}: {e}")
             import traceback
             logger.error(traceback.format_exc())
             return False
+        finally:
+            if conn:
+                conn.close()
     
     def get_setting(self, key: str, default: str = None) -> str:
         """Get a configuration setting"""
